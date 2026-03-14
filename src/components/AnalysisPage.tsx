@@ -107,7 +107,7 @@ export default function AnalysisPage() {
               </div>
             </div>
           );
-        }) : <p className="text-slate-400 text-sm">Sem dados para o mes selecionado.</p>}
+        }) : <p className="text-slate-400 text-sm">Sem dados para o mês selecionado.</p>}
       </div>
     </>
   );

@@ -38,12 +38,12 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
     if (mode === 'signup') {
       if (!name.trim()) { setError('Digite seu nome.'); setLoading(false); return; }
       if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
-      if (!consent) { setError('Voce precisa concordar com a politica de privacidade para criar sua conta.'); setLoading(false); return; }
+      if (!consent) { setError('Você precisa concordar com a política de privacidade para criar sua conta.'); setLoading(false); return; }
       const result = await signUp(email, password, name);
       if (result.error) {
         setError(traduzirErro(result.error));
       } else {
-        setSuccess('Conta criada com sucesso! Voce ja pode fazer login.');
+        setSuccess('Conta criada com sucesso! Você já pode fazer login.');
       }
     } else if (mode === 'forgot') {
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
@@ -76,7 +76,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
   function traduzirErro(msg: string): string {
     if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
     if (msg.includes('Email not confirmed')) return 'Confirme seu email antes de entrar. Verifique sua caixa de entrada.';
-    if (msg.includes('already registered')) return 'Este email ja esta cadastrado. Tente fazer login.';
+    if (msg.includes('already registered')) return 'Este email já está cadastrado. Tente fazer login.';
     if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
     if (msg.includes('User not found')) return 'Nenhuma conta encontrada com este email.';
     return msg;
@@ -116,7 +116,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/30">
             <span className="text-2xl">💰</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Financas Familia</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Finanças Família</h1>
           <p className="text-slate-400">Controle inteligente de gastos familiares</p>
         </div>
 
@@ -189,9 +189,9 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
                   className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 accent-blue-600 cursor-pointer"
                 />
                 <span className="text-xs text-slate-400 leading-relaxed">
-                  Ao criar sua conta, voce concorda com nossa{' '}
+                  Ao criar sua conta, você concorda com nossa{' '}
                   <a href="/privacidade" target="_blank" className="text-blue-400 underline hover:text-blue-300">politica de privacidade</a>.
-                  Seus dados financeiros sao criptografados e armazenados com seguranca. Voce pode excluir sua conta e todos os dados a qualquer momento nas configuracoes.
+                  Seus dados financeiros são criptografados e armazenados com segurança. Você pode excluir sua conta e todos os dados a qualquer momento nas configurações.
                 </span>
               </label>
             )}

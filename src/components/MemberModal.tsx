@@ -95,7 +95,7 @@ export default function MemberModal({ isOpen, onClose, editingMemberId }: Props)
             <span className="text-sm">Conta Conjunta</span>
           </div>
           {isConjunta && (
-            <div className="text-xs text-slate-400 mt-1">Despesas lancadas aqui serao divididas igualmente entre os membros individuais.</div>
+            <div className="text-xs text-slate-400 mt-1">Despesas lançadas aqui serão divididas igualmente entre os membros individuais.</div>
           )}
         </div>
 

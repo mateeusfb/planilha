@@ -117,13 +117,13 @@ export default function Dashboard() {
     const prevOutflows = getOutflows(prevYM, activeMember);
     const prevExpense = getTotal(prevOutflows) - prevOutflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
     const diff = despesasReais - prevExpense;
-    const diffText = prevExpense > 0 ? `${diff >= 0 ? '+' : ''}${fmt(diff)} vs mes anterior` : 'Sem dados do mes anterior';
+    const diffText = prevExpense > 0 ? `${diff >= 0 ? '+' : ''}${fmt(diff)} vs mês anterior` : 'Sem dados do mês anterior';
 
     const familyBreakdown: { label: string; value: number }[] = [];
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
       const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-      if (famTotal > 0) familyBreakdown.push({ label: '🏠 Familia (conjunto)', value: famTotal });
+      if (famTotal > 0) familyBreakdown.push({ label: '🏠 Família (conjunto)', value: famTotal });
       getIndividualMembers().forEach(mb => {
         const mbOut = outflows.filter(e => e.memberId === mb.id);
         const mbTotal = getTotal(mbOut) - mbOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
@@ -134,7 +134,7 @@ export default function Dashboard() {
     const investSubParts: string[] = [];
     if (investSaida > 0) investSubParts.push(`${fmt(investSaida)} aplicado`);
     if (totalIncomeInvest > 0) investSubParts.push(`${fmt(totalIncomeInvest)} rendimento`);
-    const investSub = investSubParts.length > 0 ? investSubParts.join(' | ') : (totalIncome > 0 ? '0% da receita' : 'Sem movimentacao');
+    const investSub = investSubParts.length > 0 ? investSubParts.join(' | ') : (totalIncome > 0 ? '0% da receita' : 'Sem movimentação');
 
     const byCat = groupBy(outflows, 'cat');
     const catLabels = Object.keys(byCat);
@@ -203,7 +203,7 @@ export default function Dashboard() {
             )}
           </div>
           <div className="t-card rounded-xl p-4 border">
-            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponivel</div>
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponível</div>
             <HiddenValue hidden={valuesHidden} className={`text-2xl font-bold ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</HiddenValue>
             <div className="text-xs text-slate-400 mt-1">
               {valuesHidden ? '••••' : (data.totalIncome > 0 ? `${Math.round((1 - data.despesasReais / data.totalIncome) * 100)}% da receita restante` : 'Sem receita registrada')}
@@ -218,7 +218,7 @@ export default function Dashboard() {
       </Section>
 
       {/* Gráficos */}
-      <Section title="Graficos" icon="📊">
+      <Section title="Gráficos" icon="📊">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
             <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Gastos por Categoria</h4>
@@ -232,7 +232,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Evolucao Mensal (6 meses)</h4>
+            <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Evolução Mensal (6 meses)</h4>
             <div className="h-56">
               <Bar
                 data={{
@@ -252,7 +252,7 @@ export default function Dashboard() {
       {/* Dicas */}
       <Section title="Dicas do Assistente Financeiro" icon="🧠">
         {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
-          <div className="text-slate-400 text-sm">Adicione lancamentos para receber dicas.</div>
+          <div className="text-slate-400 text-sm">Adicione lançamentos para receber dicas.</div>
         )}
       </Section>
     </>

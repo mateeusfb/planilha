@@ -11,11 +11,11 @@ interface SidebarProps {
 }
 
 const navLinks: { id: PageId; icon: string; label: string }[] = [
-  { id: 'dashboard', icon: '🏠', label: 'Inicio' },
-  { id: 'expenses', icon: '💳', label: 'Lancamentos' },
-  { id: 'analysis', icon: '📈', label: 'Analise' },
+  { id: 'dashboard', icon: '🏠', label: 'Início' },
+  { id: 'expenses', icon: '💳', label: 'Lançamentos' },
+  { id: 'analysis', icon: '📈', label: 'Análise' },
   { id: 'summary', icon: '📄', label: 'Resumo Mensal' },
-  { id: 'settings', icon: '⚙', label: 'Configuracoes' },
+  { id: 'settings', icon: '⚙', label: 'Configurações' },
 ];
 
 export function Avatar({ member, size = 26 }: { member: Member; size?: number }) {
@@ -52,7 +52,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
         <div className="px-3 py-4 border-b t-border flex items-center justify-between">
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-base font-bold t-accent truncate">Financas Familia</h1>
+              <h1 className="text-base font-bold t-accent truncate">Finanças Família</h1>
               <p className="text-[0.72rem] t-text-dim mt-0.5 truncate">Controle inteligente</p>
             </div>
           )}
@@ -82,15 +82,15 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
         <div className="px-1.5 pb-3 border-t t-border pt-3">
           {!collapsed && <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1.5">Membros</div>}
 
-          {/* Familia (todos) */}
+          {/* Família (todos) */}
           <button onClick={() => setActiveMember('all')}
-            title={collapsed ? 'Familia (todos)' : undefined}
+            title={collapsed ? 'Família (todos)' : undefined}
             className={`w-full flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
               activeMember === 'all' ? 't-accent-light' : 't-text hover:opacity-80'
             } ${collapsed ? 'justify-center' : ''}`}>
             <span className="rounded-full flex items-center justify-center text-white flex-shrink-0 font-bold"
               style={{ width: 26, height: 26, background: '#2563eb', fontSize: 11 }}>F</span>
-            {!collapsed && <span className="truncate">Familia (todos)</span>}
+            {!collapsed && <span className="truncate">Família (todos)</span>}
           </button>
 
           {/* Individual members */}

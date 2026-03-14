@@ -67,7 +67,7 @@ export default function SummaryPage() {
       monthHistory.push({ ym, label: fmtMonth(ym), income: getTotal(all.filter(e => e.type === 'income')), total: histTotal });
     }
 
-    const memberName = activeMember === 'all' ? 'Familia' : (state.members.find(m => m.id === activeMember)?.name || 'Membro');
+    const memberName = activeMember === 'all' ? 'Família' : (state.members.find(m => m.id === activeMember)?.name || 'Membro');
     const sortedCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
     const topCat = sortedCats[0];
     const tips = generateTips(expenses, activeMember, getIndividualMembers);
@@ -89,13 +89,13 @@ export default function SummaryPage() {
         <p className="text-white/80 text-sm">{data.memberName} - Gerado em {new Date().toLocaleDateString('pt-BR')}</p>
         <div className="text-4xl font-bold my-3">{fmt(data.saldo >= 0 ? data.saldo : data.despesasReais)}</div>
         <div className="text-sm text-white/70">
-          {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponivel no mes' : 'Total de despesas (sem investimentos)'} | {data.expenses.length} lancamentos
+          {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponível no mês' : 'Total de despesas (sem investimentos)'} | {data.expenses.length} lancamentos
         </div>
       </div>
 
-      {/* Resumo do Mes */}
+      {/* Resumo do Mês */}
       <div className="t-card rounded-xl p-6 border mb-5">
-        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Resumo do Mes</h3>
+        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Resumo do Mês</h3>
         <Row label="Total de Receitas" value={fmt(data.totalIncome)} color="text-green-600" />
         <Row label="Despesas (sem investimentos)" value={fmt(data.despesasReais)} color="text-red-600" />
         {data.familyBreakdown.map((fb, i) => (
@@ -162,18 +162,18 @@ export default function SummaryPage() {
 
       {/* Tips */}
       <div className="t-card rounded-xl p-5 border mb-5">
-        <h3 className="text-sm font-bold mb-4">🧠 Analise e Recomendacoes</h3>
+        <h3 className="text-sm font-bold mb-4">🧠 Análise e Recomendações</h3>
         {data.tips.map((t, i) => <TipItem key={i} tip={t} />)}
       </div>
 
       {/* Full table */}
       {data.expenses.length > 0 && (
         <div className="t-card rounded-xl border overflow-hidden mb-6">
-          <div className="p-4 border-b t-border"><h3 className="text-sm font-bold">Todos os Lancamentos</h3></div>
+          <div className="p-4 border-b t-border"><h3 className="text-sm font-bold">Todos os Lançamentos</h3></div>
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50">
-                {['Descricao','Categoria','Valor','Pagamento','Parcelas'].map(h => (
+                {['Descrição','Categoria','Valor','Pagamento','Parcelas'].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide text-slate-500 border-b t-border">{h}</th>
                 ))}
               </tr>

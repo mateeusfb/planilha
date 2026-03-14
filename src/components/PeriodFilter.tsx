@@ -88,7 +88,7 @@ export default function PeriodFilter() {
               <button onClick={() => setTab('month')}
                 className={`flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${tab === 'month' ? 't-accent border-b-2' : 't-text-muted'}`}
                 style={tab === 'month' ? { borderBottomColor: 'var(--accent)' } : {}}>
-                Mes
+                Mês
               </button>
               <button onClick={() => setTab('period')}
                 className={`flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${tab === 'period' ? 't-accent border-b-2' : 't-text-muted'}`}

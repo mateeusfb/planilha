@@ -6,7 +6,7 @@ const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat
 const roboto = Roboto({ subsets: ["latin"], variable: "--font-roboto", weight: ["300", "400", "500", "700"] });
 
 export const metadata: Metadata = {
-  title: "Financas Familia - Controle de Gastos",
+  title: "Finanças Família - Controle de Gastos",
   description: "Controle inteligente de gastos familiares",
 };
 

@@ -26,11 +26,11 @@ function AppContent() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const titles: Record<PageId, string> = {
-    dashboard: 'Inicio',
-    expenses: 'Lancamentos',
-    analysis: 'Analise de Gastos',
+    dashboard: 'Início',
+    expenses: 'Lançamentos',
+    analysis: 'Análise de Gastos',
     summary: 'Resumo Mensal',
-    settings: 'Configuracoes',
+    settings: 'Configurações',
   };
 
   return (

@@ -162,7 +162,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       {/* Table */}
       <div className="t-card rounded-xl border overflow-hidden">
         <div className="p-4 border-b t-border flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-bold">Lancamentos do Mes</h3>
+          <h3 className="text-sm font-bold">Lançamentos do Mês</h3>
           <div className="flex flex-wrap gap-2">
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
               className="w-40 px-3 py-1.5 border rounded-lg text-[0.82rem] t-input" />
@@ -196,21 +196,21 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             <div className="text-4xl mb-3">📊</div>
             <p className="text-sm mb-4">Nenhum lancamento encontrado neste mes.</p>
             <button onClick={() => openPanel()} className="px-5 py-2 t-accent-bg text-white rounded-lg text-sm font-semibold cursor-pointer">
-              + Novo Lancamento
+              + Novo Lançamento
             </button>
           </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr>
-                {['Descricao','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Acoes'].map(h => (
+                {['Descrição','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Ações'].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filteredExpenses.map(e => {
-                const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Familia', color: '#2563eb' };
+                const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Família', color: '#2563eb' };
                 const isIncome = e.type === 'income';
                 return (
                   <tr key={e.id} className="t-row">
@@ -265,7 +265,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             {/* Header */}
             <div className="t-card border-b t-border px-6 py-4 flex items-center justify-between flex-shrink-0">
               <h3 className="text-lg font-bold t-text">
-                {editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lancamento') : 'Novo Lancamento'}
+                {editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lançamento') : 'Novo Lançamento'}
               </h3>
               <button onClick={closePanel} className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-70 t-text-dim text-xl cursor-pointer">
                 ✕
@@ -328,7 +328,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 <div>
                   <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Membro</label>
                   <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
-                    <option value="all" disabled={formType === 'income'}>Familia (geral)</option>
+                    <option value="all" disabled={formType === 'income'}>Família (geral)</option>
                     {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     {conjuntas.length > 0 && (
                       <optgroup label="Contas Conjuntas">
@@ -380,7 +380,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               )}
 
               <div>
-                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Observacao</label>
+                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Observação</label>
                 <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Opcional..."
                   className={inputClass} />
               </div>

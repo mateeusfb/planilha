@@ -82,7 +82,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
     setInviteLoading(true);
 
     if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
-      setInviteError('Voce nao pode convidar a si mesmo.');
+      setInviteError('Você não pode convidar a si mesmo.');
       setInviteLoading(false);
       return;
     }
@@ -147,7 +147,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   function deleteCat(i: number) {
     const catName = customCats[i];
     const inUse = state.expenses.filter(e => e.cat === catName).length;
-    const msg = inUse > 0 ? `"${catName}" esta em uso em ${inUse} lancamento(s). Excluir?` : `Excluir "${catName}"?`;
+    const msg = inUse > 0 ? `"${catName}" está em uso em ${inUse} lançamento(s). Excluir?` : `Excluir "${catName}"?`;
     if (!confirm(msg)) return;
     setState(prev => ({ ...prev, customCats: prev.customCats.filter((_, idx) => idx !== i) }));
   }
@@ -170,7 +170,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   function deletePay(i: number) {
     const payName = customPays[i];
     const inUse = state.expenses.filter(e => e.payment === payName).length;
-    const msg = inUse > 0 ? `"${payName}" esta em uso em ${inUse} lancamento(s). Excluir?` : `Excluir "${payName}"?`;
+    const msg = inUse > 0 ? `"${payName}" está em uso em ${inUse} lançamento(s). Excluir?` : `Excluir "${payName}"?`;
     if (!confirm(msg)) return;
     setState(prev => ({ ...prev, customPayments: prev.customPayments.filter((_, idx) => idx !== i) }));
   }
@@ -178,7 +178,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
     const member = state.members.find(m => m.id === id);
     if (!member) return;
     const inUse = state.expenses.filter(e => e.memberId === id).length;
-    const msg = inUse > 0 ? `Excluir "${member.name}"? ${inUse} lancamento(s) serao excluidos.` : `Excluir "${member.name}"?`;
+    const msg = inUse > 0 ? `Excluir "${member.name}"? ${inUse} lançamento(s) serao excluidos.` : `Excluir "${member.name}"?`;
     if (!confirm(msg)) return;
     removeMember(id);
   }
@@ -237,7 +237,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       {pendingInvites.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
           <h3 className="text-base font-bold mb-3 text-blue-800">📩 Convites Pendentes</h3>
-          <p className="text-sm text-blue-600 mb-4">Voce foi convidado para compartilhar uma planilha:</p>
+          <p className="text-sm text-blue-600 mb-4">Você foi convidado para compartilhar uma planilha:</p>
           {pendingInvites.map(inv => (
             <div key={inv.id} className="flex items-center justify-between p-3 bg-white rounded-lg mb-1.5 border border-blue-100">
               <span className="text-sm">Convite de <strong>{inv.owner_id.slice(0, 8)}...</strong></span>
@@ -340,7 +340,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       <div className="t-card border border-red-200 rounded-xl p-6 mt-6">
         <h3 className="text-base font-bold text-red-600 mb-2">Zona de perigo</h3>
         <p className="text-sm t-text-muted mb-4">
-          Ao excluir sua conta, todos os seus dados serao permanentemente removidos, incluindo membros, lancamentos, configuracoes e convites. Esta acao nao pode ser desfeita.
+          Ao excluir sua conta, todos os seus dados serão permanentemente removidos, incluindo membros, lançamentos, configurações e convites. Esta ação não pode ser desfeita.
         </p>
         {!deleteConfirmOpen ? (
           <button onClick={() => setDeleteConfirmOpen(true)}

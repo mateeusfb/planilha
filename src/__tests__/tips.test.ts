@@ -124,7 +124,7 @@ describe('generateTips', () => {
       makeExpense({ value: 1200, cat: 'Alimentacao' }),
     ];
     const tips = generateTips(expenses, 'all', noMembers);
-    const warn = tips.find(t => t.title.includes('Alimentacao'));
+    const warn = tips.find(t => t.title.includes('Alimentação'));
     expect(warn).toBeDefined();
   });
 
@@ -145,7 +145,7 @@ describe('generateTips', () => {
       makeExpense({ value: 500, cat: 'Transporte', payment: 'PIX' }),
     ];
     const tips = generateTips(expenses, 'all', noMembers);
-    const warn = tips.find(t => t.title.includes('despesas no credito'));
+    const warn = tips.find(t => t.title.includes('despesas no crédito'));
     expect(warn).toBeDefined();
   });
 
@@ -167,7 +167,7 @@ describe('generateTips', () => {
       makeExpense({ value: 500, cat: 'Educacao' }),
     ];
     const tips = generateTips(expenses, 'all', noMembers);
-    const good = tips.find(t => t.title.includes('educacao'));
+    const good = tips.find(t => t.title.includes('educação'));
     expect(good).toBeDefined();
   });
 
@@ -177,7 +177,7 @@ describe('generateTips', () => {
       makeExpense({ value: 1000, cat: 'Alimentacao' }),
     ];
     const tips = generateTips(expenses, 'all', noMembers);
-    const info = tips.find(t => t.title.includes('Saude'));
+    const info = tips.find(t => t.title.includes('Saúde'));
     expect(info).toBeDefined();
   });
 
@@ -207,7 +207,7 @@ describe('generateTips', () => {
       makeExpense({ value: 500, cat: 'Transporte', memberId: 'm2' }),
     ];
     const tips = generateTips(expenses, 'all', () => members);
-    const diff = tips.find(t => t.title.includes('Diferenca nos gastos'));
+    const diff = tips.find(t => t.title.includes('Diferença nos gastos'));
     expect(diff).toBeDefined();
   });
 });
