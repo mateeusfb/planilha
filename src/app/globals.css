@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* ── Typography ── */
+body {
+  font-family: var(--font-roboto), 'Segoe UI', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-bold, .font-extrabold, .font-black,
+.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl {
+  font-family: var(--font-montserrat), 'Segoe UI', system-ui, sans-serif;
+}
+
 /* ── Theme variables ── */
 :root {
   --bg: #f1f5f9;
