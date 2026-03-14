@@ -92,7 +92,14 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
         const dbMembers = (membersRes.data || []).map(rowToMember);
         const dbExpenses = (expensesRes.data || []).map(rowToExpense);
-        const settings = settingsRes.data;
+        let settings = settingsRes.data;
+
+        // Criar settings para o usuário se não existir
+        if (!settings) {
+          const newSettings = { id: 1, user_id: userId, custom_cats: [], custom_payments: [], active_month: getCurrentMonth() };
+          await supabase.from('settings').upsert(newSettings);
+          settings = newSettings;
+        }
 
         setStateRaw(prev => ({
           ...prev,
@@ -217,49 +224,56 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
     return state.members.filter(m => m.id !== 'all' && !m.isConjunta);
   }, [state.members]);
 
-  const addExpense = useCallback((expense: Expense) => {
+  const addExpense = useCallback(async (expense: Expense) => {
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-    supabase.from('expenses').insert(expenseToRow(expense, userId));
+    const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId));
+    if (error) console.error('Erro ao salvar lançamento:', error.message);
   }, [userId]);
 
-  const updateExpense = useCallback((id: string, expense: Expense) => {
+  const updateExpense = useCallback(async (id: string, expense: Expense) => {
     setStateRaw(prev => ({
       ...prev,
       expenses: prev.expenses.map(e => e.id === id ? { ...expense, createdAt: e.createdAt } : e),
     }));
-    supabase.from('expenses').update(expenseToRow(expense, userId)).eq('id', id);
+    const { error } = await supabase.from('expenses').update(expenseToRow(expense, userId)).eq('id', id);
+    if (error) console.error('Erro ao atualizar lançamento:', error.message);
   }, [userId]);
 
-  const removeExpense = useCallback((id: string) => {
+  const removeExpense = useCallback(async (id: string) => {
     setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }));
-    supabase.from('expenses').delete().eq('id', id);
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error) console.error('Erro ao excluir lançamento:', error.message);
   }, []);
 
-  const addMember = useCallback((member: Member) => {
+  const addMember = useCallback(async (member: Member) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
-    supabase.from('members').insert(memberToRow(member, userId));
+    const { error } = await supabase.from('members').insert(memberToRow(member, userId));
+    if (error) console.error('Erro ao salvar membro:', error.message);
   }, [userId]);
 
-  const updateMember = useCallback((id: string, data: Partial<Member>) => {
+  const updateMember = useCallback(async (id: string, data: Partial<Member>) => {
     setStateRaw(prev => ({
       ...prev,
       members: prev.members.map(m => m.id === id ? { ...m, ...data } : m),
     }));
     const member = state.members.find(m => m.id === id);
     if (member) {
-      supabase.from('members').update(memberToRow({ ...member, ...data }, userId)).eq('id', id);
+      const { error } = await supabase.from('members').update(memberToRow({ ...member, ...data }, userId)).eq('id', id);
+      if (error) console.error('Erro ao atualizar membro:', error.message);
     }
   }, [state.members, userId]);
 
-  const removeMember = useCallback((id: string) => {
+  const removeMember = useCallback(async (id: string) => {
     setStateRaw(prev => ({
       ...prev,
       members: prev.members.filter(m => m.id !== id),
       expenses: prev.expenses.filter(e => e.memberId !== id),
       activeMember: prev.activeMember === id ? 'all' : prev.activeMember,
     }));
-    supabase.from('members').delete().eq('id', id);
-    supabase.from('expenses').delete().eq('member_id', id);
+    const { error: e1 } = await supabase.from('members').delete().eq('id', id);
+    if (e1) console.error('Erro ao excluir membro:', e1.message);
+    const { error: e2 } = await supabase.from('expenses').delete().eq('member_id', id);
+    if (e2) console.error('Erro ao excluir lançamentos do membro:', e2.message);
   }, []);
 
   const setActiveMember = useCallback((id: string) => {
