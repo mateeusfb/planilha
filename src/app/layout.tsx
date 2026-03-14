@@ -1,0 +1,24 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Planilha Financeira Familiar",
+  description: "Controle inteligente de gastos familiares",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="pt-BR">
+      <body className={`${inter.className} antialiased bg-slate-50 text-slate-800`}>
+        {children}
+      </body>
+    </html>
+  );
+}
