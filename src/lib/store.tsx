@@ -87,7 +87,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
           supabase.from('members').select('*').in('user_id', accessIds),
           supabase.from('expenses').select('*').in('user_id', accessIds),
-          supabase.from('settings').select('*').in('user_id', accessIds).eq('id', 1).single(),
+          supabase.from('settings').select('*').in('user_id', accessIds).limit(1).single(),
         ]);
 
         const dbMembers = (membersRes.data || []).map(rowToMember);
@@ -96,8 +96,8 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
         // Criar settings para o usuário se não existir
         if (!settings) {
-          const newSettings = { id: 1, user_id: userId, custom_cats: [], custom_payments: [], active_month: getCurrentMonth() };
-          await supabase.from('settings').upsert(newSettings);
+          const newSettings = { user_id: userId, custom_cats: [], custom_payments: [], active_month: getCurrentMonth() };
+          await supabase.from('settings').upsert(newSettings, { onConflict: 'user_id' });
           settings = newSettings;
         }
 
@@ -139,8 +139,8 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
       const next = updater(prev);
       if (prev.customCats !== next.customCats || prev.customPayments !== next.customPayments) {
         supabase.from('settings').upsert({
-          id: 1, user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, active_month: next.activeMonth,
-        });
+          user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, active_month: next.activeMonth,
+        }, { onConflict: 'user_id' });
       }
       return next;
     });
@@ -282,7 +282,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
   const setActiveMonth = useCallback((ym: string) => {
     setStateRaw(prev => ({ ...prev, activeMonth: ym }));
-    supabase.from('settings').upsert({ id: 1, user_id: userId, active_month: ym });
+    supabase.from('settings').upsert({ user_id: userId, active_month: ym }, { onConflict: 'user_id' });
   }, [userId]);
 
   if (!loaded) {
