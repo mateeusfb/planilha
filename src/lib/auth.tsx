@@ -57,6 +57,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signIn(email: string, password: string) {
+    // Admin preview login (only on non-production environments)
+    const isPreview = process.env.NEXT_PUBLIC_VERCEL_ENV !== 'production';
+    if (isPreview && email === 'admin' && password === 'admin') {
+      setUser({
+        id: 'preview-admin',
+        email: 'admin@preview.local',
+        user_metadata: { name: 'Admin Preview' },
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+      } as User);
+      return {};
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
     return {};
