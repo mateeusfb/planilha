@@ -122,12 +122,12 @@ export default function Dashboard() {
     <>
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Receitas</div>
           <div className="text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</div>
           <div className="text-xs text-slate-400 mt-1">{data.incomesNormais.length} entrada{data.incomesNormais.length !== 1 ? 's' : ''} em {fmtMonth(activeMonth)}</div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Despesas</div>
           <div className="text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</div>
           <div className="text-xs text-slate-400 mt-1">
@@ -142,14 +142,14 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponivel</div>
           <div className={`text-2xl font-bold ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</div>
           <div className="text-xs text-slate-400 mt-1">
             {data.totalIncome > 0 ? `${Math.round((1 - data.despesasReais / data.totalIncome) * 100)}% da receita restante` : 'Sem receita registrada'}
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Investimentos</div>
           <div className="text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</div>
           <div className="text-xs text-slate-400 mt-1">{data.investSub}</div>
@@ -158,7 +158,7 @@ export default function Dashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <h3 className="text-sm font-bold mb-4">Gastos por Categoria</h3>
           <div className="h-56">
             {data.catLabels.length > 0 ? (
@@ -169,7 +169,7 @@ export default function Dashboard() {
             ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <h3 className="text-sm font-bold mb-4">Evolucao Mensal (6 meses)</h3>
           <div className="h-56">
             <Bar
@@ -187,7 +187,7 @@ export default function Dashboard() {
       </div>
 
       {/* Tips */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200">
+      <div className="t-card rounded-xl p-5 border">
         <h3 className="text-sm font-bold mb-4 flex items-center gap-1.5">🧠 Dicas do Assistente Financeiro</h3>
         {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
           <div className="text-slate-400 text-sm">Adicione lancamentos para receber dicas.</div>

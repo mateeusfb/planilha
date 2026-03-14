@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider, useStore } from '@/lib/store';
+import { ThemeProvider, useTheme } from '@/lib/theme';
 import { fmtMonth, buildMonthList } from '@/lib/helpers';
 import type { PageId } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
@@ -16,6 +17,7 @@ import AuthPage from '@/components/AuthPage';
 
 function AppContent() {
   const { user, signOut } = useAuth();
+  const { toggleMode, mode } = useTheme();
   const { state, setActiveMonth, removeExpense } = useStore();
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [memberModalOpen, setMemberModalOpen] = useState(false);
@@ -43,11 +45,11 @@ function AppContent() {
 
       <div className="ml-60 flex-1 flex flex-col">
         {/* Topbar */}
-        <div className="bg-white border-b border-slate-200 px-7 py-3.5 flex items-center justify-between sticky top-0 z-50">
-          <h2 className="text-lg font-bold">{titles[activePage]}</h2>
+        <div className="t-topbar border-b px-7 py-3.5 flex items-center justify-between sticky top-0 z-50">
+          <h2 className="text-lg font-bold t-text">{titles[activePage]}</h2>
           <div className="flex items-center gap-2.5">
             <select
-              className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm bg-slate-50 cursor-pointer"
+              className="px-2.5 py-1.5 border rounded-lg text-sm cursor-pointer t-input"
               value={state.activeMonth}
               onChange={(e) => setActiveMonth(e.target.value)}
             >
@@ -56,18 +58,23 @@ function AppContent() {
               ))}
             </select>
             <button
-              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+              className="px-4 py-1.5 t-accent-bg text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
               onClick={() => setActivePage('expenses')}
             >
               + Lancamento
             </button>
+            {/* Theme toggle */}
+            <button onClick={toggleMode} title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}
+              className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
+              {mode === 'light' ? '🌙' : '☀️'}
+            </button>
             <div className="relative group">
-              <button className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer">
+              <button className="w-8 h-8 rounded-full t-accent-bg text-white text-xs font-bold flex items-center justify-center cursor-pointer">
                 {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
               </button>
-              <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <div className="text-sm font-semibold text-slate-700 mb-0.5">{user?.user_metadata?.name || 'Usuario'}</div>
-                <div className="text-xs text-slate-400 mb-3">{user?.email}</div>
+              <div className="absolute right-0 top-full mt-1 t-card border rounded-xl shadow-lg p-3 min-w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="text-sm font-semibold t-text mb-0.5">{user?.user_metadata?.name || 'Usuario'}</div>
+                <div className="text-xs t-text-dim mb-3">{user?.email}</div>
                 <button onClick={signOut}
                   className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer">
                   Sair da conta
@@ -131,8 +138,10 @@ function AuthGate() {
 
 export default function Home() {
   return (
-    <AuthProvider>
-      <AuthGate />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

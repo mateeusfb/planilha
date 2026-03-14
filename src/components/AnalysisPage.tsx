@@ -56,7 +56,7 @@ export default function AnalysisPage() {
   return (
     <>
       {/* Tips */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 mb-6">
+      <div className="t-card rounded-xl p-5 border mb-6">
         <h3 className="text-sm font-bold mb-4 flex items-center gap-1.5">🧠 Analise Inteligente dos seus Gastos</h3>
         {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
           <div className="text-slate-400 text-sm">Adicione lancamentos para receber analises.</div>
@@ -65,7 +65,7 @@ export default function AnalysisPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <h3 className="text-sm font-bold mb-4">Distribuicao por Categoria</h3>
           <div className="h-56">
             {data.catLabels.length > 0 ? (
@@ -74,7 +74,7 @@ export default function AnalysisPage() {
             ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200">
+        <div className="t-card rounded-xl p-5 border">
           <h3 className="text-sm font-bold mb-4">Forma de Pagamento</h3>
           <div className="h-56">
             {data.payLabels.length > 0 ? (
@@ -86,7 +86,7 @@ export default function AnalysisPage() {
       </div>
 
       {/* Category bars */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200">
+      <div className="t-card rounded-xl p-5 border">
         <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-3">Categorias Detalhadas</div>
         {data.familyShare > 0 && (
           <div className="bg-blue-50 border-l-[3px] border-blue-600 rounded-lg px-3 py-2 mb-3 text-[0.82rem]">

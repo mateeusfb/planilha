@@ -142,7 +142,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   return (
     <>
       {/* Form */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
+      <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-4">{editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lancamento') : 'Novo Lancamento'}</h3>
         <div className="flex gap-2 mb-4">
           <button onClick={() => switchType('expense')}
@@ -158,7 +158,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Descricao</label>
             <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado, Salario..."
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Categoria</label>
@@ -170,7 +170,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                   setCat(name.trim());
                 }
               } else setCat(e.target.value);
-            }} className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+            }} className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100">
               {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
               <option value="__new__" className="text-blue-600 font-semibold">+ Nova categoria...</option>
             </select>
@@ -178,12 +178,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Valor (R$)</label>
             <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" min="0" step="0.01"
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mes / Ano</label>
             <input type="month" value={month} onChange={e => setMonth(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
           {formType === 'expense' && (
             <div className="flex flex-col gap-1">
@@ -196,7 +196,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                     setPayment(name.trim());
                   }
                 } else setPayment(e.target.value);
-              }} className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+              }} className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100">
                 {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
                 <option value="__new_pay__" className="text-blue-600 font-semibold">+ Nova forma...</option>
               </select>
@@ -226,7 +226,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Membro</label>
             <select value={memberId} onChange={e => setMemberId(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100">
               <option value="all" disabled={formType === 'income'}>Familia (gasto geral)</option>
               {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               {conjuntas.length > 0 && (
@@ -239,7 +239,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Observacao</label>
             <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Opcional..."
-              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
           </div>
         </div>
         <div className="mt-4 flex gap-2.5">
@@ -255,8 +255,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+      <div className="t-card rounded-xl border overflow-hidden">
+        <div className="p-4 border-b t-border flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-bold">Lancamentos do Mes</h3>
           <div className="flex flex-wrap gap-2">
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
@@ -288,7 +288,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             <thead>
               <tr className="bg-slate-50">
                 {['Descricao','Categoria','Valor','Pagamento','Parcelas','Membro','Acoes'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-200">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide text-slate-500 border-b t-border">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -298,35 +298,35 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 const isIncome = e.type === 'income';
                 return (
                   <tr key={e.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-2.5 border-b border-slate-100">
+                    <td className="px-4 py-2.5 border-b t-border-light">
                       <div className="font-semibold text-[0.83rem]">{e.desc}
                         {e.conjuntaName && <span className="text-[0.72rem] text-slate-400 font-normal ml-1">via {e.conjuntaName}</span>}
                       </div>
                       {e.note && <div className="text-[0.74rem] text-slate-400">{e.note}</div>}
                     </td>
-                    <td className="px-4 py-2.5 border-b border-slate-100 text-[0.83rem]">
+                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
                         {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
                       </span>
                       <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>
                       {e.cat}
                     </td>
-                    <td className={`px-4 py-2.5 border-b border-slate-100 font-bold text-[0.83rem] ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                    <td className={`px-4 py-2.5 border-b t-border-light font-bold text-[0.83rem] ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
                       {isIncome ? '+' : '-'} {fmt(e.value)}
                     </td>
-                    <td className="px-4 py-2.5 border-b border-slate-100 text-[0.83rem]">
+                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                       {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
                     </td>
-                    <td className="px-4 py-2.5 border-b border-slate-100 text-[0.83rem]">
+                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                       {e.installment > 0 ? `${e.installmentCurrent || 1}/${e.installment}` : '-'}
                     </td>
-                    <td className="px-4 py-2.5 border-b border-slate-100 text-[0.83rem]">
+                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                       <span className="inline-flex items-center gap-1.5">
                         <Avatar member={member} size={20} />
                         {member.name}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 border-b border-slate-100">
+                    <td className="px-4 py-2.5 border-b t-border-light">
                       <button onClick={() => startEdit(e)} className="px-2.5 py-1 border border-slate-200 rounded-lg text-[0.78rem] font-semibold hover:bg-slate-50 mr-1 cursor-pointer">Editar</button>
                       <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
                     </td>

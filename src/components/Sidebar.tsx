@@ -42,20 +42,20 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
   const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
 
   return (
-    <aside className="w-60 bg-white border-r border-slate-200 fixed top-0 left-0 bottom-0 flex flex-col z-[100]">
+    <aside className="w-60 t-sidebar border-r fixed top-0 left-0 bottom-0 flex flex-col z-[100] transition-colors">
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-slate-200">
-        <h1 className="text-base font-bold text-blue-600">Financas Familia</h1>
-        <p className="text-[0.72rem] text-slate-400 mt-0.5">Controle inteligente de gastos</p>
+      <div className="px-4 py-5 border-b t-border">
+        <h1 className="text-base font-bold t-accent">Financas Familia</h1>
+        <p className="text-[0.72rem] t-text-dim mt-0.5">Controle inteligente de gastos</p>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto">
-        <div className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400 px-2 mb-1">Menu</div>
+        <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1">Menu</div>
         {navLinks.map(link => (
           <button key={link.id} onClick={() => onPageChange(link.id)}
             className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              activePage === link.id ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'
+              activePage === link.id ? 't-accent-light' : 't-text hover:opacity-80'
             }`}>
             <span className="w-5 text-center">{link.icon}</span>
             <span>{link.label}</span>
@@ -64,13 +64,13 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
       </nav>
 
       {/* Members */}
-      <div className="px-2 pb-3 border-t border-slate-200 pt-3">
-        <div className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400 px-2 mb-1.5">Membros</div>
+      <div className="px-2 pb-3 border-t t-border pt-3">
+        <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1.5">Membros</div>
 
         {/* Familia (todos) */}
         <button onClick={() => setActiveMember('all')}
           className={`w-full flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
-            activeMember === 'all' ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'
+            activeMember === 'all' ? 't-accent-light' : 't-text hover:opacity-80'
           }`}>
           <span className="rounded-full flex items-center justify-center text-white flex-shrink-0 font-bold"
             style={{ width: 26, height: 26, background: '#2563eb', fontSize: 11 }}>F</span>
@@ -81,7 +81,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
         {individuals.map(m => (
           <button key={m.id} onClick={() => setActiveMember(m.id)}
             className={`w-full flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
-              activeMember === m.id ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'
+              activeMember === m.id ? 't-accent-light' : 't-text hover:opacity-80'
             }`}>
             <Avatar member={m} size={26} />
             <span>{m.name}</span>
@@ -95,7 +95,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
             {conjuntas.map(m => (
               <button key={m.id} onClick={() => setActiveMember(m.id)}
                 className={`w-full flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
-                  activeMember === m.id ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-slate-50'
+                  activeMember === m.id ? 't-accent-light' : 't-text hover:opacity-80'
                 }`}>
                 <Avatar member={m} size={26} />
                 <span>{m.name}</span>
@@ -108,7 +108,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
         {/* Add member */}
         {onAddMember && (
           <button onClick={onAddMember}
-            className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-sm text-slate-400 border border-dashed border-slate-200 mt-1 hover:border-blue-500 hover:text-blue-600 transition-colors cursor-pointer">
+            className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-sm text-slate-400 border border-dashed t-border mt-1 hover:opacity-80 transition-colors cursor-pointer">
             <span>+</span>
             <span>Adicionar membro</span>
           </button>

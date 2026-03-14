@@ -12,7 +12,7 @@ export default function DeleteModal({ isOpen, onClose, onConfirm, message }: Pro
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-2xl p-7 w-full max-w-md shadow-xl">
+      <div className="t-card rounded-2xl p-7 w-full max-w-md shadow-xl border">
         <h3 className="text-base font-bold mb-3">Confirmar exclusao</h3>
         <p className="text-sm text-slate-500 mb-5">
           {message || 'Tem certeza que deseja excluir este lancamento? Esta acao nao pode ser desfeita.'}

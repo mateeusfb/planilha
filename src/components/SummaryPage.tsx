@@ -94,8 +94,8 @@ export default function SummaryPage() {
       </div>
 
       {/* Resumo do Mes */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-5">
-        <h3 className="text-base font-bold mb-4 pb-3 border-b border-slate-200">Resumo do Mes</h3>
+      <div className="t-card rounded-xl p-6 border mb-5">
+        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Resumo do Mes</h3>
         <Row label="Total de Receitas" value={fmt(data.totalIncome)} color="text-green-600" />
         <Row label="Despesas (sem investimentos)" value={fmt(data.despesasReais)} color="text-red-600" />
         {data.familyBreakdown.map((fb, i) => (
@@ -105,7 +105,7 @@ export default function SummaryPage() {
           <Row label="↳ Despesas proprias" value={fmt(data.despesasReais - data.familyShare)} color="text-red-600" sub />
           <Row label={`↳ Rateio familiar (1/${data.indivCount} membros)`} value={fmt(data.familyShare)} color="text-red-600" sub />
         </>}
-        <div className="flex justify-between items-center py-2 border-b border-slate-100 text-sm bg-blue-50/60 rounded-lg px-2 my-1">
+        <div className="flex justify-between items-center py-2 border-b t-border-light text-sm bg-blue-50/60 rounded-lg px-2 my-1">
           <span className="text-blue-600">Saldo Investimentos</span>
           <span className="font-semibold text-blue-600">{fmt(data.investTotal)}</span>
         </div>
@@ -121,8 +121,8 @@ export default function SummaryPage() {
       </div>
 
       {/* Gastos por Categoria */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-5">
-        <h3 className="text-base font-bold mb-4 pb-3 border-b border-slate-200">Gastos por Categoria</h3>
+      <div className="t-card rounded-xl p-6 border mb-5">
+        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Gastos por Categoria</h3>
         {data.sortedCats.length ? data.sortedCats.map(([cat, val]) => {
           const pct = data.total > 0 ? Math.round(val / data.total * 100) : 0;
           return <Row key={cat} label={<><span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ background: CAT_COLORS[cat] || '#94a3b8' }}></span>{cat}</>}
@@ -131,8 +131,8 @@ export default function SummaryPage() {
       </div>
 
       {/* Forma de Pagamento */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-5">
-        <h3 className="text-base font-bold mb-4 pb-3 border-b border-slate-200">Forma de Pagamento</h3>
+      <div className="t-card rounded-xl p-6 border mb-5">
+        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Forma de Pagamento</h3>
         {Object.entries(data.byPay).sort((a, b) => b[1] - a[1]).map(([pay, val]) => {
           const pct = data.total > 0 ? Math.round(val / data.total * 100) : 0;
           return <Row key={pay} label={pay} value={<>{fmt(val)} <span className="text-slate-400 font-normal">({pct}%)</span></>} />;
@@ -140,8 +140,8 @@ export default function SummaryPage() {
       </div>
 
       {/* Comparativo */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-5">
-        <h3 className="text-base font-bold mb-4 pb-3 border-b border-slate-200">Comparativo - Ultimos 3 Meses</h3>
+      <div className="t-card rounded-xl p-6 border mb-5">
+        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Comparativo - Ultimos 3 Meses</h3>
         {data.monthHistory.map(({ label, total: t, income: inc }) => (
           <div key={label} className="mb-3.5">
             <div className="flex justify-between text-sm mb-1">
@@ -161,31 +161,31 @@ export default function SummaryPage() {
       </div>
 
       {/* Tips */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 mb-5">
+      <div className="t-card rounded-xl p-5 border mb-5">
         <h3 className="text-sm font-bold mb-4">🧠 Analise e Recomendacoes</h3>
         {data.tips.map((t, i) => <TipItem key={i} tip={t} />)}
       </div>
 
       {/* Full table */}
       {data.expenses.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
-          <div className="p-4 border-b border-slate-200"><h3 className="text-sm font-bold">Todos os Lancamentos</h3></div>
+        <div className="t-card rounded-xl border overflow-hidden mb-6">
+          <div className="p-4 border-b t-border"><h3 className="text-sm font-bold">Todos os Lancamentos</h3></div>
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50">
                 {['Descricao','Categoria','Valor','Pagamento','Parcelas'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-200">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide text-slate-500 border-b t-border">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {data.expenses.sort((a, b) => b.value - a.value).map(e => (
                 <tr key={e.id} className="hover:bg-slate-50/50">
-                  <td className="px-4 py-2.5 border-b border-slate-100 text-sm"><div className="font-semibold">{e.desc}</div>{e.note && <div className="text-[0.74rem] text-slate-400">{e.note}</div>}</td>
-                  <td className="px-4 py-2.5 border-b border-slate-100 text-sm"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>{e.cat}</td>
-                  <td className="px-4 py-2.5 border-b border-slate-100 text-sm font-bold">{fmt(e.value)}</td>
-                  <td className="px-4 py-2.5 border-b border-slate-100 text-sm">{e.payment}</td>
-                  <td className="px-4 py-2.5 border-b border-slate-100 text-sm">{e.installment > 0 ? e.installment + 'x' : '-'}</td>
+                  <td className="px-4 py-2.5 border-b t-border-light text-sm"><div className="font-semibold">{e.desc}</div>{e.note && <div className="text-[0.74rem] text-slate-400">{e.note}</div>}</td>
+                  <td className="px-4 py-2.5 border-b t-border-light text-sm"><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>{e.cat}</td>
+                  <td className="px-4 py-2.5 border-b t-border-light text-sm font-bold">{fmt(e.value)}</td>
+                  <td className="px-4 py-2.5 border-b t-border-light text-sm">{e.payment}</td>
+                  <td className="px-4 py-2.5 border-b t-border-light text-sm">{e.installment > 0 ? e.installment + 'x' : '-'}</td>
                 </tr>
               ))}
               <tr className="bg-slate-50">
@@ -203,7 +203,7 @@ export default function SummaryPage() {
 
 function Row({ label, value, color, sub }: { label: React.ReactNode; value: React.ReactNode; color?: string; sub?: boolean }) {
   return (
-    <div className={`flex justify-between items-center py-2 border-b border-slate-100 text-sm ${sub ? 'bg-blue-50/40 rounded-lg px-2 my-0.5' : ''}`}>
+    <div className={`flex justify-between items-center py-2 border-b t-border-light text-sm ${sub ? 'bg-blue-50/40 rounded-lg px-2 my-0.5' : ''}`}>
       <span className={`${sub ? 'text-blue-600 text-[0.82rem]' : 'text-slate-500'}`}>{label}</span>
       <span className={`font-semibold ${color || ''} ${sub ? 'text-[0.82rem]' : ''}`}>{value}</span>
     </div>

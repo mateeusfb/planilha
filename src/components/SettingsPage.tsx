@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
+import { useTheme, type ThemeMode, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { EXPENSE_CATS, BASE_PAYMENTS } from '@/lib/constants';
 import { Avatar } from './Sidebar';
@@ -164,8 +165,56 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
     removeMember(id);
   }
 
+  const { mode, setMode, accent, setAccent } = useTheme();
+
+  const accentColors: { id: AccentColor; label: string; color: string }[] = [
+    { id: 'blue', label: 'Azul', color: '#2563eb' },
+    { id: 'purple', label: 'Roxo', color: '#7c3aed' },
+    { id: 'green', label: 'Verde', color: '#059669' },
+    { id: 'rose', label: 'Rosa', color: '#e11d48' },
+    { id: 'orange', label: 'Laranja', color: '#ea580c' },
+    { id: 'cyan', label: 'Ciano', color: '#0891b2' },
+  ];
+
   return (
     <>
+      {/* Tema */}
+      <div className="t-card border rounded-xl p-6 mb-6">
+        <h3 className="text-base font-bold mb-4 t-text">Aparencia</h3>
+
+        {/* Mode */}
+        <div className="mb-5">
+          <div className="text-[0.78rem] t-text-dim font-semibold mb-2.5">MODO</div>
+          <div className="flex gap-3">
+            {(['light', 'dark'] as ThemeMode[]).map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all cursor-pointer ${
+                  mode === m ? 'border-[var(--accent)] t-accent-light' : 't-border t-card-hover border'
+                }`}>
+                <span className="text-lg">{m === 'light' ? '☀️' : '🌙'}</span>
+                <span className="t-text">{m === 'light' ? 'Claro' : 'Escuro'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Accent color */}
+        <div>
+          <div className="text-[0.78rem] t-text-dim font-semibold mb-2.5">COR DE DESTAQUE</div>
+          <div className="flex gap-3 flex-wrap">
+            {accentColors.map(c => (
+              <button key={c.id} onClick={() => setAccent(c.id)}
+                className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all cursor-pointer min-w-[70px] ${
+                  accent === c.id ? 'border-[var(--accent)] scale-105' : 't-border'
+                }`}>
+                <div className="w-8 h-8 rounded-full shadow-sm" style={{ background: c.color }}></div>
+                <span className="text-[0.7rem] t-text-muted font-medium">{c.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Convites recebidos */}
       {pendingInvites.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
@@ -184,7 +233,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       )}
 
       {/* Compartilhar planilha */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
+      <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-1">Compartilhar Planilha</h3>
         <p className="text-sm text-slate-400 mb-4">Convide alguem para ver e editar sua planilha financeira.</p>
         <div className="flex gap-2 mb-3">
@@ -219,7 +268,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       </div>
 
       {/* Categorias */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
+      <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-4">Categorias de Despesa</h3>
         <div className="mb-3.5">
           <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PADRAO (somente leitura)</div>
@@ -235,7 +284,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       </div>
 
       {/* Formas de pagamento */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
+      <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-4">Formas de Pagamento</h3>
         <div className="mb-3.5">
           <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PADRAO (somente leitura)</div>
@@ -251,7 +300,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       </div>
 
       {/* Membros */}
-      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
+      <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-4">Membros</h3>
         {allMembers.length ? allMembers.map(m => (
           <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
