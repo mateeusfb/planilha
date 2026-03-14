@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
@@ -29,9 +29,59 @@ function TipItem({ tip }: { tip: Tip }) {
 
 export { TipItem };
 
+// Componente de seção colapsável
+function Section({ title, icon, children, defaultOpen = false, valuesHidden, onToggleValues }: {
+  title: string;
+  icon: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  valuesHidden?: boolean;
+  onToggleValues?: () => void;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="t-card rounded-xl border mb-4 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:opacity-80 transition-colors"
+      >
+        <h3 className="text-sm font-bold flex items-center gap-2">
+          <span>{icon}</span>
+          <span>{title}</span>
+        </h3>
+        <div className="flex items-center gap-2">
+          {onToggleValues && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onToggleValues(); }}
+              className="text-base cursor-pointer hover:opacity-60 transition-opacity px-1"
+              title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}
+            >
+              {valuesHidden ? '🙈' : '👁'}
+            </span>
+          )}
+          <span className="text-xs t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            ▼
+          </span>
+        </div>
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
+  );
+}
+
+// Valor que pode ser ocultado
+function HiddenValue({ children, hidden, className = '' }: { children: React.ReactNode; hidden: boolean; className?: string }) {
+  if (hidden) {
+    return <span className={className} style={{ filter: 'blur(8px)', userSelect: 'none' }}>R$ •••••</span>;
+  }
+  return <span className={className}>{children}</span>;
+}
+
 export default function Dashboard() {
   const { state, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers } = useStore();
   const { activeMonth, activeMember } = state;
+  const [valuesHidden, setValuesHidden] = useState(true); // Oculto por padrão
 
   const data = useMemo(() => {
     const allEntries = getExpensesForMonth(activeMonth, activeMember);
@@ -61,7 +111,6 @@ export default function Dashboard() {
     const despesasReais = totalExpense - investSaida;
     const saldo = totalIncome - despesasReais;
 
-    // Previous month comparison
     const [y, m] = activeMonth.split('-').map(Number);
     const prevD = new Date(y, m - 2, 1);
     const prevYM = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}`;
@@ -70,8 +119,7 @@ export default function Dashboard() {
     const diff = despesasReais - prevExpense;
     const diffText = prevExpense > 0 ? `${diff >= 0 ? '+' : ''}${fmt(diff)} vs mes anterior` : 'Sem dados do mes anterior';
 
-    // Family breakdown
-    let familyBreakdown: { label: string; value: number }[] = [];
+    const familyBreakdown: { label: string; value: number }[] = [];
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
       const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
@@ -83,19 +131,16 @@ export default function Dashboard() {
       });
     }
 
-    // Invest sub
     const investSubParts: string[] = [];
     if (investSaida > 0) investSubParts.push(`${fmt(investSaida)} aplicado`);
     if (totalIncomeInvest > 0) investSubParts.push(`${fmt(totalIncomeInvest)} rendimento`);
     const investSub = investSubParts.length > 0 ? investSubParts.join(' | ') : (totalIncome > 0 ? '0% da receita' : 'Sem movimentacao');
 
-    // Chart data
     const byCat = groupBy(outflows, 'cat');
     const catLabels = Object.keys(byCat);
     const catData = catLabels.map(l => byCat[l]);
     const catColors = catLabels.map(l => CAT_COLORS[l] || '#94a3b8');
 
-    // Monthly chart (6 months) - usa filtro direto por mês, sem dateFilter
     const monthlyData: { label: string; income: number; expense: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1);
@@ -108,7 +153,6 @@ export default function Dashboard() {
       });
     }
 
-    // Tips
     const tips = generateTips(allEntries, activeMember, getIndividualMembers);
 
     return {
@@ -118,81 +162,99 @@ export default function Dashboard() {
     };
   }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
 
+  const toggleValues = () => setValuesHidden(v => !v);
+
   return (
     <>
-      {/* Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="t-card rounded-xl p-5 border">
-          <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Receitas</div>
-          <div className="text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</div>
-          <div className="text-xs text-slate-400 mt-1">{data.incomesNormais.length} entrada{data.incomesNormais.length !== 1 ? 's' : ''} em {fmtMonth(activeMonth)}</div>
-        </div>
-        <div className="t-card rounded-xl p-5 border">
-          <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Despesas</div>
-          <div className="text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</div>
-          <div className="text-xs text-slate-400 mt-1">
-            {data.diffText}
-            {data.familyShare > 0 && <><br /><span className="text-[0.72rem]">incl. {fmt(data.familyShare)} rateio familiar</span></>}
+      {/* Botão global de visibilidade */}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs t-text-dim">
+          {valuesHidden ? '🔒 Valores ocultos — clique no 👁 de cada seção para revelar' : '🔓 Valores visíveis'}
+        </p>
+        <button
+          onClick={toggleValues}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium t-card border cursor-pointer hover:opacity-80 transition-colors"
+        >
+          {valuesHidden ? '👁 Mostrar tudo' : '🙈 Ocultar tudo'}
+        </button>
+      </div>
+
+      {/* Resumo Financeiro */}
+      <Section title="Resumo Financeiro" icon="💰" valuesHidden={valuesHidden} onToggleValues={toggleValues}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="t-card rounded-xl p-4 border">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Receitas</div>
+            <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</HiddenValue>
+            <div className="text-xs text-slate-400 mt-1">{data.incomesNormais.length} entrada{data.incomesNormais.length !== 1 ? 's' : ''} em {fmtMonth(activeMonth)}</div>
           </div>
-          {data.familyBreakdown.length > 0 && (
-            <div className="mt-2 space-y-0.5">
-              {data.familyBreakdown.map((fb, i) => (
-                <div key={i} className="text-[0.72rem] text-slate-500">{fb.label}: {fmt(fb.value)}</div>
-              ))}
+          <div className="t-card rounded-xl p-4 border">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Despesas</div>
+            <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</HiddenValue>
+            <div className="text-xs text-slate-400 mt-1">
+              {valuesHidden ? '••••' : data.diffText}
+              {!valuesHidden && data.familyShare > 0 && <><br /><span className="text-[0.72rem]">incl. {fmt(data.familyShare)} rateio familiar</span></>}
             </div>
-          )}
-        </div>
-        <div className="t-card rounded-xl p-5 border">
-          <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponivel</div>
-          <div className={`text-2xl font-bold ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</div>
-          <div className="text-xs text-slate-400 mt-1">
-            {data.totalIncome > 0 ? `${Math.round((1 - data.despesasReais / data.totalIncome) * 100)}% da receita restante` : 'Sem receita registrada'}
+            {!valuesHidden && data.familyBreakdown.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {data.familyBreakdown.map((fb, i) => (
+                  <div key={i} className="text-[0.72rem] text-slate-500">{fb.label}: {fmt(fb.value)}</div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="t-card rounded-xl p-4 border">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponivel</div>
+            <HiddenValue hidden={valuesHidden} className={`text-2xl font-bold ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</HiddenValue>
+            <div className="text-xs text-slate-400 mt-1">
+              {valuesHidden ? '••••' : (data.totalIncome > 0 ? `${Math.round((1 - data.despesasReais / data.totalIncome) * 100)}% da receita restante` : 'Sem receita registrada')}
+            </div>
+          </div>
+          <div className="t-card rounded-xl p-4 border">
+            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Investimentos</div>
+            <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</HiddenValue>
+            <div className="text-xs text-slate-400 mt-1">{valuesHidden ? '••••' : data.investSub}</div>
           </div>
         </div>
-        <div className="t-card rounded-xl p-5 border">
-          <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Investimentos</div>
-          <div className="text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</div>
-          <div className="text-xs text-slate-400 mt-1">{data.investSub}</div>
-        </div>
-      </div>
+      </Section>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="t-card rounded-xl p-5 border">
-          <h3 className="text-sm font-bold mb-4">Gastos por Categoria</h3>
-          <div className="h-56">
-            {data.catLabels.length > 0 ? (
-              <Doughnut
-                data={{ labels: data.catLabels, datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 2, borderColor: '#fff' }] }}
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }}
+      {/* Gráficos */}
+      <Section title="Graficos" icon="📊">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Gastos por Categoria</h4>
+            <div className="h-56">
+              {data.catLabels.length > 0 ? (
+                <Doughnut
+                  data={{ labels: data.catLabels, datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 2, borderColor: '#fff' }] }}
+                  options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }}
+                />
+              ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
+            </div>
+          </div>
+          <div>
+            <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Evolucao Mensal (6 meses)</h4>
+            <div className="h-56">
+              <Bar
+                data={{
+                  labels: data.monthlyData.map(d => d.label),
+                  datasets: [
+                    { label: 'Receitas', data: data.monthlyData.map(d => d.income), backgroundColor: '#16a34a' },
+                    { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: '#dc2626' },
+                  ],
+                }}
+                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true } } }}
               />
-            ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
+            </div>
           </div>
         </div>
-        <div className="t-card rounded-xl p-5 border">
-          <h3 className="text-sm font-bold mb-4">Evolucao Mensal (6 meses)</h3>
-          <div className="h-56">
-            <Bar
-              data={{
-                labels: data.monthlyData.map(d => d.label),
-                datasets: [
-                  { label: 'Receitas', data: data.monthlyData.map(d => d.income), backgroundColor: '#16a34a' },
-                  { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: '#dc2626' },
-                ],
-              }}
-              options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true } } }}
-            />
-          </div>
-        </div>
-      </div>
+      </Section>
 
-      {/* Tips */}
-      <div className="t-card rounded-xl p-5 border">
-        <h3 className="text-sm font-bold mb-4 flex items-center gap-1.5">🧠 Dicas do Assistente Financeiro</h3>
+      {/* Dicas */}
+      <Section title="Dicas do Assistente Financeiro" icon="🧠">
         {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
           <div className="text-slate-400 text-sm">Adicione lancamentos para receber dicas.</div>
         )}
-      </div>
+      </Section>
     </>
   );
 }

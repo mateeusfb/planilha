@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 const navLinks: { id: PageId; icon: string; label: string }[] = [
-  { id: 'dashboard', icon: '◉', label: 'Dashboard' },
+  { id: 'dashboard', icon: '🏠', label: 'Inicio' },
   { id: 'expenses', icon: '💳', label: 'Lancamentos' },
   { id: 'analysis', icon: '📈', label: 'Analise' },
   { id: 'summary', icon: '📄', label: 'Resumo Mensal' },

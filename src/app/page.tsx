@@ -26,7 +26,7 @@ function AppContent() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const titles: Record<PageId, string> = {
-    dashboard: 'Dashboard',
+    dashboard: 'Inicio',
     expenses: 'Lancamentos',
     analysis: 'Analise de Gastos',
     summary: 'Resumo Mensal',
