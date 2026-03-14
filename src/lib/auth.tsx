@@ -22,9 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
+    // Check URL hash for recovery token before getSession
+    const hash = window.location.hash;
+    const isRecoveryLink = hash.includes('type=recovery') || hash.includes('type=magiclink');
+
+    if (isRecoveryLink) {
+      // Let onAuthStateChange handle recovery - don't resolve loading yet
+      setIsRecovery(true);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (!isRecoveryLink) {
+        setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -32,6 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'PASSWORD_RECOVERY') {
         setIsRecovery(true);
       }
+      // Now safe to stop loading after auth state is resolved
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
