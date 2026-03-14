@@ -29,6 +29,11 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
     setSuccess('');
     setLoading(true);
 
+    // Validate email format (skip for admin preview login)
+    if (mode !== 'reset' && email !== 'admin' && !email.includes('@')) {
+      setError('Digite um email valido.'); setLoading(false); return;
+    }
+
     if (mode === 'signup') {
       if (!name.trim()) { setError('Digite seu nome.'); setLoading(false); return; }
       if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
@@ -130,7 +135,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
             {mode !== 'reset' && (
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                <input type="text" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="seu@email.com" required
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
               </div>
