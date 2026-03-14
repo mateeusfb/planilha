@@ -7,6 +7,8 @@ import type { User } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isRecovery: boolean;
+  clearRecovery: () => void;
   signUp: (email: string, password: string, name: string) => Promise<{ error?: string }>;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -17,21 +19,27 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
-    // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  function clearRecovery() {
+    setIsRecovery(false);
+  }
 
   async function signUp(email: string, password: string, name: string) {
     const { data, error } = await supabase.auth.signUp({
@@ -41,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (error) return { error: error.message };
 
-    // If user was created and auto-confirmed, migrate orphan data
     if (data.user) {
       await migrateOrphanData(data.user.id);
     }
@@ -61,18 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isRecovery, clearRecovery, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// Migrate existing data (user_id = null) to the first user who signs up
 async function migrateOrphanData(userId: string) {
   try {
     await supabase.rpc('migrate_orphan_data', { target_user_id: userId });
   } catch {
-    // If RPC doesn't exist, do it manually via REST
     await supabase.from('members').update({ user_id: userId }).is('user_id', null);
     await supabase.from('expenses').update({ user_id: userId }).is('user_id', null);
     await supabase.from('settings').update({ user_id: userId }).is('user_id', null);

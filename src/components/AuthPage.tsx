@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
-export default function AuthPage() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>('login');
+export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
+  const { signIn, signUp, clearRecovery } = useAuth();
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>(forceMode || 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,6 +54,7 @@ export default function AuthPage() {
         setError(traduzirErro(err.message));
       } else {
         setSuccess('Senha alterada com sucesso! Redirecionando...');
+        clearRecovery();
         setTimeout(() => window.location.replace('/'), 1500);
       }
     } else {

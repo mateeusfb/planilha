@@ -109,7 +109,7 @@ function AppContent() {
 }
 
 function AuthGate() {
-  const { user, loading } = useAuth();
+  const { user, loading, isRecovery } = useAuth();
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900">
@@ -118,6 +118,9 @@ function AuthGate() {
   }
 
   if (!user) return <AuthPage />;
+
+  // Show reset password screen even if logged in via recovery link
+  if (isRecovery) return <AuthPage forceMode="reset" />;
 
   return (
     <StoreProvider userId={user.id}>
