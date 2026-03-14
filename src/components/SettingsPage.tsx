@@ -36,6 +36,24 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   const conjuntas = state.members.filter(m => m.id !== 'all' && m.isConjunta);
   const allMembers = [...individuals, ...conjuntas];
 
+  // Delete account state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const { signOut } = useAuth();
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText !== 'EXCLUIR') return;
+    setDeleting(true);
+    const { error } = await supabase.rpc('delete_user_account');
+    if (error) {
+      alert('Erro ao excluir conta: ' + error.message);
+      setDeleting(false);
+      return;
+    }
+    await signOut();
+  }
+
   // Invite state
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -316,6 +334,47 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
           </div>
         )) : <p className="text-slate-400 text-sm mb-2">Nenhum membro cadastrado.</p>}
         <button onClick={onAddMember} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Adicionar membro</button>
+      </div>
+
+      {/* Zona de perigo - Excluir conta */}
+      <div className="t-card border border-red-200 rounded-xl p-6 mt-6">
+        <h3 className="text-base font-bold text-red-600 mb-2">Zona de perigo</h3>
+        <p className="text-sm t-text-muted mb-4">
+          Ao excluir sua conta, todos os seus dados serao permanentemente removidos, incluindo membros, lancamentos, configuracoes e convites. Esta acao nao pode ser desfeita.
+        </p>
+        {!deleteConfirmOpen ? (
+          <button onClick={() => setDeleteConfirmOpen(true)}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 cursor-pointer">
+            Excluir minha conta e todos os dados
+          </button>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-800 font-semibold mb-2">Tem certeza absoluta?</p>
+            <p className="text-xs text-red-600 mb-3">
+              Digite <strong>EXCLUIR</strong> para confirmar a exclusao permanente da sua conta e de todos os seus dados.
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Digite EXCLUIR"
+              className="w-full px-3 py-2 border border-red-300 rounded-lg text-sm mb-3 focus:outline-none focus:border-red-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'EXCLUIR' || deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                {deleting ? 'Excluindo...' : 'Confirmar exclusao permanente'}
+              </button>
+              <button
+                onClick={() => { setDeleteConfirmOpen(false); setDeleteConfirmText(''); }}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

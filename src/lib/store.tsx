@@ -93,37 +93,6 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
         const dbExpenses = (expensesRes.data || []).map(rowToExpense);
         const settings = settingsRes.data;
 
-        // Also try to claim orphan data (user_id = null) for this user
-        if (dbMembers.length === 0 && dbExpenses.length === 0) {
-          const orphanMembers = await supabase.from('members').select('*').is('user_id', null);
-          const orphanExpenses = await supabase.from('expenses').select('*').is('user_id', null);
-
-          if ((orphanMembers.data?.length || 0) > 0 || (orphanExpenses.data?.length || 0) > 0) {
-            // Claim orphan data
-            await supabase.from('members').update({ user_id: userId }).is('user_id', null);
-            await supabase.from('expenses').update({ user_id: userId }).is('user_id', null);
-            await supabase.from('settings').update({ user_id: userId }).is('user_id', null);
-
-            // Reload
-            const [m2, e2, s2] = await Promise.all([
-              supabase.from('members').select('*').eq('user_id', userId),
-              supabase.from('expenses').select('*').eq('user_id', userId),
-              supabase.from('settings').select('*').eq('user_id', userId).eq('id', 1).single(),
-            ]);
-
-            setStateRaw(prev => ({
-              ...prev,
-              members: [defaultState.members[0], ...(m2.data || []).map(rowToMember)],
-              expenses: (e2.data || []).map(rowToExpense),
-              customCats: s2.data?.custom_cats || [],
-              customPayments: s2.data?.custom_payments || [],
-              activeMonth: s2.data?.active_month || getCurrentMonth(),
-            }));
-            setLoaded(true);
-            return;
-          }
-        }
-
         setStateRaw(prev => ({
           ...prev,
           members: [defaultState.members[0], ...dbMembers],

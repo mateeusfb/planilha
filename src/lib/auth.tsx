@@ -63,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) return { error: error.message };
 
     if (data.user) {
-      await migrateOrphanData(data.user.id);
     }
 
     return {};
@@ -101,15 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-async function migrateOrphanData(userId: string) {
-  try {
-    await supabase.rpc('migrate_orphan_data', { target_user_id: userId });
-  } catch {
-    await supabase.from('members').update({ user_id: userId }).is('user_id', null);
-    await supabase.from('expenses').update({ user_id: userId }).is('user_id', null);
-    await supabase.from('settings').update({ user_id: userId }).is('user_id', null);
-  }
-}
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
