@@ -1,6 +1,9 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { EXPENSE_CATS, BASE_PAYMENTS } from '@/lib/constants';
 import { Avatar } from './Sidebar';
 
@@ -9,13 +12,102 @@ interface Props {
   onEditMember: (id: string) => void;
 }
 
+interface Share {
+  id: string;
+  shared_email: string;
+  accepted: boolean;
+  created_at: string;
+}
+
+interface PendingInvite {
+  id: string;
+  owner_id: string;
+  owner_email?: string;
+  accepted: boolean;
+}
+
 export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   const { state, setState, removeMember, getIndividualMembers } = useStore();
+  const { user } = useAuth();
   const customCats = state.customCats || [];
   const customPays = state.customPayments || [];
   const individuals = getIndividualMembers();
   const conjuntas = state.members.filter(m => m.id !== 'all' && m.isConjunta);
   const allMembers = [...individuals, ...conjuntas];
+
+  // Invite state
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [shares, setShares] = useState<Share[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+
+  const loadShares = useCallback(async () => {
+    if (!user) return;
+    // My sent invites
+    const { data } = await supabase.from('shares').select('*').eq('owner_id', user.id);
+    setShares(data || []);
+
+    // Invites I received
+    const { data: received } = await supabase.from('shares').select('*').eq('shared_email', user.email).eq('accepted', false);
+    setPendingInvites(received || []);
+  }, [user]);
+
+  useEffect(() => { loadShares(); }, [loadShares]);
+
+  async function sendInvite() {
+    if (!inviteEmail.trim() || !user) return;
+    setInviteError('');
+    setInviteMsg('');
+    setInviteLoading(true);
+
+    if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
+      setInviteError('Voce nao pode convidar a si mesmo.');
+      setInviteLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from('shares').insert({
+      owner_id: user.id,
+      shared_email: inviteEmail.toLowerCase().trim(),
+    });
+
+    if (error) {
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        setInviteError('Este email ja foi convidado.');
+      } else {
+        setInviteError(error.message);
+      }
+    } else {
+      setInviteMsg(`Convite enviado para ${inviteEmail}!`);
+      setInviteEmail('');
+      loadShares();
+    }
+    setInviteLoading(false);
+  }
+
+  async function removeInvite(id: string) {
+    if (!confirm('Remover este convite?')) return;
+    await supabase.from('shares').delete().eq('id', id);
+    loadShares();
+  }
+
+  async function acceptInvite(invite: PendingInvite) {
+    if (!user) return;
+    await supabase.from('shares').update({
+      shared_user_id: user.id,
+      accepted: true,
+    }).eq('id', invite.id);
+    loadShares();
+    // Reload page to pick up shared data
+    window.location.reload();
+  }
+
+  async function declineInvite(id: string) {
+    await supabase.from('shares').delete().eq('id', id);
+    loadShares();
+  }
 
   function addCat() {
     const name = prompt('Nome da nova categoria:');
@@ -67,15 +159,65 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
     const member = state.members.find(m => m.id === id);
     if (!member) return;
     const inUse = state.expenses.filter(e => e.memberId === id).length;
-    const msg = inUse > 0
-      ? `Excluir "${member.name}"? ${inUse} lancamento(s) serao excluidos.`
-      : `Excluir "${member.name}"?`;
+    const msg = inUse > 0 ? `Excluir "${member.name}"? ${inUse} lancamento(s) serao excluidos.` : `Excluir "${member.name}"?`;
     if (!confirm(msg)) return;
     removeMember(id);
   }
 
   return (
     <>
+      {/* Convites recebidos */}
+      {pendingInvites.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+          <h3 className="text-base font-bold mb-3 text-blue-800">📩 Convites Pendentes</h3>
+          <p className="text-sm text-blue-600 mb-4">Voce foi convidado para compartilhar uma planilha:</p>
+          {pendingInvites.map(inv => (
+            <div key={inv.id} className="flex items-center justify-between p-3 bg-white rounded-lg mb-1.5 border border-blue-100">
+              <span className="text-sm">Convite de <strong>{inv.owner_id.slice(0, 8)}...</strong></span>
+              <div className="flex gap-1.5">
+                <button onClick={() => acceptInvite(inv)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 cursor-pointer">Aceitar</button>
+                <button onClick={() => declineInvite(inv.id)} className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer">Recusar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Compartilhar planilha */}
+      <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
+        <h3 className="text-base font-bold mb-1">Compartilhar Planilha</h3>
+        <p className="text-sm text-slate-400 mb-4">Convide alguem para ver e editar sua planilha financeira.</p>
+        <div className="flex gap-2 mb-3">
+          <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+            placeholder="Email da pessoa..."
+            onKeyDown={e => e.key === 'Enter' && sendInvite()}
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+          <button onClick={sendInvite} disabled={inviteLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
+            {inviteLoading ? '...' : 'Convidar'}
+          </button>
+        </div>
+        {inviteError && <div className="text-red-600 text-sm mb-2">{inviteError}</div>}
+        {inviteMsg && <div className="text-green-600 text-sm mb-2">{inviteMsg}</div>}
+
+        {shares.length > 0 && (
+          <div className="mt-3">
+            <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">CONVITES ENVIADOS</div>
+            {shares.map(s => (
+              <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{s.shared_email}</span>
+                  <span className={`text-[0.7rem] px-2 py-0.5 rounded-full font-semibold ${s.accepted ? 'bg-green-100 text-green-700' : 'bg-amber-50 text-amber-600'}`}>
+                    {s.accepted ? 'Aceito' : 'Pendente'}
+                  </span>
+                </div>
+                <button onClick={() => removeInvite(s.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Remover</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Categorias */}
       <div className="bg-white rounded-xl p-6 border border-slate-200 mb-6">
         <h3 className="text-base font-bold mb-4">Categorias de Despesa</h3>

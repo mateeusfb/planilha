@@ -2,16 +2,26 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthPage() {
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check if we're in password reset mode (from email link)
+  if (typeof window !== 'undefined' && mode !== 'reset') {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery')) {
+      setTimeout(() => setMode('reset'), 0);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,9 +34,27 @@ export default function AuthPage() {
       if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
       const result = await signUp(email, password, name);
       if (result.error) {
-        setError(result.error);
+        setError(traduzirErro(result.error));
       } else {
-        setSuccess('Conta criada! Verifique seu email para confirmar o cadastro.');
+        setSuccess('Conta criada com sucesso! Voce ja pode fazer login.');
+      }
+    } else if (mode === 'forgot') {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      if (err) {
+        setError(traduzirErro(err.message));
+      } else {
+        setSuccess('Email de recuperacao enviado! Verifique sua caixa de entrada.');
+      }
+    } else if (mode === 'reset') {
+      if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
+      const { error: err } = await supabase.auth.updateUser({ password });
+      if (err) {
+        setError(traduzirErro(err.message));
+      } else {
+        setSuccess('Senha alterada com sucesso! Redirecionando...');
+        setTimeout(() => window.location.replace('/'), 1500);
       }
     } else {
       const result = await signIn(email, password);
@@ -41,19 +69,41 @@ export default function AuthPage() {
     if (msg.includes('Invalid login')) return 'Email ou senha incorretos.';
     if (msg.includes('Email not confirmed')) return 'Confirme seu email antes de entrar. Verifique sua caixa de entrada.';
     if (msg.includes('already registered')) return 'Este email ja esta cadastrado. Tente fazer login.';
+    if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+    if (msg.includes('User not found')) return 'Nenhuma conta encontrada com este email.';
     return msg;
   }
 
+  function switchMode(newMode: 'login' | 'signup' | 'forgot') {
+    setMode(newMode);
+    setError('');
+    setSuccess('');
+    setShowPassword(false);
+  }
+
+  const titles = {
+    login: 'Entrar na sua conta',
+    signup: 'Criar sua conta',
+    forgot: 'Recuperar senha',
+    reset: 'Nova senha',
+  };
+
+  const buttons = {
+    login: 'Entrar',
+    signup: 'Criar conta',
+    forgot: 'Enviar email de recuperacao',
+    reset: 'Salvar nova senha',
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Logo / Header */}
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/30">
             <span className="text-2xl">💰</span>
@@ -64,9 +114,7 @@ export default function AuthPage() {
 
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-bold text-white mb-6 text-center">
-            {mode === 'login' ? 'Entrar na sua conta' : 'Criar sua conta'}
-          </h2>
+          <h2 className="text-xl font-bold text-white mb-6 text-center">{titles[mode]}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
@@ -77,18 +125,53 @@ export default function AuthPage() {
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="seu@email.com" required
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Senha</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••" required minLength={6}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
-            </div>
+
+            {mode !== 'reset' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="seu@email.com" required
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
+              </div>
+            )}
+
+            {mode !== 'forgot' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  {mode === 'reset' ? 'Nova senha' : 'Senha'}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
@@ -103,27 +186,41 @@ export default function AuthPage() {
 
             <button type="submit" disabled={loading}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-              {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}
+              {loading ? 'Aguarde...' : buttons[mode]}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            {mode === 'login' ? (
-              <p className="text-slate-400 text-sm">
-                Nao tem uma conta?{' '}
-                <button onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}
-                  className="text-blue-400 font-semibold hover:text-blue-300 transition-colors cursor-pointer">
-                  Criar conta gratis
+          {/* Links */}
+          <div className="mt-5 space-y-2 text-center">
+            {mode === 'login' && (
+              <>
+                <button onClick={() => switchMode('forgot')}
+                  className="block w-full text-sm text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
+                  Esqueci minha senha
                 </button>
-              </p>
-            ) : (
+                <p className="text-slate-400 text-sm">
+                  Nao tem uma conta?{' '}
+                  <button onClick={() => switchMode('signup')}
+                    className="text-blue-400 font-semibold hover:text-blue-300 transition-colors cursor-pointer">
+                    Criar conta gratis
+                  </button>
+                </p>
+              </>
+            )}
+            {mode === 'signup' && (
               <p className="text-slate-400 text-sm">
                 Ja tem uma conta?{' '}
-                <button onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                <button onClick={() => switchMode('login')}
                   className="text-blue-400 font-semibold hover:text-blue-300 transition-colors cursor-pointer">
                   Fazer login
                 </button>
               </p>
+            )}
+            {mode === 'forgot' && (
+              <button onClick={() => switchMode('login')}
+                className="text-blue-400 font-semibold text-sm hover:text-blue-300 transition-colors cursor-pointer">
+                Voltar ao login
+              </button>
             )}
           </div>
         </div>

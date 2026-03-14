@@ -77,10 +77,14 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
   useEffect(() => {
     async function loadData() {
       try {
+        // Get user IDs I have access to (my own + shared with me)
+        const { data: sharedWithMe } = await supabase.from('shares').select('owner_id').eq('shared_user_id', userId).eq('accepted', true);
+        const accessIds = [userId, ...(sharedWithMe || []).map(s => s.owner_id)];
+
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
-          supabase.from('members').select('*').eq('user_id', userId),
-          supabase.from('expenses').select('*').eq('user_id', userId),
-          supabase.from('settings').select('*').eq('user_id', userId).eq('id', 1).single(),
+          supabase.from('members').select('*').in('user_id', accessIds),
+          supabase.from('expenses').select('*').in('user_id', accessIds),
+          supabase.from('settings').select('*').in('user_id', accessIds).eq('id', 1).single(),
         ]);
 
         const dbMembers = (membersRes.data || []).map(rowToMember);
