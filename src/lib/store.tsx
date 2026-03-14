@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { AppState, Member, Expense } from './types';
 import { COLORS } from './constants';
 import { getCurrentMonth } from './helpers';
@@ -19,21 +19,21 @@ const defaultState: AppState = {
   customPayments: [],
 };
 
-// ── Supabase helpers ──
-function memberToRow(m: Member) {
-  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta };
+// ── Supabase row helpers ──
+function memberToRow(m: Member, userId: string) {
+  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId };
 }
 function rowToMember(r: Record<string, unknown>): Member {
   return { id: r.id as string, name: r.name as string, color: r.color as string, photo: r.photo as string | null, isConjunta: !!r.is_conjunta };
 }
-function expenseToRow(e: Expense) {
+function expenseToRow(e: Expense, userId: string) {
   return {
     id: e.id, type: e.type, description: e.desc, category: e.cat, value: e.value,
     month: e.month, payment: e.payment, installment: e.installment || 0,
     installment_current: e.installmentCurrent || 0, installment_group_id: e.installmentGroupId || null,
     member_id: e.memberId || 'all', note: e.note || null,
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
-    created_at: e.createdAt || Date.now(),
+    created_at: e.createdAt || Date.now(), user_id: userId,
   };
 }
 function rowToExpense(r: Record<string, unknown>): Expense {
@@ -69,58 +69,55 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
-export function StoreProvider({ children }: { children: ReactNode }) {
+export function StoreProvider({ children, userId }: { children: ReactNode; userId: string }) {
   const [state, setStateRaw] = useState<AppState>(defaultState);
   const [loaded, setLoaded] = useState(false);
-  const skipSync = useRef(false);
 
-  // ── Load from Supabase (fallback localStorage) ──
+  // ── Load from Supabase ──
   useEffect(() => {
-    async function loadFromSupabase() {
+    async function loadData() {
       try {
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
-          supabase.from('members').select('*'),
-          supabase.from('expenses').select('*'),
-          supabase.from('settings').select('*').eq('id', 1).single(),
+          supabase.from('members').select('*').eq('user_id', userId),
+          supabase.from('expenses').select('*').eq('user_id', userId),
+          supabase.from('settings').select('*').eq('user_id', userId).eq('id', 1).single(),
         ]);
-
-        if (membersRes.error || expensesRes.error) throw new Error('Supabase load failed');
 
         const dbMembers = (membersRes.data || []).map(rowToMember);
         const dbExpenses = (expensesRes.data || []).map(rowToExpense);
         const settings = settingsRes.data;
 
-        // If DB is empty, try migrating from localStorage
+        // Also try to claim orphan data (user_id = null) for this user
         if (dbMembers.length === 0 && dbExpenses.length === 0) {
-          const local = localStorage.getItem('fin_data');
-          if (local) {
-            const parsed = JSON.parse(local);
-            if (parsed.members?.length > 1 || parsed.expenses?.length > 0) {
-              await migrateLocalToSupabase(parsed);
-              // Reload after migration
-              const [m2, e2] = await Promise.all([
-                supabase.from('members').select('*'),
-                supabase.from('expenses').select('*'),
-              ]);
-              const migratedMembers = (m2.data || []).map(rowToMember);
-              const migratedExpenses = (e2.data || []).map(rowToExpense);
+          const orphanMembers = await supabase.from('members').select('*').is('user_id', null);
+          const orphanExpenses = await supabase.from('expenses').select('*').is('user_id', null);
 
-              skipSync.current = true;
-              setStateRaw(prev => ({
-                ...prev,
-                members: [defaultState.members[0], ...migratedMembers],
-                expenses: migratedExpenses,
-                customCats: parsed.customCats || [],
-                customPayments: parsed.customPayments || [],
-                activeMonth: parsed.activeMonth || getCurrentMonth(),
-              }));
-              setLoaded(true);
-              return;
-            }
+          if ((orphanMembers.data?.length || 0) > 0 || (orphanExpenses.data?.length || 0) > 0) {
+            // Claim orphan data
+            await supabase.from('members').update({ user_id: userId }).is('user_id', null);
+            await supabase.from('expenses').update({ user_id: userId }).is('user_id', null);
+            await supabase.from('settings').update({ user_id: userId }).is('user_id', null);
+
+            // Reload
+            const [m2, e2, s2] = await Promise.all([
+              supabase.from('members').select('*').eq('user_id', userId),
+              supabase.from('expenses').select('*').eq('user_id', userId),
+              supabase.from('settings').select('*').eq('user_id', userId).eq('id', 1).single(),
+            ]);
+
+            setStateRaw(prev => ({
+              ...prev,
+              members: [defaultState.members[0], ...(m2.data || []).map(rowToMember)],
+              expenses: (e2.data || []).map(rowToExpense),
+              customCats: s2.data?.custom_cats || [],
+              customPayments: s2.data?.custom_payments || [],
+              activeMonth: s2.data?.active_month || getCurrentMonth(),
+            }));
+            setLoaded(true);
+            return;
           }
         }
 
-        skipSync.current = true;
         setStateRaw(prev => ({
           ...prev,
           members: [defaultState.members[0], ...dbMembers],
@@ -130,14 +127,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           activeMonth: settings?.active_month || getCurrentMonth(),
         }));
       } catch {
-        // Fallback to localStorage
+        // Fallback localStorage
         try {
           const d = localStorage.getItem('fin_data');
           if (d) {
             const parsed = JSON.parse(d);
             setStateRaw(prev => ({
-              ...prev,
-              ...parsed,
+              ...prev, ...parsed,
               members: parsed.members?.length ? parsed.members : defaultState.members,
               activeMonth: parsed.activeMonth || getCurrentMonth(),
             }));
@@ -147,51 +143,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setLoaded(true);
     }
 
-    loadFromSupabase();
-  }, []);
+    loadData();
+  }, [userId]);
 
-  // ── Migrate localStorage data to Supabase ──
-  async function migrateLocalToSupabase(parsed: Record<string, unknown>) {
-    const members = (parsed.members as Member[] || []).filter(m => m.id !== 'all');
-    const expenses = parsed.expenses as Expense[] || [];
-
-    if (members.length > 0) {
-      await supabase.from('members').upsert(members.map(memberToRow));
-    }
-    if (expenses.length > 0) {
-      // Batch in chunks of 500
-      for (let i = 0; i < expenses.length; i += 500) {
-        const chunk = expenses.slice(i, i + 500);
-        await supabase.from('expenses').upsert(chunk.map(expenseToRow));
-      }
-    }
-    await supabase.from('settings').upsert({
-      id: 1,
-      custom_cats: parsed.customCats || [],
-      custom_payments: parsed.customPayments || [],
-      active_month: (parsed.activeMonth as string) || getCurrentMonth(),
-    });
-  }
-
-  // ── Also keep localStorage as cache ──
+  // Cache in localStorage
   useEffect(() => {
-    if (loaded) {
-      localStorage.setItem('fin_data', JSON.stringify(state));
-    }
+    if (loaded) localStorage.setItem('fin_data', JSON.stringify(state));
   }, [state, loaded]);
 
   const setState = useCallback((updater: (prev: AppState) => AppState) => {
     setStateRaw(prev => {
       const next = updater(prev);
-      // Sync settings to Supabase
       if (prev.customCats !== next.customCats || prev.customPayments !== next.customPayments) {
         supabase.from('settings').upsert({
-          id: 1, custom_cats: next.customCats, custom_payments: next.customPayments, active_month: next.activeMonth,
+          id: 1, user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, active_month: next.activeMonth,
         });
       }
       return next;
     });
-  }, []);
+  }, [userId]);
 
   const getExpensesForMonth = useCallback((ym: string, memberId: string): Expense[] => {
     return state.expenses.filter(e => {
@@ -223,16 +193,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addExpense = useCallback((expense: Expense) => {
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-    supabase.from('expenses').insert(expenseToRow(expense));
-  }, []);
+    supabase.from('expenses').insert(expenseToRow(expense, userId));
+  }, [userId]);
 
   const updateExpense = useCallback((id: string, expense: Expense) => {
     setStateRaw(prev => ({
       ...prev,
       expenses: prev.expenses.map(e => e.id === id ? { ...expense, createdAt: e.createdAt } : e),
     }));
-    supabase.from('expenses').update(expenseToRow(expense)).eq('id', id);
-  }, []);
+    supabase.from('expenses').update(expenseToRow(expense, userId)).eq('id', id);
+  }, [userId]);
 
   const removeExpense = useCallback((id: string) => {
     setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }));
@@ -241,8 +211,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addMember = useCallback((member: Member) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
-    supabase.from('members').insert(memberToRow(member));
-  }, []);
+    supabase.from('members').insert(memberToRow(member, userId));
+  }, [userId]);
 
   const updateMember = useCallback((id: string, data: Partial<Member>) => {
     setStateRaw(prev => ({
@@ -251,9 +221,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
     const member = state.members.find(m => m.id === id);
     if (member) {
-      supabase.from('members').update(memberToRow({ ...member, ...data })).eq('id', id);
+      supabase.from('members').update(memberToRow({ ...member, ...data }, userId)).eq('id', id);
     }
-  }, [state.members]);
+  }, [state.members, userId]);
 
   const removeMember = useCallback((id: string) => {
     setStateRaw(prev => ({
@@ -272,8 +242,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setActiveMonth = useCallback((ym: string) => {
     setStateRaw(prev => ({ ...prev, activeMonth: ym }));
-    supabase.from('settings').upsert({ id: 1, active_month: ym });
-  }, []);
+    supabase.from('settings').upsert({ id: 1, user_id: userId, active_month: ym });
+  }, [userId]);
 
   if (!loaded) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-50">

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider, useStore } from '@/lib/store';
 import { fmtMonth, buildMonthList } from '@/lib/helpers';
 import type { PageId } from '@/lib/types';
@@ -11,8 +12,10 @@ import SummaryPage from '@/components/SummaryPage';
 import SettingsPage from '@/components/SettingsPage';
 import MemberModal from '@/components/MemberModal';
 import DeleteModal from '@/components/DeleteModal';
+import AuthPage from '@/components/AuthPage';
 
 function AppContent() {
+  const { user, signOut } = useAuth();
   const { state, setActiveMonth, removeExpense } = useStore();
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [memberModalOpen, setMemberModalOpen] = useState(false);
@@ -30,39 +33,12 @@ function AppContent() {
 
   const months = buildMonthList();
 
-  function handleAddMember() {
-    setEditingMemberId(null);
-    setMemberModalOpen(true);
-  }
-
-  function handleEditMember(id: string) {
-    setEditingMemberId(id);
-    setMemberModalOpen(true);
-  }
-
-  function handleDeleteRequest(id: string) {
-    setDeleteId(id);
-    setDeleteModalOpen(true);
-  }
-
-  function handleConfirmDelete() {
-    if (deleteId) {
-      removeExpense(deleteId);
-    }
-    setDeleteId(null);
-    setDeleteModalOpen(false);
-  }
-
-  function handleOpenAddExpense() {
-    setActivePage('expenses');
-  }
-
   return (
     <div className="flex min-h-screen">
       <Sidebar
         activePage={activePage}
         onPageChange={setActivePage}
-        onAddMember={handleAddMember}
+        onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
       />
 
       <div className="ml-60 flex-1 flex flex-col">
@@ -80,11 +56,24 @@ function AppContent() {
               ))}
             </select>
             <button
-              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
-              onClick={handleOpenAddExpense}
+              className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+              onClick={() => setActivePage('expenses')}
             >
               + Lancamento
             </button>
+            <div className="relative group">
+              <button className="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center cursor-pointer">
+                {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+              </button>
+              <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-3 min-w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="text-sm font-semibold text-slate-700 mb-0.5">{user?.user_metadata?.name || 'Usuario'}</div>
+                <div className="text-xs text-slate-400 mb-3">{user?.email}</div>
+                <button onClick={signOut}
+                  className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer">
+                  Sair da conta
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -92,20 +81,19 @@ function AppContent() {
         <div className="p-6 flex-1 overflow-y-auto">
           {activePage === 'dashboard' && <Dashboard />}
           {activePage === 'expenses' && (
-            <ExpensesPage onDeleteRequest={handleDeleteRequest} />
+            <ExpensesPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
           )}
           {activePage === 'analysis' && <AnalysisPage />}
           {activePage === 'summary' && <SummaryPage />}
           {activePage === 'settings' && (
             <SettingsPage
-              onAddMember={handleAddMember}
-              onEditMember={handleEditMember}
+              onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
+              onEditMember={(id) => { setEditingMemberId(id); setMemberModalOpen(true); }}
             />
           )}
         </div>
       </div>
 
-      {/* Modals */}
       <MemberModal
         isOpen={memberModalOpen}
         onClose={() => { setMemberModalOpen(false); setEditingMemberId(null); }}
@@ -114,16 +102,34 @@ function AppContent() {
       <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => { setDeleteModalOpen(false); setDeleteId(null); }}
-        onConfirm={handleConfirmDelete}
+        onConfirm={() => { if (deleteId) removeExpense(deleteId); setDeleteId(null); setDeleteModalOpen(false); }}
       />
     </div>
   );
 }
 
-export default function Home() {
+function AuthGate() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen bg-slate-900">
+      <div className="text-slate-400">Carregando...</div>
+    </div>;
+  }
+
+  if (!user) return <AuthPage />;
+
   return (
-    <StoreProvider>
+    <StoreProvider userId={user.id}>
       <AppContent />
     </StoreProvider>
+  );
+}
+
+export default function Home() {
+  return (
+    <AuthProvider>
+      <AuthGate />
+    </AuthProvider>
   );
 }
