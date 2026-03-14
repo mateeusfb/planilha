@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useStore } from '@/lib/store';
-import { fmt, genId, getTotal } from '@/lib/helpers';
+import { fmt, genId } from '@/lib/helpers';
 import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, CAT_COLORS } from '@/lib/constants';
 import type { Expense } from '@/lib/types';
 import { Avatar } from './Sidebar';
@@ -15,6 +15,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const { state, setState, getExpensesForMonth, getIndividualMembers, addExpense, updateExpense } = useStore();
   const { activeMonth, activeMember, members, expenses } = state;
 
+  const [panelOpen, setPanelOpen] = useState(false);
   const [formType, setFormType] = useState<'expense' | 'income'>('expense');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [desc, setDesc] = useState('');
@@ -37,6 +38,17 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
   const individuals = getIndividualMembers();
   const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
+
+  function openPanel(type?: 'expense' | 'income') {
+    clearForm();
+    if (type) switchType(type);
+    setPanelOpen(true);
+  }
+
+  function closePanel() {
+    clearForm();
+    setPanelOpen(false);
+  }
 
   function clearForm() {
     setDesc(''); setValue(''); setNote('');
@@ -80,7 +92,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           createdAt: Date.now(),
         });
       });
-      clearForm();
+      closePanel();
       return;
     }
 
@@ -96,7 +108,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           installmentGroupId: groupId, memberId, note, createdAt: Date.now(),
         });
       }
-      clearForm();
+      closePanel();
       return;
     }
 
@@ -113,7 +125,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     } else {
       addExpense(expense);
     }
-    clearForm();
+    closePanel();
   }
 
   function startEdit(e: Expense) {
@@ -126,6 +138,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     setInstallmentCurrent(e.installmentCurrent || 1);
     setMemberId(e.memberId || 'all');
     setNote(e.note || '');
+    setPanelOpen(true);
   }
 
   const filteredExpenses = useMemo(() => {
@@ -139,156 +152,56 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
   const catOptions = formType === 'income' ? INCOME_CATS : allExpenseCats;
 
+  const inputClass = "w-full px-3 py-2.5 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100";
+
   return (
     <>
-      {/* Form */}
-      <div className="t-card rounded-xl p-6 border mb-6">
-        <h3 className="text-base font-bold mb-4">{editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lancamento') : 'Novo Lancamento'}</h3>
-        <div className="flex gap-2 mb-4">
-          <button onClick={() => switchType('expense')}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${formType === 'expense' ? 'bg-red-600 text-white' : 'border border-red-300 text-red-600'}`}>
-            Despesa
-          </button>
-          <button onClick={() => switchType('income')}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${formType === 'income' ? 'bg-green-600 text-white' : 'border border-green-300 text-green-600'}`}>
-            Receita
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Descricao</label>
-            <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado, Salario..."
-              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Categoria</label>
-            <select value={cat} onChange={e => {
-              if (e.target.value === '__new__') {
-                const name = prompt('Nome da nova categoria:');
-                if (name?.trim()) {
-                  setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name.trim()] }));
-                  setCat(name.trim());
-                }
-              } else setCat(e.target.value);
-            }} className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100">
-              {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              <option value="__new__" className="text-blue-600 font-semibold">+ Nova categoria...</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Valor (R$)</label>
-            <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" min="0" step="0.01"
-              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mes / Ano</label>
-            <input type="month" value={month} onChange={e => setMonth(e.target.value)}
-              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
-          </div>
-          {formType === 'expense' && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Forma de Pagamento</label>
-              <select value={payment} onChange={e => {
-                if (e.target.value === '__new_pay__') {
-                  const name = prompt('Nome da nova forma:');
-                  if (name?.trim()) {
-                    setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name.trim()] }));
-                    setPayment(name.trim());
-                  }
-                } else setPayment(e.target.value);
-              }} className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100">
-                {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
-                <option value="__new_pay__" className="text-blue-600 font-semibold">+ Nova forma...</option>
-              </select>
-            </div>
-          )}
-          {formType === 'expense' && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Parcelado?</label>
-              <div className="flex items-center gap-2 h-[38px]">
-                <label className="toggle-switch">
-                  <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span className="text-sm">{isInstallment ? 'Sim' : 'Nao'}</span>
-                {isInstallment && (
-                  <>
-                    <input type="number" value={installmentCurrent} onChange={e => setInstallmentCurrent(Number(e.target.value))} min={1} max={60}
-                      className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-sm" />
-                    <span className="text-xs text-slate-400">de</span>
-                    <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
-                      className="w-14 px-2 py-1 border border-slate-200 rounded-lg text-sm" />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Membro</label>
-            <select value={memberId} onChange={e => setMemberId(e.target.value)}
-              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100">
-              <option value="all" disabled={formType === 'income'}>Familia (gasto geral)</option>
-              {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              {conjuntas.length > 0 && (
-                <optgroup label="Contas Conjuntas">
-                  {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conjunta)</option>)}
-                </optgroup>
-              )}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Observacao</label>
-            <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Opcional..."
-              className="px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100" />
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2.5">
-          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer">
-            {editingId ? 'Atualizar' : 'Salvar'}
-          </button>
-          {editingId && (
-            <button onClick={clearForm} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
-              Cancelar
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Table */}
       <div className="t-card rounded-xl border overflow-hidden">
         <div className="p-4 border-b t-border flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-bold">Lancamentos do Mes</h3>
           <div className="flex flex-wrap gap-2">
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
-              className="w-40 px-3 py-1.5 border border-slate-200 rounded-lg text-[0.82rem] bg-slate-50" />
+              className="w-40 px-3 py-1.5 border rounded-lg text-[0.82rem] t-input" />
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-[0.82rem] bg-slate-50">
+              className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
               <option value="">Todas categorias</option>
               {allExpenseCats.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={filterPay} onChange={e => setFilterPay(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-[0.82rem] bg-slate-50">
+              className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
               <option value="">Todas formas</option>
               {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
             <select value={filterMember} onChange={e => setFilterMember(e.target.value)}
-              className="px-3 py-1.5 border border-slate-200 rounded-lg text-[0.82rem] bg-slate-50">
+              className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
               <option value="">Todos membros</option>
               {[...individuals, ...conjuntas].map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
+            <button onClick={() => openPanel('expense')}
+              className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors cursor-pointer">
+              + Despesa
+            </button>
+            <button onClick={() => openPanel('income')}
+              className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors cursor-pointer">
+              + Receita
+            </button>
           </div>
         </div>
         {filteredExpenses.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <div className="text-3xl mb-2">📊</div>
-            <p className="text-sm">Nenhum lancamento encontrado.</p>
+          <div className="text-center py-16 t-text-dim">
+            <div className="text-4xl mb-3">📊</div>
+            <p className="text-sm mb-4">Nenhum lancamento encontrado neste mes.</p>
+            <button onClick={() => openPanel()} className="px-5 py-2 t-accent-bg text-white rounded-lg text-sm font-semibold cursor-pointer">
+              + Novo Lancamento
+            </button>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50">
+              <tr>
                 {['Descricao','Categoria','Valor','Pagamento','Parcelas','Membro','Acoes'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide text-slate-500 border-b t-border">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -297,12 +210,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Familia', color: '#2563eb' };
                 const isIncome = e.type === 'income';
                 return (
-                  <tr key={e.id} className="hover:bg-slate-50/50">
+                  <tr key={e.id} className="t-row">
                     <td className="px-4 py-2.5 border-b t-border-light">
                       <div className="font-semibold text-[0.83rem]">{e.desc}
-                        {e.conjuntaName && <span className="text-[0.72rem] text-slate-400 font-normal ml-1">via {e.conjuntaName}</span>}
+                        {e.conjuntaName && <span className="text-[0.72rem] t-text-dim font-normal ml-1">via {e.conjuntaName}</span>}
                       </div>
-                      {e.note && <div className="text-[0.74rem] text-slate-400">{e.note}</div>}
+                      {e.note && <div className="text-[0.74rem] t-text-dim">{e.note}</div>}
                     </td>
                     <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
@@ -327,7 +240,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 border-b t-border-light">
-                      <button onClick={() => startEdit(e)} className="px-2.5 py-1 border border-slate-200 rounded-lg text-[0.78rem] font-semibold hover:bg-slate-50 mr-1 cursor-pointer">Editar</button>
+                      <button onClick={() => startEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
                       <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
                     </td>
                   </tr>
@@ -337,6 +250,158 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           </table>
         )}
       </div>
+
+      {/* Slide Panel */}
+      {panelOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40" onClick={closePanel}></div>
+
+          {/* Panel */}
+          <div className="relative w-full max-w-lg t-card border-l shadow-2xl overflow-y-auto animate-slide-in">
+            {/* Header */}
+            <div className="sticky top-0 t-card border-b t-border px-6 py-4 flex items-center justify-between z-10">
+              <h3 className="text-lg font-bold t-text">
+                {editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lancamento') : 'Novo Lancamento'}
+              </h3>
+              <button onClick={closePanel} className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-70 t-text-dim text-xl cursor-pointer">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Type toggle */}
+              <div className="flex gap-2">
+                <button onClick={() => switchType('expense')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'expense' ? 'bg-red-600 text-white shadow-md' : 'border border-red-300 text-red-600'}`}>
+                  Despesa
+                </button>
+                <button onClick={() => switchType('income')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'income' ? 'bg-green-600 text-white shadow-md' : 'border border-green-300 text-green-600'}`}>
+                  Receita
+                </button>
+              </div>
+
+              {/* Fields */}
+              <div>
+                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Descricao</label>
+                <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado, Salario..." autoFocus
+                  className={inputClass} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Valor (R$)</label>
+                  <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" min="0" step="0.01"
+                    className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Categoria</label>
+                  <select value={cat} onChange={e => {
+                    if (e.target.value === '__new__') {
+                      const name = prompt('Nome da nova categoria:');
+                      if (name?.trim()) {
+                        setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name.trim()] }));
+                        setCat(name.trim());
+                      }
+                    } else setCat(e.target.value);
+                  }} className={inputClass}>
+                    {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="__new__">+ Nova categoria...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Mes / Ano</label>
+                  <input type="month" value={month} onChange={e => setMonth(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Membro</label>
+                  <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
+                    <option value="all" disabled={formType === 'income'}>Familia (geral)</option>
+                    {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    {conjuntas.length > 0 && (
+                      <optgroup label="Contas Conjuntas">
+                        {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conjunta)</option>)}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {formType === 'expense' && (
+                <div>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Forma de Pagamento</label>
+                  <select value={payment} onChange={e => {
+                    if (e.target.value === '__new_pay__') {
+                      const name = prompt('Nome da nova forma:');
+                      if (name?.trim()) {
+                        setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name.trim()] }));
+                        setPayment(name.trim());
+                      }
+                    } else setPayment(e.target.value);
+                  }} className={inputClass}>
+                    {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="__new_pay__">+ Nova forma...</option>
+                  </select>
+                </div>
+              )}
+
+              {formType === 'expense' && (
+                <div>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Parcelado?</label>
+                  <div className="flex items-center gap-3">
+                    <label className="toggle-switch">
+                      <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
+                      <span className="toggle-slider"></span>
+                    </label>
+                    <span className="text-sm t-text">{isInstallment ? 'Sim' : 'Nao'}</span>
+                    {isInstallment && (
+                      <div className="flex items-center gap-2">
+                        <input type="number" value={installmentCurrent} onChange={e => setInstallmentCurrent(Number(e.target.value))} min={1} max={60}
+                          className="w-16 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                        <span className="text-xs t-text-dim">de</span>
+                        <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
+                          className="w-16 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Observacao</label>
+                <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Opcional..."
+                  className={inputClass} />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 t-card border-t t-border px-6 py-4 flex gap-3">
+              <button onClick={handleSave}
+                className="flex-1 py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
+                {editingId ? 'Atualizar' : 'Salvar'}
+              </button>
+              <button onClick={closePanel}
+                className="px-5 py-2.5 border t-border rounded-xl text-sm font-semibold t-text hover:opacity-80 transition-colors cursor-pointer">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-slide-in {
+          animation: slideIn 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 }
