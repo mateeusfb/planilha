@@ -6,7 +6,7 @@ import { getCurrentMonth } from './helpers';
 import { supabase } from './supabase';
 
 const defaultState: AppState = {
-  members: [{ id: 'all', name: 'Familia (todos)', color: '#2563eb' }],
+  members: [],
   activeMember: 'all',
   expenses: [],
   activeMonth: getCurrentMonth(),
@@ -95,7 +95,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
         setStateRaw(prev => ({
           ...prev,
-          members: [defaultState.members[0], ...dbMembers],
+          members: dbMembers,
           expenses: dbExpenses,
           customCats: settings?.custom_cats || [],
           customPayments: settings?.custom_payments || [],
@@ -109,7 +109,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
             const parsed = JSON.parse(d);
             setStateRaw(prev => ({
               ...prev, ...parsed,
-              members: parsed.members?.length ? parsed.members : defaultState.members,
+              members: parsed.members?.length ? parsed.members.filter((m: Member) => m.id !== 'all') : [],
               activeMonth: parsed.activeMonth || getCurrentMonth(),
             }));
           }
