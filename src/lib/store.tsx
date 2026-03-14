@@ -56,6 +56,7 @@ interface StoreContextType {
   state: AppState;
   setState: (updater: (prev: AppState) => AppState) => void;
   getExpensesForMonth: (ym: string, memberId: string) => Expense[];
+  getExpensesByExactMonth: (ym: string, memberId: string) => Expense[];
   getOutflows: (ym: string, memberId: string) => Expense[];
   getIncomes: (ym: string, memberId: string) => Expense[];
   getIndividualMembers: () => Member[];
@@ -203,6 +204,15 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
     });
   }, [state.expenses, matchesDateFilter]);
 
+  // Filtro direto por mês (sem dateFilter) - para gráficos de evolução
+  const getExpensesByExactMonth = useCallback((ym: string, memberId: string): Expense[] => {
+    return state.expenses.filter(e => {
+      if (e.month !== ym) return false;
+      if (memberId === 'all') return true;
+      return e.memberId === memberId;
+    });
+  }, [state.expenses]);
+
   const getIndividualMembers = useCallback((): Member[] => {
     return state.members.filter(m => m.id !== 'all' && !m.isConjunta);
   }, [state.members]);
@@ -270,7 +280,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
   return (
     <StoreContext.Provider value={{
       state, setState,
-      getExpensesForMonth, getOutflows, getIncomes, getIndividualMembers,
+      getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIncomes, getIndividualMembers,
       addExpense, updateExpense, removeExpense,
       addMember, updateMember, removeMember,
       setActiveMember, setActiveMonth,

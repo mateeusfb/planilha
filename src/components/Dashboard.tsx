@@ -30,7 +30,7 @@ function TipItem({ tip }: { tip: Tip }) {
 export { TipItem };
 
 export default function Dashboard() {
-  const { state, getExpensesForMonth, getOutflows, getIndividualMembers } = useStore();
+  const { state, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers } = useStore();
   const { activeMonth, activeMember } = state;
 
   const data = useMemo(() => {
@@ -95,12 +95,12 @@ export default function Dashboard() {
     const catData = catLabels.map(l => byCat[l]);
     const catColors = catLabels.map(l => CAT_COLORS[l] || '#94a3b8');
 
-    // Monthly chart (6 months)
+    // Monthly chart (6 months) - usa filtro direto por mês, sem dateFilter
     const monthlyData: { label: string; income: number; expense: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(y, m - 1 - i, 1);
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const all = getExpensesForMonth(ym, activeMember);
+      const all = getExpensesByExactMonth(ym, activeMember);
       monthlyData.push({
         label: fmtMonth(ym),
         income: getTotal(all.filter(e => e.type === 'income' && e.cat !== 'Investimento')),
@@ -116,7 +116,7 @@ export default function Dashboard() {
       diffText, familyShare, familyBreakdown, incomesNormais,
       catLabels, catData, catColors, monthlyData, tips,
     };
-  }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getOutflows, getIndividualMembers]);
+  }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
 
   return (
     <>
