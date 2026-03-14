@@ -41,7 +41,7 @@ function AppContent() {
         onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
       />
 
-      <div className="ml-60 flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col">
         {/* Topbar */}
         <div className="t-topbar border-b px-7 py-3.5 flex items-center justify-between sticky top-0 z-50">
           <h2 className="text-lg font-bold t-text">{titles[activePage]}</h2>
