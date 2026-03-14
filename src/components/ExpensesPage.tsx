@@ -251,16 +251,13 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         )}
       </div>
 
-      {/* Slide Panel */}
+      {/* Modal */}
       {panelOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" onClick={closePanel}></div>
-
-          {/* Panel */}
-          <div className="relative w-full max-w-lg t-card border-l shadow-2xl overflow-y-auto animate-slide-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) closePanel(); }}>
+          <div className="absolute inset-0 bg-black/40"></div>
+          <div className="relative w-full max-w-xl t-card rounded-2xl shadow-2xl border overflow-hidden max-h-[90vh] flex flex-col animate-modal-in">
             {/* Header */}
-            <div className="sticky top-0 t-card border-b t-border px-6 py-4 flex items-center justify-between z-10">
+            <div className="t-card border-b t-border px-6 py-4 flex items-center justify-between flex-shrink-0">
               <h3 className="text-lg font-bold t-text">
                 {editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lancamento') : 'Novo Lancamento'}
               </h3>
@@ -269,7 +266,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Type toggle */}
               <div className="flex gap-2">
                 <button onClick={() => switchType('expense')}
@@ -282,7 +279,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </button>
               </div>
 
-              {/* Fields */}
               <div>
                 <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Descricao</label>
                 <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado, Salario..." autoFocus
@@ -379,7 +375,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 t-card border-t t-border px-6 py-4 flex gap-3">
+            <div className="t-card border-t t-border px-6 py-4 flex gap-3 flex-shrink-0">
               <button onClick={handleSave}
                 className="flex-1 py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
                 {editingId ? 'Atualizar' : 'Salvar'}
@@ -394,12 +390,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       )}
 
       <style jsx>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
-        .animate-slide-in {
-          animation: slideIn 0.3s ease-out;
+        .animate-modal-in {
+          animation: modalIn 0.25s ease-out;
         }
       `}</style>
     </>

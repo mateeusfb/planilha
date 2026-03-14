@@ -57,12 +57,6 @@ function AppContent() {
                 <option key={ym} value={ym}>{fmtMonth(ym)}</option>
               ))}
             </select>
-            <button
-              className="px-4 py-1.5 t-accent-bg text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-              onClick={() => setActivePage('expenses')}
-            >
-              + Lancamento
-            </button>
             {/* Theme toggle */}
             <button onClick={toggleMode} title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}
               className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
