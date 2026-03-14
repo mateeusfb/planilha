@@ -89,6 +89,63 @@ body {
 .t-row:hover { background: var(--bg-card-hover); }
 .t-badge { background: var(--bg); }
 
+/* ── Dark mode overrides for Tailwind utility classes ── */
+[data-theme="dark"] {
+  /* Backgrounds */
+  & .bg-white { background-color: var(--bg-card) !important; }
+  & .bg-slate-50 { background-color: var(--bg) !important; }
+  & .bg-slate-100 { background-color: #283548 !important; }
+  & .hover\:bg-slate-50:hover { background-color: var(--bg-card-hover) !important; }
+  & .hover\:bg-slate-50\/50:hover { background-color: rgba(40,53,72,0.5) !important; }
+
+  /* Text */
+  & .text-slate-800, & .text-slate-700 { color: var(--text) !important; }
+  & .text-slate-600 { color: #cbd5e1 !important; }
+  & .text-slate-500 { color: var(--text-muted) !important; }
+  & .text-slate-400 { color: var(--text-dim) !important; }
+
+  /* Borders */
+  & .border-slate-200 { border-color: var(--border) !important; }
+  & .border-slate-100 { border-color: var(--border-light) !important; }
+
+  /* Inputs & selects */
+  & input, & select, & textarea {
+    background-color: var(--bg-input) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+  & input::placeholder, & textarea::placeholder { color: var(--text-dim) !important; }
+  & option { background-color: var(--bg-card) !important; color: var(--text) !important; }
+
+  /* Table */
+  & table th { background-color: rgba(15,23,42,0.5) !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
+  & table td { border-color: var(--border-light) !important; }
+  & table tr:hover td { background-color: var(--bg-card-hover) !important; }
+
+  /* Badges & pills */
+  & .bg-green-100 { background-color: rgba(16,185,129,0.15) !important; }
+  & .bg-red-50 { background-color: rgba(239,68,68,0.1) !important; }
+  & .bg-amber-50 { background-color: rgba(245,158,11,0.1) !important; }
+  & .bg-blue-50 { background-color: rgba(59,130,246,0.1) !important; }
+  & .bg-green-50 { background-color: rgba(16,185,129,0.08) !important; }
+  & .bg-slate-100 { background-color: rgba(255,255,255,0.06) !important; }
+
+  /* Tip items */
+  & .bg-green-50 { background-color: rgba(16,185,129,0.08) !important; }
+  & .bg-blue-50 { background-color: rgba(59,130,246,0.08) !important; }
+  & .bg-amber-50 { background-color: rgba(245,158,11,0.08) !important; }
+  & .bg-red-50 { background-color: rgba(239,68,68,0.08) !important; }
+
+  /* Modals */
+  & .bg-black\/40 { background-color: rgba(0,0,0,0.6) !important; }
+
+  /* Charts - canvas background */
+  & canvas { filter: none; }
+
+  /* Scrollbar */
+  & ::-webkit-scrollbar-thumb { background: #475569; }
+}
+
 /* Toggle switch */
 .toggle-switch {
   position: relative;
