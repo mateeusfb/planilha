@@ -28,6 +28,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [installmentCurrent, setInstallmentCurrent] = useState(1);
   const [memberId, setMemberId] = useState('all');
   const [note, setNote] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
@@ -56,6 +57,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     setInstallmentN(2); setInstallmentCurrent(1);
     setMonth(activeMonth); setMemberId('all');
     setFormType('expense'); setCat(EXPENSE_CATS[0]);
+    setPurchaseDate(new Date().toISOString().split('T')[0]);
     setEditingId(null);
   }
 
@@ -87,7 +89,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
           month, payment, installment: 0, memberId: m.id,
-          note: `Conjunta${note ? ': ' + note : ''}`,
+          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate,
           conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
           createdAt: Date.now(),
         });
@@ -105,7 +107,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
           month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
-          installmentGroupId: groupId, memberId, note, createdAt: Date.now(),
+          installmentGroupId: groupId, memberId, note, purchaseDate, createdAt: Date.now(),
         });
       }
       closePanel();
@@ -117,7 +119,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       month, payment: formType === 'income' ? '-' : payment,
       installment: isInstallment ? installmentN : 0,
       installmentCurrent: isInstallment ? installmentCurrent : 0,
-      memberId, note, createdAt: Date.now(),
+      memberId, note, purchaseDate, createdAt: Date.now(),
     };
 
     if (editingId) {
@@ -138,6 +140,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     setInstallmentCurrent(e.installmentCurrent || 1);
     setMemberId(e.memberId || 'all');
     setNote(e.note || '');
+    setPurchaseDate(e.purchaseDate || new Date().toISOString().split('T')[0]);
     setPanelOpen(true);
   }
 
@@ -200,7 +203,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           <table className="w-full">
             <thead>
               <tr>
-                {['Descricao','Categoria','Valor','Pagamento','Parcelas','Membro','Acoes'].map(h => (
+                {['Descricao','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Acoes'].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">{h}</th>
                 ))}
               </tr>
@@ -226,6 +229,9 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                     </td>
                     <td className={`px-4 py-2.5 border-b t-border-light font-bold text-[0.83rem] ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
                       {isIncome ? '+' : '-'} {fmt(e.value)}
+                    </td>
+                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
+                      {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
                     </td>
                     <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                       {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
@@ -308,9 +314,15 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Data da Compra</label>
+                <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)}
+                  className={inputClass} />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Mes / Ano</label>
+                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Mes de Referencia</label>
                   <input type="month" value={month} onChange={e => setMonth(e.target.value)} className={inputClass} />
                 </div>
                 <div>

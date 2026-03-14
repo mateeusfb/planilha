@@ -32,6 +32,7 @@ function expenseToRow(e: Expense, userId: string) {
     month: e.month, payment: e.payment, installment: e.installment || 0,
     installment_current: e.installmentCurrent || 0, installment_group_id: e.installmentGroupId || null,
     member_id: e.memberId || 'all', note: e.note || null,
+    purchase_date: e.purchaseDate || null,
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
     created_at: e.createdAt || Date.now(), user_id: userId,
   };
@@ -44,6 +45,7 @@ function rowToExpense(r: Record<string, unknown>): Expense {
     installmentCurrent: Number(r.installment_current) || 0,
     installmentGroupId: r.installment_group_id as string | undefined,
     memberId: r.member_id as string, note: r.note as string | undefined,
+    purchaseDate: r.purchase_date as string | undefined,
     conjuntaGroupId: r.conjunta_group_id as string | undefined,
     conjuntaName: r.conjunta_name as string | undefined,
     createdAt: Number(r.created_at) || 0,
@@ -167,29 +169,70 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
     });
   }, [userId]);
 
+  // Date filter helper - checks if expense matches the current filter
+  const matchesDateFilter = useCallback((e: Expense): boolean => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateFilter = (state as any).dateFilter;
+    if (!dateFilter || dateFilter.type === 'month') {
+      const ym = dateFilter?.month || state.activeMonth;
+      return e.month === ym;
+    }
+    // For preset and custom filters, use purchaseDate if available, else createdAt
+    let date: Date;
+    if (e.purchaseDate) {
+      date = new Date(e.purchaseDate + 'T12:00:00');
+    } else {
+      const ts = e.createdAt || 0;
+      if (!ts) return false;
+      date = new Date(ts);
+    }
+
+    if (dateFilter.type === 'preset') {
+      const now = new Date();
+      now.setHours(23, 59, 59, 999);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      switch (dateFilter.preset) {
+        case 'today': return date >= today && date <= now;
+        case '7days': return date >= new Date(today.getTime() - 6 * 86400000) && date <= now;
+        case '15days': return date >= new Date(today.getTime() - 14 * 86400000) && date <= now;
+        case '30days': return date >= new Date(today.getTime() - 29 * 86400000) && date <= now;
+        default: return false;
+      }
+    }
+
+    if (dateFilter.type === 'custom' && dateFilter.startDate) {
+      const start = new Date(dateFilter.startDate + 'T00:00:00');
+      const end = new Date((dateFilter.endDate || dateFilter.startDate) + 'T23:59:59');
+      return date >= start && date <= end;
+    }
+
+    return e.month === state.activeMonth;
+  }, [state]);
+
   const getExpensesForMonth = useCallback((ym: string, memberId: string): Expense[] => {
     return state.expenses.filter(e => {
-      if (e.month !== ym) return false;
+      if (!matchesDateFilter(e)) return false;
       if (memberId === 'all') return true;
       return e.memberId === memberId;
     });
-  }, [state.expenses]);
+  }, [state.expenses, matchesDateFilter]);
 
   const getOutflows = useCallback((ym: string, memberId: string): Expense[] => {
     return state.expenses.filter(e => {
-      if (e.type === 'income' || e.month !== ym) return false;
+      if (e.type === 'income' || !matchesDateFilter(e)) return false;
       if (memberId === 'all') return true;
       return e.memberId === memberId;
     });
-  }, [state.expenses]);
+  }, [state.expenses, matchesDateFilter]);
 
   const getIncomes = useCallback((ym: string, memberId: string): Expense[] => {
     return state.expenses.filter(e => {
-      if (e.type !== 'income' || e.month !== ym) return false;
+      if (e.type !== 'income' || !matchesDateFilter(e)) return false;
       if (memberId === 'all') return true;
       return e.memberId === memberId;
     });
-  }, [state.expenses]);
+  }, [state.expenses, matchesDateFilter]);
 
   const getIndividualMembers = useCallback((): Member[] => {
     return state.members.filter(m => m.id !== 'all' && !m.isConjunta);

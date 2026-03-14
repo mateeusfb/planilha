@@ -32,11 +32,40 @@ export function getCurrentMonth(): string {
 }
 
 export function buildMonthList(): string[] {
-  const now = new Date();
   const months: string[] = [];
-  for (let i = -12; i <= 3; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+  // Start from Jan 2026, go up to 3 months ahead of current month
+  const now = new Date();
+  const endDate = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+  const startDate = new Date(2026, 0, 1); // Jan 2026
+  const d = new Date(startDate);
+  while (d <= endDate) {
     months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    d.setMonth(d.getMonth() + 1);
   }
   return months;
+}
+
+export function formatDate(date: string): string {
+  const [y, m, d] = date.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+export function getDateRange(preset: string): { start: Date; end: Date } | null {
+  const now = new Date();
+  now.setHours(23, 59, 59, 999);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  switch (preset) {
+    case 'today':
+      return { start: today, end: now };
+    case '7days':
+      return { start: new Date(today.getTime() - 6 * 86400000), end: now };
+    case '15days':
+      return { start: new Date(today.getTime() - 14 * 86400000), end: now };
+    case '30days':
+      return { start: new Date(today.getTime() - 29 * 86400000), end: now };
+    default:
+      return null;
+  }
 }

@@ -19,6 +19,7 @@ export interface Expense {
   installmentGroupId?: string;
   memberId: string;
   note?: string;
+  purchaseDate?: string; // YYYY-MM-DD
   conjuntaGroupId?: string;
   conjuntaName?: string;
   createdAt?: number;

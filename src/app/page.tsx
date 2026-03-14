@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider, useStore } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme';
-import { fmtMonth, buildMonthList } from '@/lib/helpers';
+import PeriodFilter from '@/components/PeriodFilter';
 import type { PageId } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
 import Dashboard from '@/components/Dashboard';
@@ -18,7 +18,7 @@ import AuthPage from '@/components/AuthPage';
 function AppContent() {
   const { user, signOut } = useAuth();
   const { toggleMode, mode } = useTheme();
-  const { state, setActiveMonth, removeExpense } = useStore();
+  const { removeExpense } = useStore();
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -33,8 +33,6 @@ function AppContent() {
     settings: 'Configuracoes',
   };
 
-  const months = buildMonthList();
-
   return (
     <div className="flex min-h-screen">
       <Sidebar
@@ -48,15 +46,7 @@ function AppContent() {
         <div className="t-topbar border-b px-7 py-3.5 flex items-center justify-between sticky top-0 z-50">
           <h2 className="text-lg font-bold t-text">{titles[activePage]}</h2>
           <div className="flex items-center gap-2.5">
-            <select
-              className="px-2.5 py-1.5 border rounded-lg text-sm cursor-pointer t-input"
-              value={state.activeMonth}
-              onChange={(e) => setActiveMonth(e.target.value)}
-            >
-              {months.map(ym => (
-                <option key={ym} value={ym}>{fmtMonth(ym)}</option>
-              ))}
-            </select>
+            <PeriodFilter />
             {/* Theme toggle */}
             <button onClick={toggleMode} title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}
               className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
