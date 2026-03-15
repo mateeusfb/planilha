@@ -16,6 +16,7 @@ import SettingsPage from '@/components/SettingsPage';
 import MemberModal from '@/components/MemberModal';
 import DeleteModal from '@/components/DeleteModal';
 import AuthPage from '@/components/AuthPage';
+import Onboarding from '@/components/Onboarding';
 
 interface Workspace {
   id: string;          // 'personal' ou UUID do workspace
@@ -191,12 +192,34 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
 }) {
   const { user, signOut } = useAuth();
   const { toggleMode, mode } = useTheme();
-  const { removeExpense } = useStore();
+  const { state, removeExpense } = useStore();
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('onboarding_done');
+  });
+
+  // Check if truly new user (no members, no expenses)
+  const isNewUser = state.members.filter(m => m.id !== 'all').length === 0 && state.expenses.length === 0;
+
+  function handlePageChange(page: PageId) {
+    if (page === activePage) return;
+    setTransitioning(true);
+    setTimeout(() => {
+      setActivePage(page);
+      setTransitioning(false);
+    }, 150);
+  }
+
+  function handleOnboardingComplete() {
+    localStorage.setItem('onboarding_done', 'true');
+    setShowOnboarding(false);
+  }
 
   const titles: Record<PageId, string> = {
     dashboard: 'Início',
@@ -210,7 +233,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     <div className="flex min-h-screen">
       <Sidebar
         activePage={activePage}
-        onPageChange={setActivePage}
+        onPageChange={handlePageChange}
         onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
       />
 
@@ -246,17 +269,26 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
 
         {/* Content */}
         <div className="p-3 md:p-6 flex-1 overflow-y-auto">
-          {activePage === 'dashboard' && <Dashboard />}
-          {activePage === 'expenses' && (
-            <ExpensesPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
-          )}
-          {activePage === 'analysis' && <AnalysisPage />}
-          {activePage === 'summary' && <SummaryPage />}
-          {activePage === 'settings' && (
-            <SettingsPage
+          {showOnboarding && isNewUser ? (
+            <Onboarding
+              onComplete={handleOnboardingComplete}
               onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
-              onEditMember={(id) => { setEditingMemberId(id); setMemberModalOpen(true); }}
             />
+          ) : (
+            <div className={`transition-opacity duration-150 ${transitioning ? 'opacity-0' : 'opacity-100'}`}>
+              {activePage === 'dashboard' && <Dashboard />}
+              {activePage === 'expenses' && (
+                <ExpensesPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
+              )}
+              {activePage === 'analysis' && <AnalysisPage />}
+              {activePage === 'summary' && <SummaryPage />}
+              {activePage === 'settings' && (
+                <SettingsPage
+                  onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
+                  onEditMember={(id) => { setEditingMemberId(id); setMemberModalOpen(true); }}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>

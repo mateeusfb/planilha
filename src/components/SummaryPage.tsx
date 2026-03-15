@@ -84,7 +84,7 @@ export default function SummaryPage() {
   return (
     <>
       {/* Hero */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-7 text-white mb-5">
+      <div className="rounded-xl p-7 text-white mb-5" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))' }}>
         <h2 className="text-xl font-bold mb-1">Resumo Financeiro - {fmtMonth(activeMonth)}</h2>
         <p className="text-white/80 text-sm">{data.memberName} - Gerado em {new Date().toLocaleDateString('pt-BR')}</p>
         <div className="text-4xl font-bold my-3">{fmt(data.saldo >= 0 ? data.saldo : data.despesasReais)}</div>

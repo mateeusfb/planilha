@@ -213,62 +213,109 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr>
-                {['Descrição','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Ações'].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Mobile: cards */}
+            <div className="md:hidden divide-y t-border">
               {filteredExpenses.map(e => {
                 const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Família', color: '#2563eb' };
                 const isIncome = e.type === 'income';
                 return (
-                  <tr key={e.id} className="t-row">
-                    <td className="px-4 py-2.5 border-b t-border-light">
-                      <div className="font-semibold text-[0.83rem]">{e.desc}
-                        {e.conjuntaName && <span className="text-[0.72rem] t-text-dim font-normal ml-1">via {e.conjuntaName}</span>}
+                  <div key={e.id} className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm t-text truncate">{e.desc}</div>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[0.7rem] font-semibold ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
+                            {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
+                          </span>
+                          <span className="text-xs t-text-dim flex items-center gap-1">
+                            <span className="inline-block w-2 h-2 rounded-full" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }} />
+                            {e.cat}
+                          </span>
+                        </div>
                       </div>
-                      {e.note && <div className="text-[0.74rem] t-text-dim">{e.note}</div>}
-                    </td>
-                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
-                        {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
+                      <span className={`font-bold text-sm flex-shrink-0 ml-3 ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                        {isIncome ? '+' : '-'} {fmt(e.value)}
                       </span>
-                      <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>
-                      {e.cat}
-                    </td>
-                    <td className={`px-4 py-2.5 border-b t-border-light font-bold text-[0.83rem] ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
-                      {isIncome ? '+' : '-'} {fmt(e.value)}
-                    </td>
-                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
-                      {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
-                    </td>
-                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                      {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
-                    </td>
-                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                      {e.installment > 0 ? `${e.installmentCurrent || 1}/${e.installment}` : '-'}
-                    </td>
-                    <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Avatar member={member} size={20} />
-                        {member.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 border-b t-border-light">
-                      <button onClick={() => startEdit(e)} className="px-2.5 py-1.5 md:py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer min-h-[36px] md:min-h-0">Editar</button>
-                      <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1.5 md:py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer min-h-[36px] md:min-h-0">Excluir</button>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-xs t-text-dim">
+                        <span className="inline-flex items-center gap-1">
+                          <Avatar member={member} size={16} />
+                          {member.name}
+                        </span>
+                        {e.purchaseDate && <span>{e.purchaseDate.split('-').reverse().join('/')}</span>}
+                        {!isIncome && e.payment !== '-' && <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[0.7rem]">{e.payment}</span>}
+                        {e.installment > 0 && <span>{e.installmentCurrent || 1}/{e.installment}x</span>}
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => startEdit(e)} className="px-2.5 py-1.5 border t-border rounded-lg text-[0.75rem] font-semibold t-card-hover cursor-pointer">Editar</button>
+                        <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-[0.75rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-          </div>
+            </div>
+
+            {/* Desktop: tabela */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    {['Descrição','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Ações'].map(h => (
+                      <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredExpenses.map(e => {
+                    const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Família', color: '#2563eb' };
+                    const isIncome = e.type === 'income';
+                    return (
+                      <tr key={e.id} className="t-row">
+                        <td className="px-4 py-2.5 border-b t-border-light">
+                          <div className="font-semibold text-[0.83rem]">{e.desc}
+                            {e.conjuntaName && <span className="text-[0.72rem] t-text-dim font-normal ml-1">via {e.conjuntaName}</span>}
+                          </div>
+                          {e.note && <div className="text-[0.74rem] t-text-dim">{e.note}</div>}
+                        </td>
+                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
+                            {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
+                          </span>
+                          <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>
+                          {e.cat}
+                        </td>
+                        <td className={`px-4 py-2.5 border-b t-border-light font-bold text-[0.83rem] ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                          {isIncome ? '+' : '-'} {fmt(e.value)}
+                        </td>
+                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
+                          {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
+                        </td>
+                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                          {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
+                        </td>
+                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                          {e.installment > 0 ? `${e.installmentCurrent || 1}/${e.installment}` : '-'}
+                        </td>
+                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Avatar member={member} size={20} />
+                            {member.name}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 border-b t-border-light">
+                          <button onClick={() => startEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
+                          <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
