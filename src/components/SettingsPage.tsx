@@ -11,9 +11,21 @@ import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
 
+interface Workspace {
+  id: string;
+  userId: string;
+  workspaceId?: string;
+  label: string;
+  icon: string;
+  isOwn: boolean;
+}
+
 interface Props {
   onAddMember: () => void;
   onEditMember: (id: string) => void;
+  workspaces?: Workspace[];
+  activeWorkspace?: Workspace;
+  onWorkspaceDeleted?: () => void;
 }
 
 interface Share {
@@ -30,7 +42,7 @@ interface PendingInvite {
   accepted: boolean;
 }
 
-export default function SettingsPage({ onAddMember, onEditMember }: Props) {
+export default function SettingsPage({ onAddMember, onEditMember, workspaces = [], activeWorkspace, onWorkspaceDeleted }: Props) {
   const { state, setState, removeMember, getIndividualMembers } = useStore();
   const { user } = useAuth();
   const customCats = state.customCats || [];
@@ -402,6 +414,48 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
         )) : <p className="text-slate-400 text-sm mb-2">Nenhum membro cadastrado.</p>}
         <button onClick={onAddMember} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Adicionar membro</button>
       </div>
+
+      {/* Workspaces */}
+      {workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0 && (
+        <div className="t-card rounded-xl p-6 border mb-6">
+          <h3 className="text-base font-bold mb-4">Espaços de Trabalho</h3>
+          {workspaces.filter(w => w.isOwn && w.id !== 'personal').map(ws => (
+            <div key={ws.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
+              <span className="flex items-center gap-2">
+                <span className="text-lg">{ws.icon}</span>
+                <span className="text-sm font-medium">{ws.label}</span>
+                {activeWorkspace?.id === ws.id && (
+                  <span className="text-[0.7rem] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">Ativo</span>
+                )}
+              </span>
+              <button
+                onClick={() => {
+                  setConfirmModal({
+                    open: true,
+                    message: `Excluir o espaço "${ws.label}"? Todos os membros e lançamentos deste espaço serão removidos permanentemente. Esta ação não pode ser desfeita.`,
+                    onConfirm: async () => {
+                      const wsId = ws.workspaceId;
+                      if (!wsId) return;
+                      // Excluir dados do workspace
+                      await supabase.from('expenses').delete().eq('workspace_id', wsId);
+                      await supabase.from('members').delete().eq('workspace_id', wsId);
+                      await supabase.from('shares').delete().eq('workspace_id', wsId);
+                      await supabase.from('invite_links').delete().eq('workspace_id', wsId);
+                      await supabase.from('workspaces').delete().eq('id', wsId);
+                      toast(`Espaço "${ws.label}" excluído.`, 'success');
+                      if (onWorkspaceDeleted) onWorkspaceDeleted();
+                    },
+                  });
+                }}
+                className="px-3 py-2 md:py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer min-h-[36px] md:min-h-0"
+              >
+                Excluir
+              </button>
+            </div>
+          ))}
+          <p className="text-xs t-text-dim mt-2">O espaço "Pessoal" não pode ser excluído.</p>
+        </div>
+      )}
 
       {/* Zona de perigo - Excluir conta */}
       <div className="t-card border border-red-200 rounded-xl p-6 mt-6">

@@ -286,6 +286,9 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
                 <SettingsPage
                   onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
                   onEditMember={(id) => { setEditingMemberId(id); setMemberModalOpen(true); }}
+                  workspaces={workspaces}
+                  activeWorkspace={activeWorkspace}
+                  onWorkspaceDeleted={() => onSwitchWorkspace(workspaces.find(w => w.id === 'personal') || workspaces[0])}
                 />
               )}
             </div>
