@@ -18,6 +18,7 @@ const defaultState: AppState = {
   selectedPhoto: null,
   customCats: [],
   customPayments: [],
+  customBanks: [],
 };
 
 // ── Supabase row helpers ──
@@ -35,6 +36,7 @@ function expenseToRow(e: Expense, userId: string, workspaceId?: string) {
     member_id: e.memberId || 'all', note: e.note || null,
     purchase_date: e.purchaseDate || null,
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
+    bank: e.bank || null,
     created_at: e.createdAt || Date.now(), user_id: userId, workspace_id: workspaceId || null,
   };
 }
@@ -49,6 +51,7 @@ function rowToExpense(r: Record<string, unknown>): Expense {
     purchaseDate: r.purchase_date as string | undefined,
     conjuntaGroupId: r.conjunta_group_id as string | undefined,
     conjuntaName: r.conjunta_name as string | undefined,
+    bank: r.bank as string | undefined,
     createdAt: Number(r.created_at) || 0,
   };
 }
@@ -108,7 +111,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
         // Criar settings para o usuário se não existir
         if (!settings) {
-          const newSettings = { user_id: userId, custom_cats: [], custom_payments: [], active_month: getCurrentMonth() };
+          const newSettings = { user_id: userId, custom_cats: [], custom_payments: [], custom_banks: [], active_month: getCurrentMonth() };
           await supabase.from('settings').upsert(newSettings, { onConflict: 'user_id' });
           settings = newSettings;
         }
@@ -119,6 +122,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           expenses: dbExpenses,
           customCats: settings?.custom_cats || [],
           customPayments: settings?.custom_payments || [],
+          customBanks: settings?.custom_banks || [],
           activeMonth: settings?.active_month || getCurrentMonth(),
         }));
       } catch {
@@ -149,9 +153,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   const setState = useCallback((updater: (prev: AppState) => AppState) => {
     setStateRaw(prev => {
       const next = updater(prev);
-      if (prev.customCats !== next.customCats || prev.customPayments !== next.customPayments) {
+      if (prev.customCats !== next.customCats || prev.customPayments !== next.customPayments || prev.customBanks !== next.customBanks) {
         supabase.from('settings').upsert({
-          user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, active_month: next.activeMonth,
+          user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, custom_banks: next.customBanks, active_month: next.activeMonth,
         }, { onConflict: 'user_id' });
       }
       return next;

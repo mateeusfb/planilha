@@ -14,3 +14,4 @@ export const PAY_COLORS: Record<string, string> = {
 export const INCOME_CATS = ['Salario','Freelance','Aluguel Recebido','Dividendos','Bonus','Investimento','Outros'];
 export const EXPENSE_CATS = ['Moradia','Alimentacao','Transporte','Saude','Educacao','Lazer','Vestuario','Assinaturas','Investimento','Outros'];
 export const BASE_PAYMENTS = ['Credito','Debito','PIX','Dinheiro','Boleto','Transferencia'];
+export const BASE_BANKS = ['Nubank','Inter','Itaú','Bradesco','Santander','Banco do Brasil','Caixa','C6 Bank','BTG Pactual','Sicoob'];

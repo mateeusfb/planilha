@@ -22,6 +22,7 @@ export interface Expense {
   purchaseDate?: string; // YYYY-MM-DD
   conjuntaGroupId?: string;
   conjuntaName?: string;
+  bank?: string;
   createdAt?: number;
 }
 
@@ -37,6 +38,7 @@ export interface AppState {
   selectedPhoto: string | null;
   customCats: string[];
   customPayments: string[];
+  customBanks: string[];
 }
 
 export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';

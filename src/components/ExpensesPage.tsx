@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, genId } from '@/lib/helpers';
-import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, CAT_COLORS } from '@/lib/constants';
+import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS, CAT_COLORS } from '@/lib/constants';
 import type { Expense } from '@/lib/types';
 import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
@@ -31,13 +31,14 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [memberId, setMemberId] = useState('all');
   const [note, setNote] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bank, setBank] = useState('');
 
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterPay, setFilterPay] = useState('');
   const [filterMember, setFilterMember] = useState('');
   const [saving, setSaving] = useState(false);
-  const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay'; defaultValue?: string } | null>(null);
+  const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay' | 'bank'; defaultValue?: string } | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'value' | 'desc' | 'cat' | 'member'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [searchAll, setSearchAll] = useState(false);
@@ -46,6 +47,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
+  const allBanks = [...BASE_BANKS, ...(state.customBanks || [])];
   const individuals = getIndividualMembers();
   const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
 
@@ -61,7 +63,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   }
 
   function clearForm() {
-    setDesc(''); setValue(''); setNote('');
+    setDesc(''); setValue(''); setNote(''); setBank('');
     setPayment('Credito'); setIsInstallment(false);
     setInstallmentN(2); setInstallmentCurrent(1);
     setMonth(activeMonth); setMemberId('all');
@@ -99,7 +101,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
           month, payment, installment: 0, memberId: m.id,
-          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate,
+          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
           conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
           createdAt: Date.now(),
         });
@@ -119,7 +121,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
           month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
-          installmentGroupId: groupId, memberId, note, purchaseDate, createdAt: Date.now(),
+          installmentGroupId: groupId, memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
         });
       }
       closePanel();
@@ -131,7 +133,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       month, payment: formType === 'income' ? '-' : payment,
       installment: isInstallment ? installmentN : 0,
       installmentCurrent: isInstallment ? installmentCurrent : 0,
-      memberId, note, purchaseDate, createdAt: Date.now(),
+      memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
     };
 
     setSaving(true);
@@ -156,6 +158,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     setInstallmentCurrent(e.installmentCurrent || 1);
     setMemberId(e.memberId || 'all');
     setNote(e.note || '');
+    setBank(e.bank || '');
     setPurchaseDate(e.purchaseDate || new Date().toISOString().split('T')[0]);
     setPanelOpen(true);
   }
@@ -454,6 +457,19 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </div>
               )}
 
+              <div>
+                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Instituição Financeira</label>
+                <select value={bank} onChange={e => {
+                  if (e.target.value === '__new_bank__') {
+                    setInputModal({ type: 'bank' });
+                  } else setBank(e.target.value);
+                }} className={inputClass}>
+                  <option value="">Nenhuma (opcional)</option>
+                  {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
+                  <option value="__new_bank__">+ Nova instituição...</option>
+                </select>
+              </div>
+
               {formType === 'expense' && (
                 <div>
                   <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Parcelado?</label>
@@ -511,10 +527,14 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name] }));
             setPayment(name);
             toast(`Forma de pagamento "${name}" criada!`, 'success');
+          } else if (inputModal?.type === 'bank') {
+            setState(prev => ({ ...prev, customBanks: [...(prev.customBanks || []), name] }));
+            setBank(name);
+            toast(`Instituição "${name}" adicionada!`, 'success');
           }
         }}
-        title={inputModal?.type === 'cat' ? 'Nova Categoria' : 'Nova Forma de Pagamento'}
-        placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : 'Nome da forma de pagamento...'}
+        title={inputModal?.type === 'cat' ? 'Nova Categoria' : inputModal?.type === 'pay' ? 'Nova Forma de Pagamento' : 'Nova Instituição Financeira'}
+        placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : inputModal?.type === 'pay' ? 'Nome da forma de pagamento...' : 'Nome da instituição...'}
       />
 
       <style jsx>{`

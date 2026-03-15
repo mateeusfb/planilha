@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
-import { EXPENSE_CATS, BASE_PAYMENTS } from '@/lib/constants';
+import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
 import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
@@ -47,6 +47,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   const { user } = useAuth();
   const customCats = state.customCats || [];
   const customPays = state.customPayments || [];
+  const customBanks = state.customBanks || [];
   const individuals = getIndividualMembers();
   const conjuntas = state.members.filter(m => m.id !== 'all' && m.isConjunta);
   const allMembers = [...individuals, ...conjuntas];
@@ -61,7 +62,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   // InputModal state
   const [inputModalOpen, setInputModalOpen] = useState(false);
-  const [inputModalConfig, setInputModalConfig] = useState<{ type: 'cat' | 'pay' | 'editCat' | 'editPay'; index?: number; defaultValue?: string }>({ type: 'cat' });
+  const [inputModalConfig, setInputModalConfig] = useState<{ type: 'cat' | 'pay' | 'editCat' | 'editPay' | 'bank' | 'editBank'; index?: number; defaultValue?: string }>({ type: 'cat' });
 
   // DeleteModal state for confirmations
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
@@ -260,7 +261,39 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         expenses: prev.expenses.map(e => e.payment === oldName ? { ...e, payment: value } : e),
       }));
       toast(`Forma renomeada para "${value}".`, 'success');
+    } else if (type === 'bank') {
+      setState(prev => ({ ...prev, customBanks: [...(prev.customBanks || []), value] }));
+      toast(`Instituição "${value}" adicionada!`, 'success');
+    } else if (type === 'editBank' && index !== undefined) {
+      const oldName = customBanks[index];
+      setState(prev => ({
+        ...prev,
+        customBanks: prev.customBanks.map((b, idx) => idx === index ? value : b),
+        expenses: prev.expenses.map(e => e.bank === oldName ? { ...e, bank: value } : e),
+      }));
+      toast(`Instituição renomeada para "${value}".`, 'success');
     }
+  }
+
+  function addBank() {
+    setInputModalConfig({ type: 'bank' });
+    setInputModalOpen(true);
+  }
+  function editBank(i: number) {
+    setInputModalConfig({ type: 'editBank', index: i, defaultValue: customBanks[i] });
+    setInputModalOpen(true);
+  }
+  function deleteBank(i: number) {
+    const bankName = customBanks[i];
+    const inUse = state.expenses.filter(e => e.bank === bankName).length;
+    const msg = inUse > 0 ? `"${bankName}" está em uso em ${inUse} lançamento(s). Excluir mesmo assim?` : `Excluir "${bankName}"?`;
+    setConfirmModal({
+      open: true, message: msg,
+      onConfirm: () => {
+        setState(prev => ({ ...prev, customBanks: prev.customBanks.filter((_, idx) => idx !== i) }));
+        toast(`Instituição "${bankName}" excluída.`, 'success');
+      },
+    });
   }
 
   const { accent, setAccent, customColor, setCustomColor } = useTheme();
@@ -424,6 +457,22 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         <button onClick={addPay} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Nova forma</button>
       </div>
 
+      {/* Instituições Financeiras */}
+      <div className="t-card rounded-xl p-6 border mb-6">
+        <h3 className="text-base font-bold mb-4">Instituições Financeiras</h3>
+        <div className="mb-3.5">
+          <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PADRÃO (somente leitura)</div>
+          <div className="flex flex-wrap gap-1.5">
+            {BASE_BANKS.map(b => <span key={b} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{b}</span>)}
+          </div>
+        </div>
+        <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PERSONALIZADAS</div>
+        {customBanks.length ? customBanks.map((b, i) => (
+          <ItemRow key={i} label={b} onEdit={() => editBank(i)} onDelete={() => deleteBank(i)} />
+        )) : <p className="text-slate-400 text-sm mb-2">Nenhuma instituição personalizada.</p>}
+        <button onClick={addBank} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Nova instituição</button>
+      </div>
+
       {/* Membros */}
       <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-4">Membros</h3>
@@ -534,11 +583,15 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
           inputModalConfig.type === 'cat' ? 'Nova Categoria' :
           inputModalConfig.type === 'editCat' ? 'Editar Categoria' :
           inputModalConfig.type === 'pay' ? 'Nova Forma de Pagamento' :
-          'Editar Forma de Pagamento'
+          inputModalConfig.type === 'editPay' ? 'Editar Forma de Pagamento' :
+          inputModalConfig.type === 'bank' ? 'Nova Instituição Financeira' :
+          'Editar Instituição Financeira'
         }
         placeholder={
           inputModalConfig.type === 'cat' || inputModalConfig.type === 'editCat'
             ? 'Nome da categoria...'
+            : inputModalConfig.type === 'bank' || inputModalConfig.type === 'editBank'
+            ? 'Nome da instituição...'
             : 'Nome da forma de pagamento...'
         }
         defaultValue={inputModalConfig.defaultValue || ''}
