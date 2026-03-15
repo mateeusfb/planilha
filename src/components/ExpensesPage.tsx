@@ -38,6 +38,9 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [filterMember, setFilterMember] = useState('');
   const [saving, setSaving] = useState(false);
   const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay'; defaultValue?: string } | null>(null);
+  const [sortBy, setSortBy] = useState<'date' | 'value' | 'desc' | 'cat' | 'member'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [searchAll, setSearchAll] = useState(false);
 
   const { toast } = useToast();
 
@@ -158,13 +161,36 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   }
 
   const filteredExpenses = useMemo(() => {
-    let list = getExpensesForMonth(activeMonth, activeMember);
+    let list = searchAll && search
+      ? expenses.filter(e => activeMember === 'all' || e.memberId === activeMember || (!e.memberId || e.memberId === 'all'))
+      : getExpensesForMonth(activeMonth, activeMember);
     if (search) list = list.filter(e => e.desc.toLowerCase().includes(search.toLowerCase()) || e.cat.toLowerCase().includes(search.toLowerCase()));
     if (filterCat) list = list.filter(e => e.cat === filterCat);
     if (filterPay) list = list.filter(e => e.payment === filterPay);
     if (filterMember) list = list.filter(e => e.memberId === filterMember);
-    return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [activeMonth, activeMember, expenses, search, filterCat, filterPay, filterMember, getExpensesForMonth]);
+
+    return list.sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case 'value': cmp = a.value - b.value; break;
+        case 'desc': cmp = a.desc.localeCompare(b.desc); break;
+        case 'cat': cmp = a.cat.localeCompare(b.cat); break;
+        case 'member': cmp = (a.memberId || '').localeCompare(b.memberId || ''); break;
+        default: cmp = (a.createdAt || 0) - (b.createdAt || 0);
+      }
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+  }, [activeMonth, activeMember, expenses, search, searchAll, filterCat, filterPay, filterMember, sortBy, sortDir, getExpensesForMonth]);
+
+  function toggleSort(col: typeof sortBy) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('desc'); }
+  }
+
+  function sortIcon(col: typeof sortBy) {
+    if (sortBy !== col) return ' ↕';
+    return sortDir === 'desc' ? ' ↓' : ' ↑';
+  }
 
   const catOptions = formType === 'income' ? INCOME_CATS : allExpenseCats;
 
@@ -175,10 +201,22 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       {/* Table */}
       <div className="t-card rounded-xl border overflow-hidden">
         <div className="p-4 border-b t-border flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-bold">Lançamentos do Mês</h3>
+          <h3 className="text-sm font-bold">
+            {searchAll && search ? 'Busca em Todos os Meses' : 'Lançamentos do Mês'}
+            {filteredExpenses.length > 0 && <span className="font-normal t-text-dim ml-1.5">({filteredExpenses.length})</span>}
+          </h3>
           <div className="flex flex-wrap gap-2">
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
-              className="w-40 px-3 py-1.5 border rounded-lg text-[0.82rem] t-input" />
+            <div className="relative">
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
+                className="w-40 px-3 py-1.5 border rounded-lg text-[0.82rem] t-input pr-8" />
+              <button
+                onClick={() => setSearchAll(!searchAll)}
+                title={searchAll ? 'Buscar apenas no mês' : 'Buscar em todos os meses'}
+                className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-[0.7rem] px-1.5 py-0.5 rounded cursor-pointer transition-colors ${searchAll ? 't-accent-bg text-white' : 'bg-slate-100 t-text-dim hover:bg-slate-200'}`}
+              >
+                🔍
+              </button>
+            </div>
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
               className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
               <option value="">Todas categorias</option>
@@ -263,9 +301,14 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               <table className="w-full">
                 <thead>
                   <tr>
-                    {['Descrição','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Ações'].map(h => (
-                      <th key={h} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">{h}</th>
-                    ))}
+                    <th onClick={() => toggleSort('desc')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Descrição{sortIcon('desc')}</th>
+                    <th onClick={() => toggleSort('cat')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Categoria{sortIcon('cat')}</th>
+                    <th onClick={() => toggleSort('value')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Valor{sortIcon('value')}</th>
+                    <th onClick={() => toggleSort('date')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Data{sortIcon('date')}</th>
+                    <th className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">Pagamento</th>
+                    <th className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">Parcelas</th>
+                    <th onClick={() => toggleSort('member')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Membro{sortIcon('member')}</th>
+                    <th className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">Ações</th>
                   </tr>
                 </thead>
                 <tbody>

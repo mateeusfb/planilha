@@ -1,15 +1,28 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 import { generateTips } from '@/lib/tips';
 import { TipItem } from './Dashboard';
+import { useToast } from './Toast';
 
 export default function SummaryPage() {
   const { state, getExpensesForMonth, getIndividualMembers } = useStore();
   const { activeMonth, activeMember } = state;
+  const printRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const { toast } = useToast();
+
+  function handleExportPDF() {
+    setExporting(true);
+    setTimeout(() => {
+      window.print();
+      setExporting(false);
+      toast('PDF gerado! Use "Salvar como PDF" na janela de impressão.', 'info');
+    }, 100);
+  }
 
   const data = useMemo(() => {
     const expenses = getExpensesForMonth(activeMonth, activeMember);
@@ -82,14 +95,28 @@ export default function SummaryPage() {
   const maxHist = Math.max(...data.monthHistory.map(x => Math.max(x.total, x.income)), 1);
 
   return (
-    <>
+    <div ref={printRef} className="print-area">
       {/* Hero */}
       <div className="rounded-xl p-7 text-white mb-5" style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))' }}>
-        <h2 className="text-xl font-bold mb-1">Resumo Financeiro - {fmtMonth(activeMonth)}</h2>
-        <p className="text-white/80 text-sm">{data.memberName} - Gerado em {new Date().toLocaleDateString('pt-BR')}</p>
-        <div className="text-4xl font-bold my-3">{fmt(data.saldo >= 0 ? data.saldo : data.despesasReais)}</div>
-        <div className="text-sm text-white/70">
-          {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponível no mês' : 'Total de despesas (sem investimentos)'} | {data.expenses.length} lancamentos
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold mb-1">Resumo Financeiro - {fmtMonth(activeMonth)}</h2>
+            <p className="text-white/80 text-sm">{data.memberName} - Gerado em {new Date().toLocaleDateString('pt-BR')}</p>
+            <div className="text-4xl font-bold my-3">{fmt(data.saldo >= 0 ? data.saldo : data.despesasReais)}</div>
+            <div className="text-sm text-white/70">
+              {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponível no mês' : 'Total de despesas (sem investimentos)'} | {data.expenses.length} lançamentos
+            </div>
+          </div>
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="print:hidden px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-semibold cursor-pointer backdrop-blur-sm transition-colors flex items-center gap-2 flex-shrink-0"
+          >
+            {exporting ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : '📄'}
+            {exporting ? 'Gerando...' : 'Exportar PDF'}
+          </button>
         </div>
       </div>
 
@@ -197,7 +224,7 @@ export default function SummaryPage() {
           </table>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

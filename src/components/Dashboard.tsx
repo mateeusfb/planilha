@@ -227,7 +227,11 @@ export default function Dashboard() {
                 {data.catLabels.length > 0 ? (
                   <Doughnut
                     data={{ labels: data.catLabels, datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 2, borderColor: '#fff' }] }}
-                    options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }}
+                    options={{
+                      responsive: true, maintainAspectRatio: false,
+                      animation: { duration: 800, easing: 'easeOutQuart' },
+                      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                    }}
                   />
                 ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
               </div>
@@ -243,7 +247,12 @@ export default function Dashboard() {
                       { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: '#dc2626' },
                     ],
                   }}
-                  options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true } } }}
+                  options={{
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 1000, easing: 'easeOutQuart' },
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                    scales: { y: { beginAtZero: true } },
+                  }}
                 />
               </div>
             </div>

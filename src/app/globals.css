@@ -210,3 +210,12 @@ body {
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(18px);
 }
+
+/* ── Print styles ── */
+@media print {
+  body { background: white !important; color: black !important; }
+  .t-sidebar, .t-topbar, .print\:hidden, nav, aside, button { display: none !important; }
+  .print-area { padding: 0 !important; margin: 0 !important; }
+  .t-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; break-inside: avoid; }
+  * { transition: none !important; animation: none !important; }
+}
