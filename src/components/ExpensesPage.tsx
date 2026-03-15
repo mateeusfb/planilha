@@ -488,150 +488,118 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal compacto */}
       {panelOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) closePanel(); }}>
-          <div className="absolute inset-0 bg-black/40"></div>
-          <div className="relative w-full max-w-xl t-card rounded-none md:rounded-2xl shadow-2xl border overflow-hidden h-full md:h-auto md:max-h-[90vh] flex flex-col animate-modal-in">
+        <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center" onClick={e => { if (e.target === e.currentTarget) closePanel(); }}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-full max-w-md t-card rounded-t-2xl md:rounded-2xl shadow-2xl border overflow-hidden max-h-[85vh] flex flex-col animate-modal-in">
             {/* Header */}
-            <div className="t-card border-b t-border px-6 py-4 flex items-center justify-between flex-shrink-0">
-              <h3 className="text-lg font-bold t-text">
-                {editingId ? (formType === 'income' ? 'Editar Receita' : 'Editar Lançamento') : 'Novo Lançamento'}
-              </h3>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b t-border flex-shrink-0">
+              <h3 className="text-base font-bold t-text">{editingId ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
               <button onClick={closePanel} className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-70 t-text-dim cursor-pointer">
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div className="p-5 space-y-3 overflow-y-auto flex-1">
               {/* Type toggle */}
               <div className="flex gap-2">
                 <button onClick={() => switchType('expense')}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'expense' ? 'bg-red-600 text-white shadow-md' : 'border border-red-300 text-red-600'}`}>
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'expense' ? 'bg-red-600 text-white' : 'border border-red-300 text-red-600'}`}>
                   Despesa
                 </button>
                 <button onClick={() => switchType('income')}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'income' ? 'bg-green-600 text-white shadow-md' : 'border border-green-300 text-green-600'}`}>
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'income' ? 'bg-green-600 text-white' : 'border border-green-300 text-green-600'}`}>
                   Receita
                 </button>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Descricao</label>
-                <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ex: Mercado, Salario..." autoFocus
-                  className={inputClass} />
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Valor (R$)</label>
-                  <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0,00" min="0" step="0.01"
-                    className={inputClass} />
+                <div className="col-span-2">
+                  <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descrição" autoFocus className={inputClass} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Categoria</label>
+                  <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="Valor (R$)" min="0" step="0.01" className={inputClass} />
+                </div>
+                <div>
                   <select value={cat} onChange={e => {
-                    if (e.target.value === '__new__') {
-                      setInputModal({ type: 'cat' });
-                    } else setCat(e.target.value);
+                    if (e.target.value === '__new__') setInputModal({ type: 'cat' });
+                    else setCat(e.target.value);
                   }} className={inputClass}>
                     {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                    <option value="__new__">+ Nova categoria...</option>
+                    <option value="__new__">+ Nova...</option>
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Data da Compra</label>
-                <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)}
-                  className={inputClass} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Mes de Referencia</label>
-                  <input type="month" value={month} onChange={e => setMonth(e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Membro</label>
-                  <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
-                    <option value="all" disabled={formType === 'income'}>Família (geral)</option>
-                    {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    {conjuntas.length > 0 && (
-                      <optgroup label="Contas Conjuntas">
-                        {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conjunta)</option>)}
-                      </optgroup>
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              {formType === 'expense' && (
-                <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Forma de Pagamento</label>
-                  <select value={payment} onChange={e => {
-                    if (e.target.value === '__new_pay__') {
-                      setInputModal({ type: 'pay' });
-                    } else setPayment(e.target.value);
-                  }} className={inputClass}>
-                    {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
-                    <option value="__new_pay__">+ Nova forma...</option>
-                  </select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Instituição Financeira</label>
-                <select value={bank} onChange={e => {
-                  if (e.target.value === '__new_bank__') {
-                    setInputModal({ type: 'bank' });
-                  } else setBank(e.target.value);
-                }} className={inputClass}>
-                  <option value="">Nenhuma (opcional)</option>
-                  {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
-                  <option value="__new_bank__">+ Nova instituição...</option>
+                <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className={inputClass} />
+                <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
+                  <option value="all" disabled={formType === 'income'}>Família</option>
+                  {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conj.)</option>)}
                 </select>
               </div>
 
               {formType === 'expense' && (
-                <div>
-                  <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Parcelado?</label>
-                  <div className="flex items-center gap-3">
-                    <label className="toggle-switch">
-                      <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
-                      <span className="toggle-slider"></span>
-                    </label>
-                    <span className="text-sm t-text">{isInstallment ? 'Sim' : 'Nao'}</span>
-                    {isInstallment && (
-                      <div className="flex items-center gap-2">
-                        <input type="number" value={installmentCurrent} onChange={e => setInstallmentCurrent(Number(e.target.value))} min={1} max={60}
-                          className="w-16 px-2 py-1.5 border rounded-lg text-sm t-input" />
-                        <span className="text-xs t-text-dim">de</span>
-                        <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
-                          className="w-16 px-2 py-1.5 border rounded-lg text-sm t-input" />
-                      </div>
-                    )}
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <select value={payment} onChange={e => {
+                    if (e.target.value === '__new_pay__') setInputModal({ type: 'pay' });
+                    else setPayment(e.target.value);
+                  }} className={inputClass}>
+                    {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="__new_pay__">+ Nova...</option>
+                  </select>
+                  <select value={bank} onChange={e => {
+                    if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
+                    else setBank(e.target.value);
+                  }} className={inputClass}>
+                    <option value="">Instituição (opcional)</option>
+                    {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
+                    <option value="__new_bank__">+ Nova...</option>
+                  </select>
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Observação</label>
-                <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Opcional..."
-                  className={inputClass} />
-              </div>
+              {formType === 'income' && (
+                <select value={bank} onChange={e => {
+                  if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
+                  else setBank(e.target.value);
+                }} className={inputClass}>
+                  <option value="">Instituição (opcional)</option>
+                  {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
+                  <option value="__new_bank__">+ Nova...</option>
+                </select>
+              )}
+
+              {formType === 'expense' && (
+                <div className="flex items-center gap-3">
+                  <label className="toggle-switch">
+                    <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
+                    <span className="toggle-slider"></span>
+                  </label>
+                  <span className="text-sm t-text">Parcelado</span>
+                  {isInstallment && (
+                    <>
+                      <input type="number" value={installmentCurrent} onChange={e => setInstallmentCurrent(Number(e.target.value))} min={1} max={60}
+                        className="w-14 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                      <span className="text-xs t-text-dim">de</span>
+                      <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
+                        className="w-14 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                    </>
+                  )}
+                </div>
+              )}
+
+              <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Observação (opcional)" className={inputClass} />
             </div>
 
             {/* Footer */}
-            <div className="t-card border-t t-border px-6 py-4 flex gap-3 flex-shrink-0">
+            <div className="px-5 py-3.5 border-t t-border flex-shrink-0">
               <button onClick={handleSave} disabled={saving}
-                className="flex-1 py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2">
+                className="w-full py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2">
                 {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 {saving ? 'Salvando...' : editingId ? 'Atualizar' : 'Salvar'}
-              </button>
-              <button onClick={closePanel}
-                className="px-5 py-2.5 border t-border rounded-xl text-sm font-semibold t-text hover:opacity-80 transition-colors cursor-pointer">
-                Cancelar
               </button>
             </div>
           </div>

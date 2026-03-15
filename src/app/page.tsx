@@ -18,6 +18,7 @@ import MemberModal from '@/components/MemberModal';
 import DeleteModal from '@/components/DeleteModal';
 import AuthPage from '@/components/AuthPage';
 import Onboarding from '@/components/Onboarding';
+import QuickExpense from '@/components/QuickExpense';
 
 interface Workspace {
   id: string;          // 'personal' ou UUID do workspace
@@ -309,6 +310,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
         onClose={() => { setDeleteModalOpen(false); setDeleteId(null); }}
         onConfirm={() => { if (deleteId) removeExpense(deleteId); setDeleteId(null); setDeleteModalOpen(false); }}
       />
+      <QuickExpense />
     </div>
   );
 }
