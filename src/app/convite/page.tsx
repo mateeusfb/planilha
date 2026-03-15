@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -207,7 +207,9 @@ export default function ConvitePage() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <InviteHandler />
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-900"><div className="text-slate-400">Carregando...</div></div>}>
+          <InviteHandler />
+        </Suspense>
       </AuthProvider>
     </ThemeProvider>
   );
