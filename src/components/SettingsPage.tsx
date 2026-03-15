@@ -67,6 +67,9 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   // DeleteModal state for confirmations
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
+  // Categories unified tab
+  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks'>('cats');
+
   async function handleDeleteAccount() {
     if (deleteConfirmText !== 'EXCLUIR') return;
     setDeleting(true);
@@ -425,53 +428,14 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         )}
       </CollapsibleSection>
 
-      {/* Categorias */}
-      <div className="t-card rounded-xl p-6 border mb-6">
-        <h3 className="text-base font-bold mb-4">Categorias de Despesa</h3>
-        <div className="mb-3.5">
-          <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PADRAO (somente leitura)</div>
-          <div className="flex flex-wrap gap-1.5">
-            {EXPENSE_CATS.map(c => <span key={c} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{c}</span>)}
-          </div>
-        </div>
-        <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PERSONALIZADAS</div>
-        {customCats.length ? customCats.map((c, i) => (
-          <ItemRow key={i} label={c} onEdit={() => editCat(i)} onDelete={() => deleteCat(i)} />
-        )) : <p className="text-slate-400 text-sm mb-2">Nenhuma categoria personalizada.</p>}
-        <button onClick={addCat} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Nova categoria</button>
-      </div>
-
-      {/* Formas de pagamento */}
-      <div className="t-card rounded-xl p-6 border mb-6">
-        <h3 className="text-base font-bold mb-4">Formas de Pagamento</h3>
-        <div className="mb-3.5">
-          <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PADRAO (somente leitura)</div>
-          <div className="flex flex-wrap gap-1.5">
-            {BASE_PAYMENTS.map(p => <span key={p} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{p}</span>)}
-          </div>
-        </div>
-        <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PERSONALIZADAS</div>
-        {customPays.length ? customPays.map((p, i) => (
-          <ItemRow key={i} label={p} onEdit={() => editPay(i)} onDelete={() => deletePay(i)} />
-        )) : <p className="text-slate-400 text-sm mb-2">Nenhuma forma personalizada.</p>}
-        <button onClick={addPay} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Nova forma</button>
-      </div>
-
-      {/* Instituições Financeiras */}
-      <div className="t-card rounded-xl p-6 border mb-6">
-        <h3 className="text-base font-bold mb-4">Instituições Financeiras</h3>
-        <div className="mb-3.5">
-          <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PADRÃO (somente leitura)</div>
-          <div className="flex flex-wrap gap-1.5">
-            {BASE_BANKS.map(b => <span key={b} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{b}</span>)}
-          </div>
-        </div>
-        <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PERSONALIZADAS</div>
-        {customBanks.length ? customBanks.map((b, i) => (
-          <ItemRow key={i} label={b} onEdit={() => editBank(i)} onDelete={() => deleteBank(i)} />
-        )) : <p className="text-slate-400 text-sm mb-2">Nenhuma instituição personalizada.</p>}
-        <button onClick={addBank} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Nova instituição</button>
-      </div>
+      {/* Categorias (unificado) */}
+      <CategoriesBlock
+        catTab={catTab} setCatTab={setCatTab}
+        customCats={customCats} customPays={customPays} customBanks={customBanks}
+        addCat={addCat} editCat={editCat} deleteCat={deleteCat}
+        addPay={addPay} editPay={editPay} deletePay={deletePay}
+        addBank={addBank} editBank={editBank} deleteBank={deleteBank}
+      />
 
       {/* Membros */}
       <div className="t-card rounded-xl p-6 border mb-6">
@@ -620,6 +584,85 @@ function CollapsibleSection({ title, action, children }: { title: string; action
         </div>
       </button>
       {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
+  );
+}
+
+function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBanks,
+  addCat, editCat, deleteCat, addPay, editPay, deletePay, addBank, editBank, deleteBank,
+}: {
+  catTab: 'cats' | 'pays' | 'banks';
+  setCatTab: (t: 'cats' | 'pays' | 'banks') => void;
+  customCats: string[]; customPays: string[]; customBanks: string[];
+  addCat: () => void; editCat: (i: number) => void; deleteCat: (i: number) => void;
+  addPay: () => void; editPay: (i: number) => void; deletePay: (i: number) => void;
+  addBank: () => void; editBank: (i: number) => void; deleteBank: (i: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const tabs: { id: 'cats' | 'pays' | 'banks'; label: string; icon: string }[] = [
+    { id: 'cats', label: 'Despesas', icon: '🏷' },
+    { id: 'pays', label: 'Pagamento', icon: '💳' },
+    { id: 'banks', label: 'Instituições', icon: '🏦' },
+  ];
+
+  const defaults: Record<string, string[]> = {
+    cats: EXPENSE_CATS,
+    pays: BASE_PAYMENTS,
+    banks: BASE_BANKS,
+  };
+
+  const customs: Record<string, string[]> = { cats: customCats, pays: customPays, banks: customBanks };
+  const addFn: Record<string, () => void> = { cats: addCat, pays: addPay, banks: addBank };
+  const editFn: Record<string, (i: number) => void> = { cats: editCat, pays: editPay, banks: editBank };
+  const deleteFn: Record<string, (i: number) => void> = { cats: deleteCat, pays: deletePay, banks: deleteBank };
+  const addLabels: Record<string, string> = { cats: '+ Nova categoria', pays: '+ Nova forma', banks: '+ Nova instituição' };
+  const emptyLabels: Record<string, string> = { cats: 'Nenhuma categoria personalizada.', pays: 'Nenhuma forma personalizada.', banks: 'Nenhuma instituição personalizada.' };
+
+  return (
+    <div className="t-card rounded-xl border mb-6 overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:opacity-80 transition-colors">
+        <h3 className="text-sm font-bold t-text">Categorias</h3>
+        <span className="text-xs t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5">
+          {/* Tabs */}
+          <div className="flex gap-1.5 mb-4">
+            {tabs.map(t => (
+              <button key={t.id} onClick={() => setCatTab(t.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                  catTab === t.id ? 't-accent-bg text-white shadow-sm' : 'bg-slate-100 t-text-muted hover:bg-slate-200'
+                }`}>
+                <span>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="mb-3">
+            <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PADRÃO</div>
+            <div className="flex flex-wrap gap-1.5">
+              {defaults[catTab].map(item => (
+                <span key={item} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{item}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PERSONALIZADAS</div>
+          {customs[catTab].length ? customs[catTab].map((item, i) => (
+            <ItemRow key={i} label={item} onEdit={() => editFn[catTab](i)} onDelete={() => deleteFn[catTab](i)} />
+          )) : <p className="text-slate-400 text-sm mb-2">{emptyLabels[catTab]}</p>}
+
+          <button onClick={addFn[catTab]}
+            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">
+            {addLabels[catTab]}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
