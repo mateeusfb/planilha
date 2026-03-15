@@ -332,17 +332,15 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
       )}
 
       {/* Compartilhar planilha */}
-      <div className="t-card rounded-xl p-5 border mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold t-text">Compartilhar Planilha</h3>
-          <button onClick={generateInviteLink} disabled={inviteLoading}
-            className="px-3 py-1.5 t-accent-bg text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
-            {inviteLoading ? (
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : '🔗'}
-            {inviteLoading ? 'Gerando...' : 'Gerar convite'}
-          </button>
-        </div>
+      <CollapsibleSection title="Compartilhar Planilha" action={
+        <button onClick={(e) => { e.stopPropagation(); generateInviteLink(); }} disabled={inviteLoading}
+          className="px-3 py-1.5 t-accent-bg text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+          {inviteLoading ? (
+            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : '🔗'}
+          {inviteLoading ? 'Gerando...' : 'Gerar convite'}
+        </button>
+      }>
 
         {/* Workspace selector para convite */}
         {ownWorkspaces.length > 1 && (
@@ -392,7 +390,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Categorias */}
       <div className="t-card rounded-xl p-6 border mb-6">
@@ -553,6 +551,23 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         message={confirmModal.message}
       />
     </>
+  );
+}
+
+function CollapsibleSection({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="t-card rounded-xl border mb-6 overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:opacity-80 transition-colors">
+        <h3 className="text-sm font-bold t-text">{title}</h3>
+        <div className="flex items-center gap-2">
+          {action}
+          <span className="text-xs t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+        </div>
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
   );
 }
 
