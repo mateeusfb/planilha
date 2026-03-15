@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
-import { useTheme, type ThemeMode, type AccentColor } from '@/lib/theme';
+import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { EXPENSE_CATS, BASE_PAYMENTS } from '@/lib/constants';
 import { Avatar } from './Sidebar';
@@ -251,7 +251,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
     }
   }
 
-  const { mode, setMode, accent, setAccent } = useTheme();
+  const { accent, setAccent, customColor, setCustomColor } = useTheme();
 
   const accentColors: { id: AccentColor; label: string; color: string }[] = [
     { id: 'blue', label: 'Azul', color: '#2563eb' },
@@ -264,39 +264,40 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   return (
     <>
-      {/* Tema */}
-      <div className="t-card border rounded-xl p-6 mb-6">
-        <h3 className="text-base font-bold mb-4 t-text">Aparencia</h3>
-
-        {/* Mode */}
-        <div className="mb-5">
-          <div className="text-[0.78rem] t-text-dim font-semibold mb-2.5">MODO</div>
-          <div className="flex gap-3">
-            {(['light', 'dark'] as ThemeMode[]).map(m => (
-              <button key={m} onClick={() => setMode(m)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all cursor-pointer ${
-                  mode === m ? 'border-[var(--accent)] t-accent-light' : 't-border t-card-hover border'
-                }`}>
-                <span className="text-lg">{m === 'light' ? '☀️' : '🌙'}</span>
-                <span className="t-text">{m === 'light' ? 'Claro' : 'Escuro'}</span>
-              </button>
-            ))}
-          </div>
+      {/* Cor de destaque */}
+      <div className="t-card border rounded-xl p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold t-text">Cor de destaque</h3>
+          <div className="w-5 h-5 rounded-full shadow-sm border t-border" style={{ background: accent === 'custom' ? customColor : accentColors.find(c => c.id === accent)?.color }} />
         </div>
-
-        {/* Accent color */}
-        <div>
-          <div className="text-[0.78rem] t-text-dim font-semibold mb-2.5">COR DE DESTAQUE</div>
-          <div className="flex gap-3 flex-wrap">
-            {accentColors.map(c => (
-              <button key={c.id} onClick={() => setAccent(c.id)}
-                className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 transition-all cursor-pointer min-w-[70px] ${
-                  accent === c.id ? 'border-[var(--accent)] scale-105' : 't-border'
-                }`}>
-                <div className="w-8 h-8 rounded-full shadow-sm" style={{ background: c.color }}></div>
-                <span className="text-[0.7rem] t-text-muted font-medium">{c.label}</span>
-              </button>
-            ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          {accentColors.map(c => (
+            <button key={c.id} onClick={() => setAccent(c.id)}
+              title={c.label}
+              className={`w-8 h-8 rounded-full cursor-pointer transition-all flex-shrink-0 ${
+                accent === c.id ? 'ring-2 ring-offset-2 ring-[var(--accent)] scale-110' : 'hover:scale-105'
+              }`}
+              style={{ background: c.color }}
+            />
+          ))}
+          <div className="relative">
+            <button
+              onClick={() => { /* click triggers the hidden color input */ }}
+              title="Cor personalizada"
+              className={`w-8 h-8 rounded-full cursor-pointer transition-all flex-shrink-0 border-2 border-dashed flex items-center justify-center overflow-hidden ${
+                accent === 'custom' ? 'ring-2 ring-offset-2 ring-[var(--accent)] scale-110 border-transparent' : 't-border hover:scale-105'
+              }`}
+              style={accent === 'custom' ? { background: customColor } : {}}
+            >
+              {accent !== 'custom' && <span className="text-xs t-text-dim">+</span>}
+            </button>
+            <input
+              type="color"
+              value={customColor}
+              onChange={e => setCustomColor(e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              title="Escolher cor personalizada"
+            />
           </div>
         </div>
       </div>
