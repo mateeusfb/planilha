@@ -166,90 +166,92 @@ export default function Dashboard() {
 
   return (
     <>
-      {/* Botão global de visibilidade */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs t-text-dim">
-          {valuesHidden ? '🔒 Valores ocultos — clique no 👁 de cada seção para revelar' : '🔓 Valores visíveis'}
-        </p>
-        <button
-          onClick={toggleValues}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium t-card border cursor-pointer hover:opacity-80 transition-colors"
-        >
-          {valuesHidden ? '👁 Mostrar tudo' : '🙈 Ocultar tudo'}
-        </button>
+      {/* Resumo Financeiro — sempre expandido, olho para ocultar/mostrar valores */}
+      <div className="t-card rounded-xl border mb-4 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5">
+          <h3 className="text-sm font-bold">Resumo Financeiro</h3>
+          <button onClick={toggleValues}
+            className="text-lg cursor-pointer hover:opacity-60 transition-opacity px-1"
+            title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}>
+            👁
+          </button>
+        </div>
+        <div className="px-5 pb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="t-card rounded-xl p-4 border">
+              <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Receitas</div>
+              <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</HiddenValue>
+              <div className="text-xs text-slate-400 mt-1">{data.incomesNormais.length} entrada{data.incomesNormais.length !== 1 ? 's' : ''} em {fmtMonth(activeMonth)}</div>
+            </div>
+            <div className="t-card rounded-xl p-4 border">
+              <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Despesas</div>
+              <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</HiddenValue>
+              <div className="text-xs text-slate-400 mt-1">
+                {valuesHidden ? '••••' : data.diffText}
+                {!valuesHidden && data.familyShare > 0 && <><br /><span className="text-[0.72rem]">incl. {fmt(data.familyShare)} rateio familiar</span></>}
+              </div>
+              {!valuesHidden && data.familyBreakdown.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {data.familyBreakdown.map((fb, i) => (
+                    <div key={i} className="text-[0.72rem] text-slate-500">{fb.label}: {fmt(fb.value)}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="t-card rounded-xl p-4 border">
+              <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponível</div>
+              <HiddenValue hidden={valuesHidden} className={`text-2xl font-bold ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</HiddenValue>
+              <div className="text-xs text-slate-400 mt-1">
+                {valuesHidden ? '••••' : (data.totalIncome > 0 ? `${Math.round((1 - data.despesasReais / data.totalIncome) * 100)}% da receita restante` : 'Sem receita registrada')}
+              </div>
+            </div>
+            <div className="t-card rounded-xl p-4 border">
+              <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Investimentos</div>
+              <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</HiddenValue>
+              <div className="text-xs text-slate-400 mt-1">{valuesHidden ? '••••' : data.investSub}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Resumo Financeiro */}
-      <Section title="Resumo Financeiro" icon="💰" valuesHidden={valuesHidden} onToggleValues={toggleValues}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="t-card rounded-xl p-4 border">
-            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Receitas</div>
-            <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</HiddenValue>
-            <div className="text-xs text-slate-400 mt-1">{data.incomesNormais.length} entrada{data.incomesNormais.length !== 1 ? 's' : ''} em {fmtMonth(activeMonth)}</div>
-          </div>
-          <div className="t-card rounded-xl p-4 border">
-            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Despesas</div>
-            <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</HiddenValue>
-            <div className="text-xs text-slate-400 mt-1">
-              {valuesHidden ? '••••' : data.diffText}
-              {!valuesHidden && data.familyShare > 0 && <><br /><span className="text-[0.72rem]">incl. {fmt(data.familyShare)} rateio familiar</span></>}
-            </div>
-            {!valuesHidden && data.familyBreakdown.length > 0 && (
-              <div className="mt-2 space-y-0.5">
-                {data.familyBreakdown.map((fb, i) => (
-                  <div key={i} className="text-[0.72rem] text-slate-500">{fb.label}: {fmt(fb.value)}</div>
-                ))}
+      {/* Gráficos — sempre expandido, sem colapsável */}
+      <div className="t-card rounded-xl border mb-4 overflow-hidden">
+        <div className="px-5 py-3.5">
+          <h3 className="text-sm font-bold">Gráficos</h3>
+        </div>
+        <div className="px-5 pb-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Gastos por Categoria</h4>
+              <div className="h-56">
+                {data.catLabels.length > 0 ? (
+                  <Doughnut
+                    data={{ labels: data.catLabels, datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 2, borderColor: '#fff' }] }}
+                    options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }}
+                  />
+                ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
               </div>
-            )}
-          </div>
-          <div className="t-card rounded-xl p-4 border">
-            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Disponível</div>
-            <HiddenValue hidden={valuesHidden} className={`text-2xl font-bold ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</HiddenValue>
-            <div className="text-xs text-slate-400 mt-1">
-              {valuesHidden ? '••••' : (data.totalIncome > 0 ? `${Math.round((1 - data.despesasReais / data.totalIncome) * 100)}% da receita restante` : 'Sem receita registrada')}
             </div>
-          </div>
-          <div className="t-card rounded-xl p-4 border">
-            <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Investimentos</div>
-            <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</HiddenValue>
-            <div className="text-xs text-slate-400 mt-1">{valuesHidden ? '••••' : data.investSub}</div>
-          </div>
-        </div>
-      </Section>
-
-      {/* Gráficos */}
-      <Section title="Gráficos" icon="📊">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div>
-            <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Gastos por Categoria</h4>
-            <div className="h-56">
-              {data.catLabels.length > 0 ? (
-                <Doughnut
-                  data={{ labels: data.catLabels, datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 2, borderColor: '#fff' }] }}
-                  options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }}
+            <div>
+              <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Evolução Mensal (6 meses)</h4>
+              <div className="h-56">
+                <Bar
+                  data={{
+                    labels: data.monthlyData.map(d => d.label),
+                    datasets: [
+                      { label: 'Receitas', data: data.monthlyData.map(d => d.income), backgroundColor: '#16a34a' },
+                      { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: '#dc2626' },
+                    ],
+                  }}
+                  options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true } } }}
                 />
-              ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
-            </div>
-          </div>
-          <div>
-            <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Evolução Mensal (6 meses)</h4>
-            <div className="h-56">
-              <Bar
-                data={{
-                  labels: data.monthlyData.map(d => d.label),
-                  datasets: [
-                    { label: 'Receitas', data: data.monthlyData.map(d => d.income), backgroundColor: '#16a34a' },
-                    { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: '#dc2626' },
-                  ],
-                }}
-                options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true } } }}
-              />
+              </div>
             </div>
           </div>
         </div>
-      </Section>
+      </div>
 
-      {/* Dicas */}
+      {/* Dicas — colapsável, fechado por padrão */}
       <Section title="Dicas do Assistente Financeiro" icon="🧠">
         {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
           <div className="text-slate-400 text-sm">Adicione lançamentos para receber dicas.</div>
