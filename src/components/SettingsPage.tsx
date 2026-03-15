@@ -617,7 +617,6 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
   const editFn: Record<string, (i: number) => void> = { cats: editCat, pays: editPay, banks: editBank };
   const deleteFn: Record<string, (i: number) => void> = { cats: deleteCat, pays: deletePay, banks: deleteBank };
   const addLabels: Record<string, string> = { cats: '+ Nova categoria', pays: '+ Nova forma', banks: '+ Nova instituição' };
-  const emptyLabels: Record<string, string> = { cats: 'Nenhuma categoria personalizada.', pays: 'Nenhuma forma personalizada.', banks: 'Nenhuma instituição personalizada.' };
 
   return (
     <div className="t-card rounded-xl border mb-6 overflow-hidden">
@@ -652,13 +651,19 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
             </div>
           </div>
 
-          <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PERSONALIZADAS</div>
-          {customs[catTab].length ? customs[catTab].map((item, i) => (
-            <ItemRow key={i} label={item} onEdit={() => editFn[catTab](i)} onDelete={() => deleteFn[catTab](i)} />
-          )) : <p className="text-slate-400 text-sm mb-2">{emptyLabels[catTab]}</p>}
+          {customs[catTab].length > 0 && (
+            <div className="mb-3">
+              <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PERSONALIZADAS</div>
+              <div className="flex flex-wrap gap-1.5">
+                {customs[catTab].map((item, i) => (
+                  <ItemPill key={i} label={item} onEdit={() => editFn[catTab](i)} onDelete={() => deleteFn[catTab](i)} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <button onClick={addFn[catTab]}
-            className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">
+            className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
             {addLabels[catTab]}
           </button>
         </div>
@@ -667,14 +672,31 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
   );
 }
 
-function ItemRow({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
+function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
-      <span className="text-sm font-medium">{label}</span>
-      <div className="flex gap-1.5">
-        <button onClick={onEdit} className="px-3 py-2 md:py-1 border border-slate-200 rounded-lg text-[0.78rem] font-semibold hover:bg-white cursor-pointer min-h-[36px] md:min-h-0">Editar</button>
-        <button onClick={onDelete} className="px-3 py-2 md:py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer min-h-[36px] md:min-h-0">Excluir</button>
-      </div>
+    <div className="relative">
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all border border-[var(--accent)] t-accent bg-[var(--accent-light)] hover:opacity-80"
+      >
+        {label}
+      </button>
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 t-card border rounded-lg shadow-lg z-50 min-w-[120px] overflow-hidden">
+            <button onClick={() => { onEdit(); setMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-sm t-text hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
+              ✏️ Editar
+            </button>
+            <button onClick={() => { onDelete(); setMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer flex items-center gap-2 transition-colors">
+              🗑 Excluir
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
