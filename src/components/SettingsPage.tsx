@@ -50,6 +50,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   const individuals = getIndividualMembers();
   const conjuntas = state.members.filter(m => m.id !== 'all' && m.isConjunta);
   const allMembers = [...individuals, ...conjuntas];
+  const ownWorkspaces = workspaces.filter(w => w.isOwn);
 
   // Delete account state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -104,18 +105,29 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   useEffect(() => { loadShares(); }, [loadShares]);
 
+  const [inviteWorkspace, setInviteWorkspace] = useState<string>('current');
+
   async function generateInviteLink() {
     if (!user) return;
     setInviteLoading(true);
     setInviteMsg('');
     setGeneratedLink('');
 
-    const { data, error } = await supabase.from('invite_links').insert({
-      owner_id: user.id,
-    }).select('code').single();
+    // Determinar workspace_id do convite
+    let wsId: string | null = null;
+    if (inviteWorkspace === 'current') {
+      wsId = activeWorkspace?.workspaceId || null;
+    } else if (inviteWorkspace !== 'personal') {
+      wsId = inviteWorkspace;
+    }
+
+    const insertData: Record<string, unknown> = { owner_id: user.id };
+    if (wsId) insertData.workspace_id = wsId;
+
+    const { data, error } = await supabase.from('invite_links').insert(insertData).select('code').single();
 
     if (error) {
-      setInviteMsg('Erro ao gerar link.');
+      toast('Erro ao gerar link.', 'error');
     } else if (data) {
       const link = `${window.location.origin}/convite?code=${data.code}`;
       setGeneratedLink(link);
@@ -320,45 +332,62 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
       )}
 
       {/* Compartilhar planilha */}
-      <div className="t-card rounded-xl p-6 border mb-6">
-        <h3 className="text-base font-bold mb-1">Compartilhar Planilha</h3>
-        <p className="text-sm text-slate-400 mb-4">Gere um link de convite e envie para quem quiser compartilhar sua planilha.</p>
+      <div className="t-card rounded-xl p-5 border mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold t-text">Compartilhar Planilha</h3>
+          <button onClick={generateInviteLink} disabled={inviteLoading}
+            className="px-3 py-1.5 t-accent-bg text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+            {inviteLoading ? (
+              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : '🔗'}
+            {inviteLoading ? 'Gerando...' : 'Gerar convite'}
+          </button>
+        </div>
 
-        <button onClick={generateInviteLink} disabled={inviteLoading}
-          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer mb-3 flex items-center gap-2">
-          {inviteLoading ? '⏳ Gerando...' : '🔗 Gerar link de convite'}
-        </button>
-
-        {generatedLink && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-            <div className="text-xs text-blue-600 font-semibold mb-2">Link gerado! Envie para a pessoa:</div>
-            <div className="flex gap-2">
-              <input type="text" readOnly value={generatedLink}
-                className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none" />
-              <button onClick={() => copyLink(generatedLink)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer whitespace-nowrap">
-                {copied ? '✅ Copiado!' : '📋 Copiar'}
-              </button>
-            </div>
-            <p className="text-[0.72rem] text-blue-500 mt-2">Este link expira em 7 dias e pode ser usado apenas uma vez.</p>
+        {/* Workspace selector para convite */}
+        {ownWorkspaces.length > 1 && (
+          <div className="mb-3">
+            <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">CONVIDAR PARA</div>
+            <select
+              value={inviteWorkspace}
+              onChange={e => setInviteWorkspace(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm t-input"
+            >
+              <option value="current">{activeWorkspace?.icon} {activeWorkspace?.label || 'Espaço atual'}</option>
+              {ownWorkspaces.filter(w => w.id !== activeWorkspace?.id).map(ws => (
+                <option key={ws.id} value={ws.workspaceId || 'personal'}>{ws.icon} {ws.label}</option>
+              ))}
+            </select>
           </div>
         )}
 
-        {inviteMsg && <div className="text-green-600 text-sm mb-2">{inviteMsg}</div>}
+        {generatedLink && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+            <div className="flex gap-2">
+              <input type="text" readOnly value={generatedLink}
+                className="flex-1 px-3 py-1.5 border border-blue-200 rounded-lg text-xs bg-white focus:outline-none" />
+              <button onClick={() => copyLink(generatedLink)}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 cursor-pointer whitespace-nowrap">
+                {copied ? '✅ Copiado!' : '📋 Copiar'}
+              </button>
+            </div>
+            <p className="text-[0.68rem] text-blue-500 mt-1.5">Expira em 7 dias. Uso único.</p>
+          </div>
+        )}
 
         {/* Pessoas com acesso */}
         {shares.length > 0 && (
-          <div className="mt-4">
-            <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PESSOAS COM ACESSO</div>
+          <div className="mt-3">
+            <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PESSOAS COM ACESSO</div>
             {shares.map(s => (
-              <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{s.shared_email}</span>
-                  <span className={`text-[0.7rem] px-2 py-0.5 rounded-full font-semibold ${s.accepted ? 'bg-green-100 text-green-700' : 'bg-amber-50 text-amber-600'}`}>
+              <div key={s.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg mb-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-medium truncate">{s.shared_email}</span>
+                  <span className={`text-[0.65rem] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${s.accepted ? 'bg-green-100 text-green-700' : 'bg-amber-50 text-amber-600'}`}>
                     {s.accepted ? 'Ativo' : 'Pendente'}
                   </span>
                 </div>
-                <button onClick={() => removeShare(s.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Remover</button>
+                <button onClick={() => removeShare(s.id)} className="px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[0.72rem] font-semibold hover:bg-red-100 cursor-pointer flex-shrink-0 ml-2">Remover</button>
               </div>
             ))}
           </div>
