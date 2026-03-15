@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { Check, X, Info, AlertTriangle } from 'lucide-react';
 
 interface ToastItem {
   id: string;
@@ -56,18 +57,11 @@ function ToastItem({ item, onRemove }: { item: ToastItem; onRemove: (id: string)
     return () => clearTimeout(timer);
   }, [item, onRemove]);
 
-  const styles: Record<string, { bg: string; border: string; icon: string }> = {
-    success: { bg: 'bg-green-50', border: 'border-green-400', icon: '✓' },
-    error: { bg: 'bg-red-50', border: 'border-red-400', icon: '✕' },
-    info: { bg: 'bg-blue-50', border: 'border-blue-400', icon: 'ℹ' },
-    warning: { bg: 'bg-amber-50', border: 'border-amber-400', icon: '⚠' },
-  };
-
-  const iconColors: Record<string, string> = {
-    success: 'text-green-600',
-    error: 'text-red-600',
-    info: 'text-blue-600',
-    warning: 'text-amber-600',
+  const styles: Record<string, { bg: string; border: string; icon: React.ReactNode }> = {
+    success: { bg: 'bg-green-50', border: 'border-green-400', icon: <Check size={18} className="text-green-600" /> },
+    error: { bg: 'bg-red-50', border: 'border-red-400', icon: <X size={18} className="text-red-600" /> },
+    info: { bg: 'bg-blue-50', border: 'border-blue-400', icon: <Info size={18} className="text-blue-600" /> },
+    warning: { bg: 'bg-amber-50', border: 'border-amber-400', icon: <AlertTriangle size={18} className="text-amber-600" /> },
   };
 
   const s = styles[item.type];
@@ -78,13 +72,13 @@ function ToastItem({ item, onRemove }: { item: ToastItem; onRemove: (id: string)
         visible && !exiting ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
     >
-      <span className={`text-lg font-bold flex-shrink-0 ${iconColors[item.type]}`}>{s.icon}</span>
+      <span className="flex-shrink-0">{s.icon}</span>
       <span className="text-sm font-medium text-slate-700 flex-1">{item.message}</span>
       <button
         onClick={() => { setExiting(true); setTimeout(() => onRemove(item.id), 300); }}
         className="text-slate-400 hover:text-slate-600 cursor-pointer flex-shrink-0 w-6 h-6 flex items-center justify-center"
       >
-        ✕
+        <X size={14} />
       </button>
     </div>
   );

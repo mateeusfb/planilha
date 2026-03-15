@@ -7,6 +7,7 @@ import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
 import type { Member } from '@/lib/types';
+import { Tag, CreditCard, Landmark, Users, FolderOpen, Link, Copy, Check, ChevronDown, Pencil, Trash2, Plus } from 'lucide-react';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
@@ -353,7 +354,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
       {/* Convites recebidos */}
       {pendingInvites.length > 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-          <h3 className="text-base font-bold mb-3 text-blue-800">📩 Convites Pendentes</h3>
+          <h3 className="text-base font-bold mb-3 text-blue-800">Convites Pendentes</h3>
           <p className="text-sm text-blue-600 mb-4">Você foi convidado para compartilhar uma planilha:</p>
           {pendingInvites.map(inv => (
             <div key={inv.id} className="flex items-center justify-between p-3 bg-white rounded-lg mb-1.5 border border-blue-100">
@@ -373,7 +374,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
           className="px-3 py-1.5 t-accent-bg text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
           {inviteLoading ? (
             <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : '🔗'}
+          ) : <Link size={14} />}
           {inviteLoading ? 'Gerando...' : 'Gerar convite'}
         </button>
       }>
@@ -402,7 +403,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
                 className="flex-1 px-3 py-1.5 border border-blue-200 rounded-lg text-xs bg-white focus:outline-none" />
               <button onClick={() => copyLink(generatedLink)}
                 className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 cursor-pointer whitespace-nowrap">
-                {copied ? '✅ Copiado!' : '📋 Copiar'}
+                {copied ? <><Check size={14} /> Copiado!</> : <><Copy size={14} /> Copiar</>}
               </button>
             </div>
             <p className="text-[0.68rem] text-blue-500 mt-1.5">Expira em 7 dias. Uso único.</p>
@@ -538,7 +539,7 @@ function CollapsibleSection({ title, action, children }: { title: string; action
         <h3 className="text-sm font-bold t-text">{title}</h3>
         <div className="flex items-center gap-2">
           {action}
-          <span className="text-xs t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          <ChevronDown size={14} className="t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
         </div>
       </button>
       {open && <div className="px-5 pb-5">{children}</div>}
@@ -565,13 +566,13 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
 }) {
   const [open, setOpen] = useState(false);
 
-  const tabs: { id: CatTabId; label: string; icon: string }[] = [
-    { id: 'cats', label: 'Despesas', icon: '🏷' },
-    { id: 'pays', label: 'Pagamento', icon: '💳' },
-    { id: 'banks', label: 'Instituições', icon: '🏦' },
-    { id: 'members', label: 'Membros', icon: '👥' },
+  const tabs: { id: CatTabId; label: string; icon: React.ReactNode }[] = [
+    { id: 'cats', label: 'Despesas', icon: <Tag size={14} /> },
+    { id: 'pays', label: 'Pagamento', icon: <CreditCard size={14} /> },
+    { id: 'banks', label: 'Instituições', icon: <Landmark size={14} /> },
+    { id: 'members', label: 'Membros', icon: <Users size={14} /> },
     ...(workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0
-      ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: '📁' }]
+      ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: <FolderOpen size={14} /> }]
       : []),
   ];
 
@@ -594,7 +595,7 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
       <button onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:opacity-80 transition-colors">
         <h3 className="text-sm font-bold t-text">Categorias</h3>
-        <span className="text-xs t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+        <ChevronDown size={14} className="t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
       </button>
 
       {open && (
@@ -712,11 +713,11 @@ function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => vo
             style={{ top: pos.top, left: pos.left }}>
             <button onClick={() => { onEdit(); setMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm t-text hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
-              ✏️ Editar
+              <Pencil size={14} /> Editar
             </button>
             <button onClick={() => { onDelete(); setMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer flex items-center gap-2 transition-colors">
-              🗑 Excluir
+              <Trash2 size={14} /> Excluir
             </button>
           </div>
         </>

@@ -9,6 +9,7 @@ import type { Tip } from '@/lib/tips';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
+import { Check, AlertTriangle, Info, Eye, EyeOff, ChevronDown, Brain } from 'lucide-react';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 function TipItem({ tip }: { tip: Tip }) {
@@ -18,10 +19,14 @@ function TipItem({ tip }: { tip: Tip }) {
     warn: 'bg-amber-50 border-amber-500',
     bad: 'bg-red-50 border-red-500',
   };
-  const icons: Record<string, string> = { ok: '✓', '!': '⚠', i: 'ℹ' };
+  const icons: Record<string, React.ReactNode> = {
+    ok: <Check size={18} className="text-green-600" />,
+    '!': <AlertTriangle size={18} className="text-amber-500" />,
+    i: <Info size={18} className="text-blue-600" />,
+  };
   return (
     <div className={`flex gap-3 p-3 rounded-lg mb-2 border-l-[3px] text-[0.83rem] leading-relaxed ${styles[tip.type]}`}>
-      <div className="text-lg flex-shrink-0 mt-0.5">{icons[tip.icon] || 'ℹ'}</div>
+      <div className="flex-shrink-0 mt-0.5">{icons[tip.icon] || <Info size={18} className="text-blue-600" />}</div>
       <div><strong className="block font-semibold mb-0.5">{tip.title}</strong>{tip.text}</div>
     </div>
   );
@@ -32,7 +37,7 @@ export { TipItem };
 // Componente de seção colapsável
 function Section({ title, icon, children, defaultOpen = false, valuesHidden, onToggleValues }: {
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
   valuesHidden?: boolean;
@@ -54,15 +59,13 @@ function Section({ title, icon, children, defaultOpen = false, valuesHidden, onT
           {onToggleValues && (
             <span
               onClick={(e) => { e.stopPropagation(); onToggleValues(); }}
-              className="text-base cursor-pointer hover:opacity-60 transition-opacity px-1"
+              className="cursor-pointer hover:opacity-60 transition-opacity px-1"
               title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}
             >
-              {valuesHidden ? '🙈' : '👁'}
+              {valuesHidden ? <EyeOff size={16} /> : <Eye size={16} />}
             </span>
           )}
-          <span className="text-xs t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-            ▼
-          </span>
+          <ChevronDown size={14} className="t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
         </div>
       </button>
       {open && <div className="px-5 pb-5">{children}</div>}
@@ -123,11 +126,11 @@ export default function Dashboard() {
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
       const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-      if (famTotal > 0) familyBreakdown.push({ label: '🏠 Família (conjunto)', value: famTotal });
+      if (famTotal > 0) familyBreakdown.push({ label: 'Família (conjunto)', value: famTotal });
       getIndividualMembers().forEach(mb => {
         const mbOut = outflows.filter(e => e.memberId === mb.id);
         const mbTotal = getTotal(mbOut) - mbOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-        if (mbTotal > 0) familyBreakdown.push({ label: `👤 ${mb.name}`, value: mbTotal });
+        if (mbTotal > 0) familyBreakdown.push({ label: mb.name, value: mbTotal });
       });
     }
 
@@ -171,9 +174,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-between px-4 md:px-5 py-3">
           <h3 className="text-sm font-bold">Resumo Financeiro</h3>
           <button onClick={toggleValues}
-            className="text-lg cursor-pointer hover:opacity-60 transition-opacity px-1"
+            className="cursor-pointer hover:opacity-60 transition-opacity px-1"
             title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}>
-            👁
+            {valuesHidden ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
         <div className="px-3 md:px-5 pb-4 md:pb-5">
@@ -261,7 +264,7 @@ export default function Dashboard() {
       </div>
 
       {/* Dicas — colapsável, fechado por padrão */}
-      <Section title="Dicas do Assistente Financeiro" icon="🧠">
+      <Section title="Dicas do Assistente Financeiro" icon={<Brain size={18} />}>
         {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
           <div className="text-slate-400 text-sm">Adicione lançamentos para receber dicas.</div>
         )}

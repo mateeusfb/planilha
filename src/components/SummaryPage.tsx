@@ -6,6 +6,7 @@ import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 import { generateTips } from '@/lib/tips';
 import { TipItem } from './Dashboard';
+import { FileText, Brain } from 'lucide-react';
 import { useToast } from './Toast';
 
 export default function SummaryPage() {
@@ -57,11 +58,11 @@ export default function SummaryPage() {
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
       const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-      if (famTotal > 0) familyBreakdown.push({ label: '🏠 Gastos em conjunto (familia)', value: famTotal });
+      if (famTotal > 0) familyBreakdown.push({ label: 'Gastos em conjunto (família)', value: famTotal });
       getIndividualMembers().forEach(mb => {
         const mbOut = outflows.filter(e => e.memberId === mb.id);
         const mbTotal = getTotal(mbOut) - mbOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-        if (mbTotal > 0) familyBreakdown.push({ label: `👤 ${mb.name}`, value: mbTotal });
+        if (mbTotal > 0) familyBreakdown.push({ label: mb.name, value: mbTotal });
       });
     }
 
@@ -114,7 +115,7 @@ export default function SummaryPage() {
           >
             {exporting ? (
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : '📄'}
+            ) : <FileText size={16} />}
             {exporting ? 'Gerando...' : 'Exportar PDF'}
           </button>
         </div>
@@ -189,7 +190,7 @@ export default function SummaryPage() {
 
       {/* Tips */}
       <div className="t-card rounded-xl p-5 border mb-5">
-        <h3 className="text-sm font-bold mb-4">🧠 Análise e Recomendações</h3>
+        <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Brain size={16} /> Análise e Recomendações</h3>
         {data.tips.map((t, i) => <TipItem key={i} tip={t} />)}
       </div>
 

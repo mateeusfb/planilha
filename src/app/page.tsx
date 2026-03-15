@@ -8,6 +8,7 @@ import PeriodFilter from '@/components/PeriodFilter';
 import type { PageId } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
 import { ToastProvider } from '@/components/Toast';
+import { Settings, LogOut, Moon, Sun, ChevronDown, Plus } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import ExpensesPage from '@/components/ExpensesPage';
 import AnalysisPage from '@/components/AnalysisPage';
@@ -42,7 +43,7 @@ function WorkspaceSwitcher({ workspaces, active, onSwitch, onCreateNew }: {
         className="px-3 py-1.5 border rounded-lg text-xs font-medium t-card t-border cursor-pointer hover:opacity-80 flex items-center gap-1.5">
         <span>{active.icon}</span>
         <span className="max-w-[120px] truncate">{active.label}</span>
-        <span className="t-text-dim">▼</span>
+        <ChevronDown size={14} className="t-text-dim" />
       </button>
 
       {open && (
@@ -61,7 +62,7 @@ function WorkspaceSwitcher({ workspaces, active, onSwitch, onCreateNew }: {
 
             <button onClick={() => { onCreateNew(); setOpen(false); }}
               className="w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors text-blue-600 hover:bg-blue-50 mb-0.5">
-              <span className="mr-2">+</span>Novo espaço
+              <Plus size={14} className="mr-1" />Novo espaço
             </button>
 
             {workspaces.some(w => !w.isOwn) && (
@@ -171,11 +172,11 @@ function UserMenu({ user, onSignOut, onGoToSettings, workspaces, activeWorkspace
             </div>
             <button onClick={() => { onGoToSettings(); setOpen(false); }}
               className="w-full text-left text-sm t-text hover:opacity-80 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
-              <span>⚙</span> Configurações
+              <Settings size={16} /> Configurações
             </button>
             <button onClick={() => { onSignOut(); setOpen(false); }}
               className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2 mt-1">
-              <span>↪</span> Sair da conta
+              <LogOut size={16} /> Sair da conta
             </button>
           </div>
         </>
@@ -253,7 +254,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
             <PeriodFilter />
             <button onClick={toggleMode} title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}
               className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
-              {mode === 'light' ? '🌙' : '☀️'}
+              {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
             <UserMenu
               user={user}

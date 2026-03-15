@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store';
 import { fmt, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS, PAY_COLORS } from '@/lib/constants';
 import { useToast } from './Toast';
+import { Tag, CreditCard, Landmark, User, ImageIcon, FileText } from 'lucide-react';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie, Doughnut } from 'react-chartjs-2';
@@ -101,11 +102,11 @@ export default function AnalysisPage() {
     };
   }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getIndividualMembers]);
 
-  const tabs: { id: ChartTab; label: string; icon: string }[] = [
-    { id: 'cat', label: 'Categoria', icon: '🏷' },
-    { id: 'pay', label: 'Pagamento', icon: '💳' },
-    { id: 'bank', label: 'Instituição', icon: '🏦' },
-    { id: 'member', label: 'Membro', icon: '👤' },
+  const tabs: { id: ChartTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'cat', label: 'Categoria', icon: <Tag size={14} /> },
+    { id: 'pay', label: 'Pagamento', icon: <CreditCard size={14} /> },
+    { id: 'bank', label: 'Instituição', icon: <Landmark size={14} /> },
+    { id: 'member', label: 'Membro', icon: <User size={14} /> },
   ];
 
   // Dados do gráfico ativo
@@ -244,11 +245,11 @@ export default function AnalysisPage() {
           <div className="flex gap-1 flex-shrink-0">
             <button onClick={() => exportAs('png')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
-              🖼 JPEG
+              <ImageIcon size={14} /> JPEG
             </button>
             <button onClick={() => exportAs('pdf')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
-              📄 PDF
+              <FileText size={14} /> PDF
             </button>
           </div>
         </div>

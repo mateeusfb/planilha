@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
+import { Calendar, ChevronDown } from 'lucide-react';
 import { fmtMonth, buildMonthList, formatDate } from '@/lib/helpers';
 
 interface DateFilter {
@@ -74,9 +75,9 @@ export default function PeriodFilter() {
     <div className="relative">
       <button onClick={() => setOpen(!open)}
         className="px-2 md:px-3 py-1.5 border rounded-lg text-sm t-input cursor-pointer flex items-center gap-1.5 md:gap-2 min-w-0 md:min-w-[160px]">
-        <span className="flex-shrink-0">📅</span>
+        <Calendar size={14} className="flex-shrink-0" />
         <span className="font-medium truncate max-w-[80px] md:max-w-none">{getFilterLabel(dateFilter)}</span>
-        <span className="t-text-dim text-xs flex-shrink-0">{open ? '▲' : '▼'}</span>
+        <ChevronDown size={12} className={`t-text-dim flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (

@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store';
 import { genId } from '@/lib/helpers';
 import { COLORS } from '@/lib/constants';
 import { useToast } from './Toast';
+import { Hand, Users, CreditCard, BarChart3, UserPlus, Wallet, Check } from 'lucide-react';
 
 interface Props {
   onComplete: () => void;
@@ -23,15 +24,15 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
 
   const steps = [
     {
-      icon: '👋',
+      icon: <Hand size={36} />,
       title: 'Bem-vindo ao Finanças Família!',
       subtitle: 'Vamos configurar sua planilha em poucos passos',
       content: (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <FeatureCard icon="👥" title="Membros" desc="Adicione quem faz parte da família" />
-            <FeatureCard icon="💳" title="Lançamentos" desc="Registre receitas e despesas" />
-            <FeatureCard icon="📊" title="Análises" desc="Acompanhe para onde vai seu dinheiro" />
+            <FeatureCard icon={<Users size={24} />} title="Membros" desc="Adicione quem faz parte da família" />
+            <FeatureCard icon={<CreditCard size={24} />} title="Lançamentos" desc="Registre receitas e despesas" />
+            <FeatureCard icon={<BarChart3 size={24} />} title="Análises" desc="Acompanhe para onde vai seu dinheiro" />
           </div>
           <p className="text-sm t-text-dim text-center mt-4">
             Seus dados ficam seguros e privados. Apenas você tem acesso.
@@ -40,7 +41,7 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
       ),
     },
     {
-      icon: '👤',
+      icon: <UserPlus size={36} />,
       title: 'Adicione seu primeiro membro',
       subtitle: 'Quem faz parte das finanças da família?',
       content: (
@@ -93,7 +94,7 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
       ),
     },
     {
-      icon: '💰',
+      icon: <Wallet size={36} />,
       title: 'Pronto para começar!',
       subtitle: 'Sua planilha está configurada',
       content: (
@@ -172,7 +173,7 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
         <div className="t-card rounded-2xl border shadow-sm p-6 md:p-8">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="text-4xl mb-3">{current.icon}</div>
+            <div className="mb-3 flex justify-center t-accent">{current.icon}</div>
             <h2 className="text-xl font-bold t-text mb-1">{current.title}</h2>
             <p className="text-sm t-text-dim">{current.subtitle}</p>
           </div>
@@ -215,10 +216,10 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
   );
 }
 
-function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
     <div className="t-card border rounded-xl p-4 text-center">
-      <div className="text-2xl mb-2">{icon}</div>
+      <div className="mb-2 flex justify-center t-accent">{icon}</div>
       <div className="text-sm font-bold t-text mb-0.5">{title}</div>
       <div className="text-xs t-text-dim">{desc}</div>
     </div>
@@ -231,7 +232,7 @@ function StepHint({ number, title, desc, done }: { number: number; title: string
       <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
         done ? 'bg-green-100 text-green-700' : 't-accent-light t-accent'
       }`}>
-        {done ? '✓' : number}
+        {done ? <Check size={14} /> : number}
       </span>
       <div>
         <div className="text-sm font-semibold t-text">{title}</div>

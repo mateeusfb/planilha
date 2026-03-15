@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import type { PageId, Member } from '@/lib/types';
+import { Home, CreditCard, BarChart3, FileText, Menu, X, Plus } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface SidebarProps {
   activePage: PageId;
@@ -10,11 +12,11 @@ interface SidebarProps {
   onAddMember?: () => void;
 }
 
-const navLinks: { id: PageId; icon: string; label: string }[] = [
-  { id: 'dashboard', icon: '🏠', label: 'Início' },
-  { id: 'expenses', icon: '💳', label: 'Lançamentos' },
-  { id: 'analysis', icon: '📈', label: 'Análise' },
-  { id: 'summary', icon: '📄', label: 'Resumo Mensal' },
+const navLinks: { id: PageId; icon: ReactNode; label: string }[] = [
+  { id: 'dashboard', icon: <Home size={18} />, label: 'Início' },
+  { id: 'expenses', icon: <CreditCard size={18} />, label: 'Lançamentos' },
+  { id: 'analysis', icon: <BarChart3 size={18} />, label: 'Análise' },
+  { id: 'summary', icon: <FileText size={18} />, label: 'Resumo Mensal' },
 ];
 
 export function Avatar({ member, size = 26 }: { member: Member; size?: number }) {
@@ -80,7 +82,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
         <button onClick={() => { if (mobileOpen) setMobileOpen(false); else setCollapsed(!collapsed); }}
           className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center t-text-muted hover:opacity-80 transition-colors cursor-pointer"
           title={mobileOpen ? 'Fechar menu' : collapsed ? 'Expandir menu' : 'Recolher menu'}>
-          {mobileOpen ? '✕' : collapsed ? '☰' : '✕'}
+          {mobileOpen ? <X size={18} /> : collapsed ? <Menu size={18} /> : <X size={18} />}
         </button>
       </div>
 
@@ -149,7 +151,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
           <button onClick={() => { onAddMember(); setMobileOpen(false); }}
             title={collapsed ? 'Adicionar membro' : undefined}
             className={`w-full flex items-center gap-2 px-2.5 py-2 md:py-[7px] rounded-lg text-sm text-slate-400 border border-dashed t-border mt-1 hover:opacity-80 transition-colors cursor-pointer ${collapsed ? 'justify-center' : ''}`}>
-            <span className="flex-shrink-0">+</span>
+            <Plus size={16} className="flex-shrink-0" />
             {!collapsed && <span>Adicionar membro</span>}
           </button>
         )}
@@ -163,7 +165,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
       <button onClick={() => setMobileOpen(true)}
         className="md:hidden fixed top-3 left-3 z-[200] w-10 h-10 rounded-xl t-card border shadow-lg flex items-center justify-center cursor-pointer hover:opacity-80 transition-colors"
         style={{ display: mobileOpen ? 'none' : undefined }}>
-        ☰
+        <Menu size={20} />
       </button>
 
       {/* Overlay mobile */}
