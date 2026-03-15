@@ -43,7 +43,11 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
       if (result.error) {
         setError(traduzirErro(result.error));
       } else {
-        setSuccess('Conta criada com sucesso! Você já pode fazer login.');
+        setSuccess('Conta criada com sucesso! Verifique seu email para confirmar o cadastro e depois faça login.');
+        setTimeout(() => {
+          switchMode('login');
+          setEmail(email);
+        }, 3000);
       }
     } else if (mode === 'forgot') {
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
