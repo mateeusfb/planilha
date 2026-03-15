@@ -59,6 +59,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   const [inviteMsg, setInviteMsg] = useState('');
   const [generatedLink, setGeneratedLink] = useState('');
   const [shares, setShares] = useState<Share[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [inviteLinks, setInviteLinks] = useState<{id: string; code: string; used_by: string | null; created_at: string; expires_at: string}[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [copied, setCopied] = useState(false);
@@ -283,43 +284,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
 
         {inviteMsg && <div className="text-green-600 text-sm mb-2">{inviteMsg}</div>}
 
-        {/* Links gerados */}
-        {inviteLinks.length > 0 && (
-          <div className="mt-3">
-            <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">LINKS DE CONVITE</div>
-            {inviteLinks.map(link => {
-              const isExpired = new Date(link.expires_at) < new Date();
-              const isUsed = !!link.used_by;
-              const linkUrl = `${window.location.origin}/convite?code=${link.code}`;
-              return (
-                <div key={link.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-sm font-mono text-slate-600 truncate">{linkUrl}</span>
-                    <span className={`text-[0.7rem] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
-                      isUsed ? 'bg-green-100 text-green-700' : isExpired ? 'bg-red-100 text-red-600' : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {isUsed ? 'Usado' : isExpired ? 'Expirado' : 'Ativo'}
-                    </span>
-                  </div>
-                  <div className="flex gap-1.5 flex-shrink-0 ml-2">
-                    {!isUsed && !isExpired && (
-                      <button onClick={() => copyLink(linkUrl)}
-                        className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[0.78rem] font-semibold hover:bg-blue-100 cursor-pointer">
-                        Copiar
-                      </button>
-                    )}
-                    <button onClick={() => removeInviteLink(link.id)}
-                      className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Acessos compartilhados ativos */}
+        {/* Pessoas com acesso */}
         {shares.length > 0 && (
           <div className="mt-4">
             <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PESSOAS COM ACESSO</div>
