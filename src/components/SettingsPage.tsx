@@ -55,69 +55,66 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   }
 
   // Invite state
-  const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMsg, setInviteMsg] = useState('');
-  const [inviteError, setInviteError] = useState('');
+  const [generatedLink, setGeneratedLink] = useState('');
   const [shares, setShares] = useState<Share[]>([]);
+  const [inviteLinks, setInviteLinks] = useState<{id: string; code: string; used_by: string | null; created_at: string; expires_at: string}[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [copied, setCopied] = useState(false);
 
   const loadShares = useCallback(async () => {
     if (!user) return;
-    // My sent invites
+    // Meus convites aceitos
     const { data } = await supabase.from('shares').select('*').eq('owner_id', user.id);
     setShares(data || []);
 
-    // Invites I received
+    // Meus links de convite
+    const { data: links } = await supabase.from('invite_links').select('*').eq('owner_id', user.id).order('created_at', { ascending: false });
+    setInviteLinks(links || []);
+
+    // Convites que recebi (pendentes)
     const { data: received } = await supabase.from('shares').select('*').eq('shared_email', user.email).eq('accepted', false);
     setPendingInvites(received || []);
   }, [user]);
 
   useEffect(() => { loadShares(); }, [loadShares]);
 
-  async function sendInvite() {
-    if (!inviteEmail.trim() || !user) return;
-    setInviteError('');
-    setInviteMsg('');
+  async function generateInviteLink() {
+    if (!user) return;
     setInviteLoading(true);
+    setInviteMsg('');
+    setGeneratedLink('');
 
-    if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
-      setInviteError('Você não pode convidar a si mesmo.');
-      setInviteLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.from('shares').insert({
+    const { data, error } = await supabase.from('invite_links').insert({
       owner_id: user.id,
-      shared_email: inviteEmail.toLowerCase().trim(),
-    });
+    }).select('code').single();
 
     if (error) {
-      if (error.message.includes('duplicate') || error.message.includes('unique')) {
-        setInviteError('Este email já foi convidado.');
-      } else {
-        setInviteError(error.message);
-      }
-    } else {
-      // Chamar Edge Function para enviar email de convite
-      try {
-        await supabase.functions.invoke('send-invite', {
-          body: {
-            inviteEmail: inviteEmail.toLowerCase().trim(),
-            ownerEmail: user.email,
-            appUrl: window.location.origin,
-          },
-        });
-      } catch { /* email é best-effort, convite já está salvo */ }
-      setInviteMsg(`Convite enviado para ${inviteEmail}! A pessoa verá o convite ao acessar a planilha.`);
-      setInviteEmail('');
+      setInviteMsg('Erro ao gerar link.');
+    } else if (data) {
+      const link = `${window.location.origin}/convite?code=${data.code}`;
+      setGeneratedLink(link);
+      setCopied(false);
       loadShares();
     }
     setInviteLoading(false);
   }
 
-  async function removeInvite(id: string) {
-    if (!confirm('Remover este convite?')) return;
+  async function copyLink(link: string) {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function removeInviteLink(id: string) {
+    if (!confirm('Remover este link de convite?')) return;
+    await supabase.from('invite_links').delete().eq('id', id);
+    loadShares();
+  }
+
+  async function removeShare(id: string) {
+    if (!confirm('Remover este acesso compartilhado?')) return;
     await supabase.from('shares').delete().eq('id', id);
     loadShares();
   }
@@ -129,7 +126,6 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       accepted: true,
     }).eq('id', invite.id);
     loadShares();
-    // Reload page to pick up shared data
     window.location.reload();
   }
 
@@ -263,32 +259,79 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       {/* Compartilhar planilha */}
       <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-1">Compartilhar Planilha</h3>
-        <p className="text-sm text-slate-400 mb-4">Convide alguém para ver e editar sua planilha financeira.</p>
-        <div className="flex gap-2 mb-3">
-          <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-            placeholder="Email da pessoa..."
-            onKeyDown={e => e.key === 'Enter' && sendInvite()}
-            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-          <button onClick={sendInvite} disabled={inviteLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
-            {inviteLoading ? '...' : 'Convidar'}
-          </button>
-        </div>
-        {inviteError && <div className="text-red-600 text-sm mb-2">{inviteError}</div>}
+        <p className="text-sm text-slate-400 mb-4">Gere um link de convite e envie para quem quiser compartilhar sua planilha.</p>
+
+        <button onClick={generateInviteLink} disabled={inviteLoading}
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer mb-3 flex items-center gap-2">
+          {inviteLoading ? '⏳ Gerando...' : '🔗 Gerar link de convite'}
+        </button>
+
+        {generatedLink && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+            <div className="text-xs text-blue-600 font-semibold mb-2">Link gerado! Envie para a pessoa:</div>
+            <div className="flex gap-2">
+              <input type="text" readOnly value={generatedLink}
+                className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm bg-white focus:outline-none" />
+              <button onClick={() => copyLink(generatedLink)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer whitespace-nowrap">
+                {copied ? '✅ Copiado!' : '📋 Copiar'}
+              </button>
+            </div>
+            <p className="text-[0.72rem] text-blue-500 mt-2">Este link expira em 7 dias e pode ser usado apenas uma vez.</p>
+          </div>
+        )}
+
         {inviteMsg && <div className="text-green-600 text-sm mb-2">{inviteMsg}</div>}
 
-        {shares.length > 0 && (
+        {/* Links gerados */}
+        {inviteLinks.length > 0 && (
           <div className="mt-3">
-            <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">CONVITES ENVIADOS</div>
+            <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">LINKS DE CONVITE</div>
+            {inviteLinks.map(link => {
+              const isExpired = new Date(link.expires_at) < new Date();
+              const isUsed = !!link.used_by;
+              const linkUrl = `${window.location.origin}/convite?code=${link.code}`;
+              return (
+                <div key={link.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-sm font-mono text-slate-600 truncate">{linkUrl}</span>
+                    <span className={`text-[0.7rem] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
+                      isUsed ? 'bg-green-100 text-green-700' : isExpired ? 'bg-red-100 text-red-600' : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      {isUsed ? 'Usado' : isExpired ? 'Expirado' : 'Ativo'}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0 ml-2">
+                    {!isUsed && !isExpired && (
+                      <button onClick={() => copyLink(linkUrl)}
+                        className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[0.78rem] font-semibold hover:bg-blue-100 cursor-pointer">
+                        Copiar
+                      </button>
+                    )}
+                    <button onClick={() => removeInviteLink(link.id)}
+                      className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Acessos compartilhados ativos */}
+        {shares.length > 0 && (
+          <div className="mt-4">
+            <div className="text-[0.78rem] text-slate-400 font-semibold mb-2">PESSOAS COM ACESSO</div>
             {shares.map(s => (
               <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{s.shared_email}</span>
                   <span className={`text-[0.7rem] px-2 py-0.5 rounded-full font-semibold ${s.accepted ? 'bg-green-100 text-green-700' : 'bg-amber-50 text-amber-600'}`}>
-                    {s.accepted ? 'Aceito' : 'Pendente'}
+                    {s.accepted ? 'Ativo' : 'Pendente'}
                   </span>
                 </div>
-                <button onClick={() => removeInvite(s.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Remover</button>
+                <button onClick={() => removeShare(s.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Remover</button>
               </div>
             ))}
           </div>
