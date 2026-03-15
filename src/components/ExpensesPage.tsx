@@ -8,7 +8,7 @@ import type { Expense } from '@/lib/types';
 import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
-import { Search, BarChart3, X } from 'lucide-react';
+import { Search, BarChart3, X, SlidersHorizontal } from 'lucide-react';
 
 interface Props {
   onDeleteRequest: (id: string) => void;
@@ -43,6 +43,49 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [sortBy, setSortBy] = useState<'date' | 'value' | 'desc' | 'cat' | 'member'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [searchAll, setSearchAll] = useState(false);
+  const [colsMenuOpen, setColsMenuOpen] = useState(false);
+
+  const DEFAULT_COLUMNS = ['desc', 'cat', 'value', 'date', 'payment', 'bank', 'member', 'actions'];
+  const visibleCols = state.tableColumns || DEFAULT_COLUMNS;
+
+  const allColumns: { id: string; label: string; sortable?: 'desc' | 'value' | 'cat' | 'date' | 'member' }[] = [
+    { id: 'desc', label: 'Descrição', sortable: 'desc' },
+    { id: 'cat', label: 'Categoria', sortable: 'cat' },
+    { id: 'value', label: 'Valor', sortable: 'value' },
+    { id: 'date', label: 'Data', sortable: 'date' },
+    { id: 'payment', label: 'Pagamento' },
+    { id: 'bank', label: 'Instituição' },
+    { id: 'member', label: 'Membro', sortable: 'member' },
+    { id: 'actions', label: 'Ações' },
+  ];
+
+  function toggleColumn(colId: string) {
+    const current = [...visibleCols];
+    if (current.includes(colId)) {
+      if (colId === 'desc' || colId === 'value' || colId === 'actions') return;
+      setState(prev => ({ ...prev, tableColumns: current.filter(c => c !== colId) }));
+    } else {
+      const originalIdx = DEFAULT_COLUMNS.indexOf(colId);
+      const newCols = [...current];
+      let insertAt = newCols.length;
+      for (let i = 0; i < newCols.length; i++) {
+        if (DEFAULT_COLUMNS.indexOf(newCols[i]) > originalIdx) { insertAt = i; break; }
+      }
+      newCols.splice(insertAt, 0, colId);
+      setState(prev => ({ ...prev, tableColumns: newCols }));
+    }
+  }
+
+  function moveColumn(colId: string, direction: 'up' | 'down') {
+    const current = [...visibleCols];
+    const idx = current.indexOf(colId);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= current.length) return;
+    current.splice(idx, 1);
+    current.splice(newIdx, 0, colId);
+    setState(prev => ({ ...prev, tableColumns: current }));
+  }
 
   const { toast } = useToast();
 
@@ -300,62 +343,141 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               })}
             </div>
 
-            {/* Desktop: tabela */}
+            {/* Desktop: tabela com colunas configuráveis */}
             <div className="hidden md:block overflow-x-auto">
+              {/* Botão de configurar colunas */}
+              <div className="flex justify-end px-4 py-2 border-b t-border">
+                <div className="relative">
+                  <button onClick={() => setColsMenuOpen(!colsMenuOpen)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[0.72rem] font-semibold t-text-dim hover:t-text cursor-pointer transition-colors border t-border">
+                    <SlidersHorizontal size={12} /> Colunas
+                  </button>
+                  {colsMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[998]" onClick={() => setColsMenuOpen(false)} />
+                      <div className="absolute right-0 top-full mt-1 t-card border rounded-lg shadow-lg z-[999] p-2 min-w-[220px]">
+                        <div className="text-[0.68rem] t-text-dim font-semibold uppercase mb-1.5 px-2">Colunas visíveis</div>
+                        {/* Colunas ativas na ordem atual */}
+                        {visibleCols.map((colId, idx) => {
+                          const col = allColumns.find(c => c.id === colId);
+                          if (!col) return null;
+                          const required = colId === 'desc' || colId === 'value' || colId === 'actions';
+                          return (
+                            <div key={colId} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+                              <input type="checkbox" checked disabled={required}
+                                onChange={() => toggleColumn(colId)}
+                                className="w-3.5 h-3.5 rounded accent-blue-600 cursor-pointer flex-shrink-0" />
+                              <span className="text-[0.8rem] t-text flex-1">{col.label}</span>
+                              <div className="flex gap-0.5 flex-shrink-0">
+                                <button onClick={() => moveColumn(colId, 'up')} disabled={idx === 0}
+                                  className="w-5 h-5 rounded flex items-center justify-center text-[0.7rem] t-text-dim hover:t-text cursor-pointer disabled:opacity-20 disabled:cursor-default">▲</button>
+                                <button onClick={() => moveColumn(colId, 'down')} disabled={idx === visibleCols.length - 1}
+                                  className="w-5 h-5 rounded flex items-center justify-center text-[0.7rem] t-text-dim hover:t-text cursor-pointer disabled:opacity-20 disabled:cursor-default">▼</button>
+                                {!required && (
+                                  <button onClick={() => toggleColumn(colId)}
+                                    className="w-5 h-5 rounded flex items-center justify-center text-[0.7rem] text-red-400 hover:text-red-600 cursor-pointer">✕</button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Colunas ocultas */}
+                        {allColumns.filter(c => !visibleCols.includes(c.id)).length > 0 && (
+                          <>
+                            <div className="text-[0.68rem] t-text-dim font-semibold uppercase mt-2 mb-1 px-2">Ocultas</div>
+                            {allColumns.filter(c => !visibleCols.includes(c.id)).map(col => (
+                              <div key={col.id} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 opacity-50">
+                                <input type="checkbox" checked={false}
+                                  onChange={() => toggleColumn(col.id)}
+                                  className="w-3.5 h-3.5 rounded accent-blue-600 cursor-pointer flex-shrink-0" />
+                                <span className="text-[0.8rem] t-text flex-1">{col.label}</span>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th onClick={() => toggleSort('desc')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Descrição{sortIcon('desc')}</th>
-                    <th onClick={() => toggleSort('cat')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Categoria{sortIcon('cat')}</th>
-                    <th onClick={() => toggleSort('value')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Valor{sortIcon('value')}</th>
-                    <th onClick={() => toggleSort('date')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Data{sortIcon('date')}</th>
-                    <th className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">Pagamento</th>
-                    <th className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">Parcelas</th>
-                    <th onClick={() => toggleSort('member')} className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border cursor-pointer hover:t-text select-none">Membro{sortIcon('member')}</th>
-                    <th className="px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border">Ações</th>
+                    {visibleCols.map(colId => {
+                      const col = allColumns.find(c => c.id === colId);
+                      if (!col) return null;
+                      const thClass = "px-4 py-2.5 text-left text-[0.75rem] font-semibold uppercase tracking-wide t-text-muted border-b t-border";
+                      if (col.sortable) {
+                        return <th key={col.id} onClick={() => toggleSort(col.sortable!)} className={`${thClass} cursor-pointer hover:t-text select-none`}>{col.label}{sortIcon(col.sortable!)}</th>;
+                      }
+                      return <th key={col.id} className={thClass}>{col.label}</th>;
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredExpenses.map(e => {
                     const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Família', color: '#2563eb' };
                     const isIncome = e.type === 'income';
-                    return (
-                      <tr key={e.id} className="t-row">
-                        <td className="px-4 py-2.5 border-b t-border-light">
+
+                    const cellRenderers: Record<string, React.ReactNode> = {
+                      desc: (
+                        <td key="desc" className="px-4 py-2.5 border-b t-border-light">
                           <div className="font-semibold text-[0.83rem]">{e.desc}
                             {e.conjuntaName && <span className="text-[0.72rem] t-text-dim font-normal ml-1">via {e.conjuntaName}</span>}
                           </div>
                           {e.note && <div className="text-[0.74rem] t-text-dim">{e.note}</div>}
                         </td>
-                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                      ),
+                      cat: (
+                        <td key="cat" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
                             {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
                           </span>
                           <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>
                           {e.cat}
                         </td>
-                        <td className={`px-4 py-2.5 border-b t-border-light font-bold text-[0.83rem] ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
-                          {isIncome ? '+' : '-'} {fmt(e.value)}
+                      ),
+                      value: (
+                        <td key="value" className={`px-4 py-2.5 border-b t-border-light ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                          <div className="font-bold text-[0.83rem]">{isIncome ? '+' : '-'} {fmt(e.value)}</div>
+                          {e.installment > 0 && <div className="text-[0.7rem] t-text-dim font-normal">Parcela {e.installmentCurrent || 1}/{e.installment}</div>}
                         </td>
-                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
+                      ),
+                      date: (
+                        <td key="date" className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
                           {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
                         </td>
-                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                      ),
+                      payment: (
+                        <td key="payment" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                           {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
                         </td>
-                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          {e.installment > 0 ? `${e.installmentCurrent || 1}/${e.installment}` : '-'}
+                      ),
+                      bank: (
+                        <td key="bank" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                          {e.bank || <span className="t-text-dim">-</span>}
                         </td>
-                        <td className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                      ),
+                      member: (
+                        <td key="member" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
                           <span className="inline-flex items-center gap-1.5">
                             <Avatar member={member} size={20} />
                             {member.name}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 border-b t-border-light">
+                      ),
+                      actions: (
+                        <td key="actions" className="px-4 py-2.5 border-b t-border-light">
                           <button onClick={() => startEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
                           <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
                         </td>
+                      ),
+                    };
+
+                    return (
+                      <tr key={e.id} className="t-row">
+                        {visibleCols.map(colId => cellRenderers[colId] || null)}
                       </tr>
                     );
                   })}

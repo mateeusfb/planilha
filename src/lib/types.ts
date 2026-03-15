@@ -39,6 +39,7 @@ export interface AppState {
   customCats: string[];
   customPayments: string[];
   customBanks: string[];
+  tableColumns?: string[];
 }
 
 export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';
