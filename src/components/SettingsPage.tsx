@@ -94,12 +94,22 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
 
     if (error) {
       if (error.message.includes('duplicate') || error.message.includes('unique')) {
-        setInviteError('Este email ja foi convidado.');
+        setInviteError('Este email já foi convidado.');
       } else {
         setInviteError(error.message);
       }
     } else {
-      setInviteMsg(`Convite enviado para ${inviteEmail}!`);
+      // Chamar Edge Function para enviar email de convite
+      try {
+        await supabase.functions.invoke('send-invite', {
+          body: {
+            inviteEmail: inviteEmail.toLowerCase().trim(),
+            ownerEmail: user.email,
+            appUrl: window.location.origin,
+          },
+        });
+      } catch { /* email é best-effort, convite já está salvo */ }
+      setInviteMsg(`Convite enviado para ${inviteEmail}! A pessoa verá o convite ao acessar a planilha.`);
       setInviteEmail('');
       loadShares();
     }
@@ -253,7 +263,7 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
       {/* Compartilhar planilha */}
       <div className="t-card rounded-xl p-6 border mb-6">
         <h3 className="text-base font-bold mb-1">Compartilhar Planilha</h3>
-        <p className="text-sm text-slate-400 mb-4">Convide alguem para ver e editar sua planilha financeira.</p>
+        <p className="text-sm text-slate-400 mb-4">Convide alguém para ver e editar sua planilha financeira.</p>
         <div className="flex gap-2 mb-3">
           <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
             placeholder="Email da pessoa..."

@@ -20,13 +20,13 @@ const defaultState: AppState = {
 };
 
 // ── Supabase row helpers ──
-function memberToRow(m: Member, userId: string) {
-  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId };
+function memberToRow(m: Member, userId: string, workspaceId?: string) {
+  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId, workspace_id: workspaceId || null };
 }
 function rowToMember(r: Record<string, unknown>): Member {
   return { id: r.id as string, name: r.name as string, color: r.color as string, photo: r.photo as string | null, isConjunta: !!r.is_conjunta };
 }
-function expenseToRow(e: Expense, userId: string) {
+function expenseToRow(e: Expense, userId: string, workspaceId?: string) {
   return {
     id: e.id, type: e.type, description: e.desc, category: e.cat, value: e.value,
     month: e.month, payment: e.payment, installment: e.installment || 0,
@@ -34,7 +34,7 @@ function expenseToRow(e: Expense, userId: string) {
     member_id: e.memberId || 'all', note: e.note || null,
     purchase_date: e.purchaseDate || null,
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
-    created_at: e.createdAt || Date.now(), user_id: userId,
+    created_at: e.createdAt || Date.now(), user_id: userId, workspace_id: workspaceId || null,
   };
 }
 function rowToExpense(r: Record<string, unknown>): Expense {
@@ -72,7 +72,7 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
-export function StoreProvider({ children, userId }: { children: ReactNode; userId: string }) {
+export function StoreProvider({ children, userId, workspaceId }: { children: ReactNode; userId: string; workspaceId?: string }) {
   const [state, setStateRaw] = useState<AppState>(defaultState);
   const [loaded, setLoaded] = useState(false);
 
@@ -84,9 +84,20 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
         const { data: sharedWithMe } = await supabase.from('shares').select('owner_id').eq('shared_user_id', userId).eq('accepted', true);
         const accessIds = [userId, ...(sharedWithMe || []).map(s => s.owner_id)];
 
+        // Filtrar por workspace: se tem workspaceId filtra por ele, senão pega os sem workspace (pessoal)
+        let membersQuery = supabase.from('members').select('*').in('user_id', accessIds);
+        let expensesQuery = supabase.from('expenses').select('*').in('user_id', accessIds);
+        if (workspaceId) {
+          membersQuery = membersQuery.eq('workspace_id', workspaceId);
+          expensesQuery = expensesQuery.eq('workspace_id', workspaceId);
+        } else {
+          membersQuery = membersQuery.is('workspace_id', null);
+          expensesQuery = expensesQuery.is('workspace_id', null);
+        }
+
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
-          supabase.from('members').select('*').in('user_id', accessIds),
-          supabase.from('expenses').select('*').in('user_id', accessIds),
+          membersQuery,
+          expensesQuery,
           supabase.from('settings').select('*').in('user_id', accessIds).limit(1).single(),
         ]);
 
@@ -226,7 +237,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
   const addExpense = useCallback(async (expense: Expense) => {
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-    const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId));
+    const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
     if (error) console.error('Erro ao salvar lançamento:', error.message);
   }, [userId]);
 
@@ -235,7 +246,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
       ...prev,
       expenses: prev.expenses.map(e => e.id === id ? { ...expense, createdAt: e.createdAt } : e),
     }));
-    const { error } = await supabase.from('expenses').update(expenseToRow(expense, userId)).eq('id', id);
+    const { error } = await supabase.from('expenses').update(expenseToRow(expense, userId, workspaceId)).eq('id', id);
     if (error) console.error('Erro ao atualizar lançamento:', error.message);
   }, [userId]);
 
@@ -247,7 +258,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
   const addMember = useCallback(async (member: Member) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
-    const { error } = await supabase.from('members').insert(memberToRow(member, userId));
+    const { error } = await supabase.from('members').insert(memberToRow(member, userId, workspaceId));
     if (error) console.error('Erro ao salvar membro:', error.message);
   }, [userId]);
 
@@ -258,7 +269,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
     }));
     const member = state.members.find(m => m.id === id);
     if (member) {
-      const { error } = await supabase.from('members').update(memberToRow({ ...member, ...data }, userId)).eq('id', id);
+      const { error } = await supabase.from('members').update(memberToRow({ ...member, ...data }, userId, workspaceId)).eq('id', id);
       if (error) console.error('Erro ao atualizar membro:', error.message);
     }
   }, [state.members, userId]);
