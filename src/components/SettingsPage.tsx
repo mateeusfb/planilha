@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
@@ -674,10 +674,22 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
 
 function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [above, setAbove] = useState(false);
+
+  function handleOpen() {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setAbove(rect.bottom + 90 > window.innerHeight);
+    }
+    setMenuOpen(!menuOpen);
+  }
+
   return (
     <div className="relative">
       <button
-        onClick={() => setMenuOpen(!menuOpen)}
+        ref={btnRef}
+        onClick={handleOpen}
         className="px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all border border-[var(--accent)] t-accent bg-[var(--accent-light)] hover:opacity-80"
       >
         {label}
@@ -685,7 +697,7 @@ function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => vo
       {menuOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 t-card border rounded-lg shadow-lg z-50 min-w-[120px] overflow-hidden">
+          <div className={`absolute left-0 t-card border rounded-lg shadow-lg z-50 min-w-[120px] overflow-hidden ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
             <button onClick={() => { onEdit(); setMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm t-text hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
               ✏️ Editar
