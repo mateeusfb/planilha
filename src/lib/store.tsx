@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { AppState, Member, Expense } from './types';
 import { COLORS } from './constants';
 import { getCurrentMonth } from './helpers';
+import { SkeletonDashboard } from '@/components/Skeleton';
 import { supabase } from './supabase';
 
 const defaultState: AppState = {
@@ -297,9 +298,13 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   }, [userId]);
 
   if (!loaded) {
-    return <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <div className="text-slate-400">Carregando...</div>
-    </div>;
+    return (
+      <div className="flex min-h-screen">
+        <div className="flex-1 p-3 md:p-6">
+          <SkeletonDashboard />
+        </div>
+      </div>
+    );
   }
 
   return (

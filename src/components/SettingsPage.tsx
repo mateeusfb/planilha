@@ -7,6 +7,9 @@ import { useTheme, type ThemeMode, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { EXPENSE_CATS, BASE_PAYMENTS } from '@/lib/constants';
 import { Avatar } from './Sidebar';
+import { useToast } from './Toast';
+import InputModal from './InputModal';
+import DeleteModal from './DeleteModal';
 
 interface Props {
   onAddMember: () => void;
@@ -41,13 +44,21 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const { signOut } = useAuth();
+  const { toast } = useToast();
+
+  // InputModal state
+  const [inputModalOpen, setInputModalOpen] = useState(false);
+  const [inputModalConfig, setInputModalConfig] = useState<{ type: 'cat' | 'pay' | 'editCat' | 'editPay'; index?: number; defaultValue?: string }>({ type: 'cat' });
+
+  // DeleteModal state for confirmations
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
   async function handleDeleteAccount() {
     if (deleteConfirmText !== 'EXCLUIR') return;
     setDeleting(true);
     const { error } = await supabase.rpc('delete_user_account');
     if (error) {
-      alert('Erro ao excluir conta: ' + error.message);
+      toast('Erro ao excluir conta: ' + error.message, 'error');
       setDeleting(false);
       return;
     }
@@ -108,16 +119,28 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  async function removeInviteLink(id: string) {
-    if (!confirm('Remover este link de convite?')) return;
-    await supabase.from('invite_links').delete().eq('id', id);
-    loadShares();
+  function removeInviteLink(id: string) {
+    setConfirmModal({
+      open: true,
+      message: 'Remover este link de convite?',
+      onConfirm: async () => {
+        await supabase.from('invite_links').delete().eq('id', id);
+        toast('Link removido.', 'success');
+        loadShares();
+      },
+    });
   }
 
-  async function removeShare(id: string) {
-    if (!confirm('Remover este acesso compartilhado?')) return;
-    await supabase.from('shares').delete().eq('id', id);
-    loadShares();
+  function removeShare(id: string) {
+    setConfirmModal({
+      open: true,
+      message: 'Remover este acesso compartilhado?',
+      onConfirm: async () => {
+        await supabase.from('shares').delete().eq('id', id);
+        toast('Acesso removido.', 'success');
+        loadShares();
+      },
+    });
   }
 
   async function acceptInvite(invite: PendingInvite) {
@@ -136,58 +159,84 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   }
 
   function addCat() {
-    const name = prompt('Nome da nova categoria:');
-    if (!name?.trim()) return;
-    setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name.trim()] }));
+    setInputModalConfig({ type: 'cat' });
+    setInputModalOpen(true);
   }
   function editCat(i: number) {
-    const name = prompt('Novo nome:', customCats[i]);
-    if (!name?.trim()) return;
-    const oldName = customCats[i];
-    const newName = name.trim();
-    setState(prev => ({
-      ...prev,
-      customCats: prev.customCats.map((c, idx) => idx === i ? newName : c),
-      expenses: prev.expenses.map(e => e.cat === oldName ? { ...e, cat: newName } : e),
-    }));
+    setInputModalConfig({ type: 'editCat', index: i, defaultValue: customCats[i] });
+    setInputModalOpen(true);
   }
   function deleteCat(i: number) {
     const catName = customCats[i];
     const inUse = state.expenses.filter(e => e.cat === catName).length;
-    const msg = inUse > 0 ? `"${catName}" está em uso em ${inUse} lançamento(s). Excluir?` : `Excluir "${catName}"?`;
-    if (!confirm(msg)) return;
-    setState(prev => ({ ...prev, customCats: prev.customCats.filter((_, idx) => idx !== i) }));
+    const msg = inUse > 0 ? `"${catName}" está em uso em ${inUse} lançamento(s). Excluir mesmo assim?` : `Excluir "${catName}"?`;
+    setConfirmModal({
+      open: true, message: msg,
+      onConfirm: () => {
+        setState(prev => ({ ...prev, customCats: prev.customCats.filter((_, idx) => idx !== i) }));
+        toast(`Categoria "${catName}" excluída.`, 'success');
+      },
+    });
   }
   function addPay() {
-    const name = prompt('Nome da nova forma de pagamento:');
-    if (!name?.trim()) return;
-    setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name.trim()] }));
+    setInputModalConfig({ type: 'pay' });
+    setInputModalOpen(true);
   }
   function editPay(i: number) {
-    const name = prompt('Novo nome:', customPays[i]);
-    if (!name?.trim()) return;
-    const oldName = customPays[i];
-    const newName = name.trim();
-    setState(prev => ({
-      ...prev,
-      customPayments: prev.customPayments.map((p, idx) => idx === i ? newName : p),
-      expenses: prev.expenses.map(e => e.payment === oldName ? { ...e, payment: newName } : e),
-    }));
+    setInputModalConfig({ type: 'editPay', index: i, defaultValue: customPays[i] });
+    setInputModalOpen(true);
   }
   function deletePay(i: number) {
     const payName = customPays[i];
     const inUse = state.expenses.filter(e => e.payment === payName).length;
-    const msg = inUse > 0 ? `"${payName}" está em uso em ${inUse} lançamento(s). Excluir?` : `Excluir "${payName}"?`;
-    if (!confirm(msg)) return;
-    setState(prev => ({ ...prev, customPayments: prev.customPayments.filter((_, idx) => idx !== i) }));
+    const msg = inUse > 0 ? `"${payName}" está em uso em ${inUse} lançamento(s). Excluir mesmo assim?` : `Excluir "${payName}"?`;
+    setConfirmModal({
+      open: true, message: msg,
+      onConfirm: () => {
+        setState(prev => ({ ...prev, customPayments: prev.customPayments.filter((_, idx) => idx !== i) }));
+        toast(`Forma "${payName}" excluída.`, 'success');
+      },
+    });
   }
   function handleDeleteMember(id: string) {
     const member = state.members.find(m => m.id === id);
     if (!member) return;
     const inUse = state.expenses.filter(e => e.memberId === id).length;
-    const msg = inUse > 0 ? `Excluir "${member.name}"? ${inUse} lançamento(s) serao excluidos.` : `Excluir "${member.name}"?`;
-    if (!confirm(msg)) return;
-    removeMember(id);
+    const msg = inUse > 0 ? `Excluir "${member.name}"? ${inUse} lançamento(s) serão excluídos.` : `Excluir "${member.name}"?`;
+    setConfirmModal({
+      open: true, message: msg,
+      onConfirm: () => {
+        removeMember(id);
+        toast(`Membro "${member.name}" excluído.`, 'success');
+      },
+    });
+  }
+
+  function handleInputModalConfirm(value: string) {
+    const { type, index } = inputModalConfig;
+    if (type === 'cat') {
+      setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), value] }));
+      toast(`Categoria "${value}" criada!`, 'success');
+    } else if (type === 'editCat' && index !== undefined) {
+      const oldName = customCats[index];
+      setState(prev => ({
+        ...prev,
+        customCats: prev.customCats.map((c, idx) => idx === index ? value : c),
+        expenses: prev.expenses.map(e => e.cat === oldName ? { ...e, cat: value } : e),
+      }));
+      toast(`Categoria renomeada para "${value}".`, 'success');
+    } else if (type === 'pay') {
+      setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), value] }));
+      toast(`Forma "${value}" criada!`, 'success');
+    } else if (type === 'editPay' && index !== undefined) {
+      const oldName = customPays[index];
+      setState(prev => ({
+        ...prev,
+        customPayments: prev.customPayments.map((p, idx) => idx === index ? value : p),
+        expenses: prev.expenses.map(e => e.payment === oldName ? { ...e, payment: value } : e),
+      }));
+      toast(`Forma renomeada para "${value}".`, 'success');
+    }
   }
 
   const { mode, setMode, accent, setAccent } = useTheme();
@@ -394,6 +443,31 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
           </div>
         )}
       </div>
+
+      <InputModal
+        isOpen={inputModalOpen}
+        onClose={() => setInputModalOpen(false)}
+        onConfirm={handleInputModalConfirm}
+        title={
+          inputModalConfig.type === 'cat' ? 'Nova Categoria' :
+          inputModalConfig.type === 'editCat' ? 'Editar Categoria' :
+          inputModalConfig.type === 'pay' ? 'Nova Forma de Pagamento' :
+          'Editar Forma de Pagamento'
+        }
+        placeholder={
+          inputModalConfig.type === 'cat' || inputModalConfig.type === 'editCat'
+            ? 'Nome da categoria...'
+            : 'Nome da forma de pagamento...'
+        }
+        defaultValue={inputModalConfig.defaultValue || ''}
+      />
+
+      <DeleteModal
+        isOpen={confirmModal.open}
+        onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        onConfirm={() => { confirmModal.onConfirm(); setConfirmModal(prev => ({ ...prev, open: false })); }}
+        message={confirmModal.message}
+      />
     </>
   );
 }
@@ -403,8 +477,8 @@ function ItemRow({ label, onEdit, onDelete }: { label: string; onEdit: () => voi
     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
       <span className="text-sm font-medium">{label}</span>
       <div className="flex gap-1.5">
-        <button onClick={onEdit} className="px-2.5 py-1 border border-slate-200 rounded-lg text-[0.78rem] font-semibold hover:bg-white cursor-pointer">Editar</button>
-        <button onClick={onDelete} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
+        <button onClick={onEdit} className="px-3 py-2 md:py-1 border border-slate-200 rounded-lg text-[0.78rem] font-semibold hover:bg-white cursor-pointer min-h-[36px] md:min-h-0">Editar</button>
+        <button onClick={onDelete} className="px-3 py-2 md:py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer min-h-[36px] md:min-h-0">Excluir</button>
       </div>
     </div>
   );

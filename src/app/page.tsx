@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import PeriodFilter from '@/components/PeriodFilter';
 import type { PageId } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
+import { ToastProvider } from '@/components/Toast';
 import Dashboard from '@/components/Dashboard';
 import ExpensesPage from '@/components/ExpensesPage';
 import AnalysisPage from '@/components/AnalysisPage';
@@ -414,9 +415,11 @@ function AuthGate() {
 export default function Home() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

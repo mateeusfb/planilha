@@ -6,6 +6,8 @@ import { fmt, genId } from '@/lib/helpers';
 import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, CAT_COLORS } from '@/lib/constants';
 import type { Expense } from '@/lib/types';
 import { Avatar } from './Sidebar';
+import { useToast } from './Toast';
+import InputModal from './InputModal';
 
 interface Props {
   onDeleteRequest: (id: string) => void;
@@ -34,6 +36,10 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [filterCat, setFilterCat] = useState('');
   const [filterPay, setFilterPay] = useState('');
   const [filterMember, setFilterMember] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay'; defaultValue?: string } | null>(null);
+
+  const { toast } = useToast();
 
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
@@ -70,21 +76,22 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   }
 
   function handleSave() {
-    if (!desc.trim()) return alert('Digite a descricao.');
+    if (!desc.trim()) return toast('Digite a descrição.', 'warning');
     const val = parseFloat(value);
-    if (!val || val <= 0) return alert('Digite um valor valido.');
-    if (!month) return alert('Selecione o mes.');
+    if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
+    if (!month) return toast('Selecione o mês.', 'warning');
 
     const selectedMember = members.find(m => m.id === memberId);
     const isConjunta = selectedMember?.isConjunta && formType === 'expense';
 
     if (isConjunta) {
-      if (individuals.length === 0) return alert('Nenhum membro individual cadastrado.');
+      if (individuals.length === 0) return toast('Nenhum membro individual cadastrado.', 'warning');
       const splitValue = val / individuals.length;
       const groupId = editingId || genId();
       if (editingId) {
         setState(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.conjuntaGroupId !== groupId) }));
       }
+      setSaving(true);
       individuals.forEach(m => {
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
@@ -94,6 +101,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           createdAt: Date.now(),
         });
       });
+      setSaving(false);
+      toast('Despesa conjunta salva com sucesso!', 'success');
       closePanel();
       return;
     }
@@ -122,11 +131,15 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       memberId, note, purchaseDate, createdAt: Date.now(),
     };
 
+    setSaving(true);
     if (editingId) {
       updateExpense(editingId, expense);
+      toast('Lançamento atualizado!', 'success');
     } else {
       addExpense(expense);
+      toast('Lançamento salvo com sucesso!', 'success');
     }
+    setSaving(false);
     closePanel();
   }
 
@@ -182,11 +195,11 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               {[...individuals, ...conjuntas].map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <button onClick={() => openPanel('expense')}
-              className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors cursor-pointer">
+              className="px-4 py-2.5 md:py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors cursor-pointer min-h-[44px] md:min-h-0">
               + Despesa
             </button>
             <button onClick={() => openPanel('income')}
-              className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors cursor-pointer">
+              className="px-4 py-2.5 md:py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors cursor-pointer min-h-[44px] md:min-h-0">
               + Receita
             </button>
           </div>
@@ -247,8 +260,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                       </span>
                     </td>
                     <td className="px-4 py-2.5 border-b t-border-light">
-                      <button onClick={() => startEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
-                      <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
+                      <button onClick={() => startEdit(e)} className="px-2.5 py-1.5 md:py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer min-h-[36px] md:min-h-0">Editar</button>
+                      <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1.5 md:py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer min-h-[36px] md:min-h-0">Excluir</button>
                     </td>
                   </tr>
                 );
@@ -303,11 +316,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                   <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Categoria</label>
                   <select value={cat} onChange={e => {
                     if (e.target.value === '__new__') {
-                      const name = prompt('Nome da nova categoria:');
-                      if (name?.trim()) {
-                        setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name.trim()] }));
-                        setCat(name.trim());
-                      }
+                      setInputModal({ type: 'cat' });
                     } else setCat(e.target.value);
                   }} className={inputClass}>
                     {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
@@ -346,11 +355,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                   <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Forma de Pagamento</label>
                   <select value={payment} onChange={e => {
                     if (e.target.value === '__new_pay__') {
-                      const name = prompt('Nome da nova forma:');
-                      if (name?.trim()) {
-                        setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name.trim()] }));
-                        setPayment(name.trim());
-                      }
+                      setInputModal({ type: 'pay' });
                     } else setPayment(e.target.value);
                   }} className={inputClass}>
                     {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
@@ -390,9 +395,10 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
             {/* Footer */}
             <div className="t-card border-t t-border px-6 py-4 flex gap-3 flex-shrink-0">
-              <button onClick={handleSave}
-                className="flex-1 py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
-                {editingId ? 'Atualizar' : 'Salvar'}
+              <button onClick={handleSave} disabled={saving}
+                className="flex-1 py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2">
+                {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {saving ? 'Salvando...' : editingId ? 'Atualizar' : 'Salvar'}
               </button>
               <button onClick={closePanel}
                 className="px-5 py-2.5 border t-border rounded-xl text-sm font-semibold t-text hover:opacity-80 transition-colors cursor-pointer">
@@ -402,6 +408,24 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           </div>
         </div>
       )}
+
+      <InputModal
+        isOpen={!!inputModal}
+        onClose={() => setInputModal(null)}
+        onConfirm={(name) => {
+          if (inputModal?.type === 'cat') {
+            setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name] }));
+            setCat(name);
+            toast(`Categoria "${name}" criada!`, 'success');
+          } else if (inputModal?.type === 'pay') {
+            setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name] }));
+            setPayment(name);
+            toast(`Forma de pagamento "${name}" criada!`, 'success');
+          }
+        }}
+        title={inputModal?.type === 'cat' ? 'Nova Categoria' : 'Nova Forma de Pagamento'}
+        placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : 'Nome da forma de pagamento...'}
+      />
 
       <style jsx>{`
         @keyframes modalIn {

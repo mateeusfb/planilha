@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/lib/store';
 import { COLORS } from '@/lib/constants';
 import { genId } from '@/lib/helpers';
+import { useToast } from './Toast';
 
 interface Props {
   isOpen: boolean;
@@ -17,7 +18,9 @@ export default function MemberModal({ isOpen, onClose, editingMemberId }: Props)
   const [color, setColor] = useState(COLORS[0]);
   const [photo, setPhoto] = useState<string | null>(null);
   const [isConjunta, setIsConjunta] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -44,12 +47,16 @@ export default function MemberModal({ isOpen, onClose, editingMemberId }: Props)
   }
 
   function handleSave() {
-    if (!name.trim()) return alert('Digite o nome do membro.');
+    if (!name.trim()) return toast('Digite o nome do membro.', 'warning');
+    setSaving(true);
     if (editingMemberId) {
       updateMember(editingMemberId, { name: name.trim(), color, photo, isConjunta });
+      toast('Membro atualizado!', 'success');
     } else {
       addMember({ id: genId(), name: name.trim(), color, photo, isConjunta });
+      toast(`${name.trim()} adicionado!`, 'success');
     }
+    setSaving(false);
     onClose();
   }
 
@@ -116,7 +123,11 @@ export default function MemberModal({ isOpen, onClose, editingMemberId }: Props)
         {/* Buttons */}
         <div className="flex gap-2 justify-end mt-5">
           <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Cancelar</button>
-          <button onClick={handleSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer">Salvar</button>
+          <button onClick={handleSave} disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer disabled:opacity-60 flex items-center gap-2">
+            {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
         </div>
       </div>
     </div>
