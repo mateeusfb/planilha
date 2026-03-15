@@ -10,7 +10,9 @@ import AuthPage from '@/components/AuthPage';
 function InviteHandler() {
   const { user, loading } = useAuth();
   const searchParams = useSearchParams();
-  const code = searchParams.get('code');
+  const urlCode = searchParams.get('code');
+  const savedCode = typeof window !== 'undefined' ? localStorage.getItem('pending_invite_code') : null;
+  const code = urlCode || savedCode;
   const [status, setStatus] = useState<'loading' | 'accepting' | 'accepted' | 'expired' | 'error' | 'already' | 'own'>('loading');
   const [wsName, setWsName] = useState('');
 
@@ -86,6 +88,7 @@ function InviteHandler() {
         used_at: new Date().toISOString(),
       }).eq('id', invite.id);
 
+      localStorage.removeItem('pending_invite_code');
       setStatus('accepted');
     }
 
@@ -100,8 +103,12 @@ function InviteHandler() {
     );
   }
 
-  // Se não está logado, mostra tela de login/cadastro
+  // Se não está logado, salvar código e mostrar login/cadastro
   if (!user) {
+    // Salvar código no localStorage para recuperar após login
+    if (code) {
+      localStorage.setItem('pending_invite_code', code);
+    }
     return (
       <div>
         <div className="bg-blue-600 text-white text-center py-3 px-4 text-sm font-medium">
