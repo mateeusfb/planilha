@@ -64,7 +64,7 @@ interface StoreContextType {
   addExpense: (expense: Expense) => void;
   updateExpense: (id: string, expense: Expense) => void;
   removeExpense: (id: string) => void;
-  addMember: (member: Member) => void;
+  addMember: (member: Member, targetWorkspaceId?: string | null) => void;
   updateMember: (id: string, member: Partial<Member>) => void;
   removeMember: (id: string) => void;
   setActiveMember: (id: string) => void;
@@ -257,11 +257,12 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     if (error) console.error('Erro ao excluir lançamento:', error.message);
   }, []);
 
-  const addMember = useCallback(async (member: Member) => {
+  const addMember = useCallback(async (member: Member, targetWorkspaceId?: string | null) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
-    const { error } = await supabase.from('members').insert(memberToRow(member, userId, workspaceId));
+    const wsId = targetWorkspaceId !== undefined ? targetWorkspaceId : workspaceId;
+    const { error } = await supabase.from('members').insert(memberToRow(member, userId, wsId || undefined));
     if (error) console.error('Erro ao salvar membro:', error.message);
-  }, [userId]);
+  }, [userId, workspaceId]);
 
   const updateMember = useCallback(async (id: string, data: Partial<Member>) => {
     setStateRaw(prev => ({

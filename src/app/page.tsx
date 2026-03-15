@@ -297,6 +297,8 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
         isOpen={memberModalOpen}
         onClose={() => { setMemberModalOpen(false); setEditingMemberId(null); }}
         editingMemberId={editingMemberId}
+        workspaces={workspaces}
+        activeWorkspace={activeWorkspace}
       />
       <DeleteModal
         isOpen={deleteModalOpen}
