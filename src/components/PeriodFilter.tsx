@@ -73,10 +73,10 @@ export default function PeriodFilter() {
   return (
     <div className="relative">
       <button onClick={() => setOpen(!open)}
-        className="px-3 py-1.5 border rounded-lg text-sm t-input cursor-pointer flex items-center gap-2 min-w-[160px]">
-        <span>📅</span>
-        <span className="font-medium">{getFilterLabel(dateFilter)}</span>
-        <span className="ml-auto t-text-dim text-xs">{open ? '▲' : '▼'}</span>
+        className="px-2 md:px-3 py-1.5 border rounded-lg text-sm t-input cursor-pointer flex items-center gap-1.5 md:gap-2 min-w-0 md:min-w-[160px]">
+        <span className="flex-shrink-0">📅</span>
+        <span className="font-medium truncate max-w-[80px] md:max-w-none">{getFilterLabel(dateFilter)}</span>
+        <span className="t-text-dim text-xs flex-shrink-0">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (

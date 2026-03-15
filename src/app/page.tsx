@@ -216,8 +216,8 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
         <div className="t-topbar border-b px-4 md:px-7 py-3 flex items-center justify-between sticky top-0 z-50">
-          <h2 className="text-base md:text-lg font-bold t-text ml-12 md:ml-0">{titles[activePage]}</h2>
-          <div className="flex items-center gap-1.5 md:gap-2.5">
+          <h2 className="text-sm md:text-lg font-bold t-text ml-11 md:ml-0 truncate">{titles[activePage]}</h2>
+          <div className="flex items-center gap-1 md:gap-2.5 flex-shrink-0">
             <div className="hidden sm:block">
               <WorkspaceSwitcher
                 workspaces={workspaces}
