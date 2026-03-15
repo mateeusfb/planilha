@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
-import { Avatar } from './Sidebar';
+import type { Member } from '@/lib/types';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
@@ -68,7 +68,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
   // Categories unified tab
-  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks'>('cats');
+  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces'>('cats');
 
   async function handleDeleteAccount() {
     if (deleteConfirmText !== 'EXCLUIR') return;
@@ -428,75 +428,33 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         )}
       </CollapsibleSection>
 
-      {/* Categorias (unificado) */}
+      {/* Categorias (unificado com membros e workspaces) */}
       <CategoriesBlock
         catTab={catTab} setCatTab={setCatTab}
         customCats={customCats} customPays={customPays} customBanks={customBanks}
         addCat={addCat} editCat={editCat} deleteCat={deleteCat}
         addPay={addPay} editPay={editPay} deletePay={deletePay}
         addBank={addBank} editBank={editBank} deleteBank={deleteBank}
+        members={allMembers} onAddMember={onAddMember} onEditMember={onEditMember} onDeleteMember={handleDeleteMember}
+        workspaces={workspaces} activeWorkspace={activeWorkspace}
+        onDeleteWorkspace={(ws) => {
+          setConfirmModal({
+            open: true,
+            message: `Excluir o espaço "${ws.label}"? Todos os membros e lançamentos deste espaço serão removidos permanentemente. Esta ação não pode ser desfeita.`,
+            onConfirm: async () => {
+              const wsId = ws.workspaceId;
+              if (!wsId) return;
+              await supabase.from('expenses').delete().eq('workspace_id', wsId);
+              await supabase.from('members').delete().eq('workspace_id', wsId);
+              await supabase.from('shares').delete().eq('workspace_id', wsId);
+              await supabase.from('invite_links').delete().eq('workspace_id', wsId);
+              await supabase.from('workspaces').delete().eq('id', wsId);
+              toast(`Espaço "${ws.label}" excluído.`, 'success');
+              if (onWorkspaceDeleted) onWorkspaceDeleted();
+            },
+          });
+        }}
       />
-
-      {/* Membros */}
-      <div className="t-card rounded-xl p-6 border mb-6">
-        <h3 className="text-base font-bold mb-4">Membros</h3>
-        {allMembers.length ? allMembers.map(m => (
-          <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
-            <span className="flex items-center gap-2">
-              <Avatar member={m} size={24} />
-              <span className="text-sm font-medium">{m.name}</span>
-              {m.isConjunta && <span className="text-[0.72rem] text-slate-400">(conjunta)</span>}
-            </span>
-            <div className="flex gap-1.5">
-              <button onClick={() => onEditMember(m.id)} className="px-2.5 py-1 border border-slate-200 rounded-lg text-[0.78rem] font-semibold hover:bg-white cursor-pointer">Editar</button>
-              <button onClick={() => handleDeleteMember(m.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
-            </div>
-          </div>
-        )) : <p className="text-slate-400 text-sm mb-2">Nenhum membro cadastrado.</p>}
-        <button onClick={onAddMember} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 mt-1 cursor-pointer">+ Adicionar membro</button>
-      </div>
-
-      {/* Workspaces */}
-      {workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0 && (
-        <div className="t-card rounded-xl p-6 border mb-6">
-          <h3 className="text-base font-bold mb-4">Espaços de Trabalho</h3>
-          {workspaces.filter(w => w.isOwn && w.id !== 'personal').map(ws => (
-            <div key={ws.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-1.5">
-              <span className="flex items-center gap-2">
-                <span className="text-lg">{ws.icon}</span>
-                <span className="text-sm font-medium">{ws.label}</span>
-                {activeWorkspace?.id === ws.id && (
-                  <span className="text-[0.7rem] px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">Ativo</span>
-                )}
-              </span>
-              <button
-                onClick={() => {
-                  setConfirmModal({
-                    open: true,
-                    message: `Excluir o espaço "${ws.label}"? Todos os membros e lançamentos deste espaço serão removidos permanentemente. Esta ação não pode ser desfeita.`,
-                    onConfirm: async () => {
-                      const wsId = ws.workspaceId;
-                      if (!wsId) return;
-                      // Excluir dados do workspace
-                      await supabase.from('expenses').delete().eq('workspace_id', wsId);
-                      await supabase.from('members').delete().eq('workspace_id', wsId);
-                      await supabase.from('shares').delete().eq('workspace_id', wsId);
-                      await supabase.from('invite_links').delete().eq('workspace_id', wsId);
-                      await supabase.from('workspaces').delete().eq('id', wsId);
-                      toast(`Espaço "${ws.label}" excluído.`, 'success');
-                      if (onWorkspaceDeleted) onWorkspaceDeleted();
-                    },
-                  });
-                }}
-                className="px-3 py-2 md:py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer min-h-[36px] md:min-h-0"
-              >
-                Excluir
-              </button>
-            </div>
-          ))}
-          <p className="text-xs t-text-dim mt-2">O espaço "Pessoal" não pode ser excluído.</p>
-        </div>
-      )}
 
       {/* Zona de perigo - Excluir conta */}
       <div className="t-card border border-red-200 rounded-xl p-6 mt-6">
@@ -588,22 +546,33 @@ function CollapsibleSection({ title, action, children }: { title: string; action
   );
 }
 
+type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces';
+
 function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBanks,
   addCat, editCat, deleteCat, addPay, editPay, deletePay, addBank, editBank, deleteBank,
+  members, onAddMember, onEditMember, onDeleteMember,
+  workspaces = [], activeWorkspace, onDeleteWorkspace,
 }: {
-  catTab: 'cats' | 'pays' | 'banks';
-  setCatTab: (t: 'cats' | 'pays' | 'banks') => void;
+  catTab: CatTabId;
+  setCatTab: (t: CatTabId) => void;
   customCats: string[]; customPays: string[]; customBanks: string[];
   addCat: () => void; editCat: (i: number) => void; deleteCat: (i: number) => void;
   addPay: () => void; editPay: (i: number) => void; deletePay: (i: number) => void;
   addBank: () => void; editBank: (i: number) => void; deleteBank: (i: number) => void;
+  members: Member[]; onAddMember: () => void; onEditMember: (id: string) => void; onDeleteMember: (id: string) => void;
+  workspaces?: Workspace[]; activeWorkspace?: Workspace;
+  onDeleteWorkspace?: (ws: Workspace) => void;
 }) {
   const [open, setOpen] = useState(false);
 
-  const tabs: { id: 'cats' | 'pays' | 'banks'; label: string; icon: string }[] = [
+  const tabs: { id: CatTabId; label: string; icon: string }[] = [
     { id: 'cats', label: 'Despesas', icon: '🏷' },
     { id: 'pays', label: 'Pagamento', icon: '💳' },
     { id: 'banks', label: 'Instituições', icon: '🏦' },
+    { id: 'members', label: 'Membros', icon: '👥' },
+    ...(workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0
+      ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: '📁' }]
+      : []),
   ];
 
   const defaults: Record<string, string[]> = {
@@ -618,6 +587,8 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
   const deleteFn: Record<string, (i: number) => void> = { cats: deleteCat, pays: deletePay, banks: deleteBank };
   const addLabels: Record<string, string> = { cats: '+ Nova categoria', pays: '+ Nova forma', banks: '+ Nova instituição' };
 
+  const isPillTab = catTab === 'cats' || catTab === 'pays' || catTab === 'banks';
+
   return (
     <div className="t-card rounded-xl border mb-6 overflow-hidden">
       <button onClick={() => setOpen(!open)}
@@ -629,7 +600,7 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
       {open && (
         <div className="px-5 pb-5">
           {/* Tabs */}
-          <div className="flex gap-1.5 mb-4">
+          <div className="flex gap-1.5 mb-4 flex-wrap">
             {tabs.map(t => (
               <button key={t.id} onClick={() => setCatTab(t.id)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
@@ -641,31 +612,67 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
             ))}
           </div>
 
-          {/* Content */}
-          <div className="mb-3">
-            <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PADRÃO</div>
-            <div className="flex flex-wrap gap-1.5">
-              {defaults[catTab].map(item => (
-                <span key={item} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{item}</span>
-              ))}
-            </div>
-          </div>
-
-          {customs[catTab].length > 0 && (
-            <div className="mb-3">
-              <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PERSONALIZADAS</div>
-              <div className="flex flex-wrap gap-1.5">
-                {customs[catTab].map((item, i) => (
-                  <ItemPill key={i} label={item} onEdit={() => editFn[catTab](i)} onDelete={() => deleteFn[catTab](i)} />
-                ))}
+          {/* Pills content (cats, pays, banks) */}
+          {isPillTab && (
+            <>
+              <div className="mb-3">
+                <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PADRÃO</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {defaults[catTab].map(item => (
+                    <span key={item} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{item}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+
+              {customs[catTab].length > 0 && (
+                <div className="mb-3">
+                  <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PERSONALIZADAS</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {customs[catTab].map((item, i) => (
+                      <ItemPill key={i} label={item} onEdit={() => editFn[catTab](i)} onDelete={() => deleteFn[catTab](i)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button onClick={addFn[catTab]}
+                className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
+                {addLabels[catTab]}
+              </button>
+            </>
           )}
 
-          <button onClick={addFn[catTab]}
-            className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
-            {addLabels[catTab]}
-          </button>
+          {/* Members */}
+          {catTab === 'members' && (
+            <>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {members.map(m => (
+                  <ItemPill key={m.id} label={m.name} onEdit={() => onEditMember(m.id)} onDelete={() => onDeleteMember(m.id)} />
+                ))}
+              </div>
+              <button onClick={onAddMember}
+                className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
+                + Adicionar membro
+              </button>
+            </>
+          )}
+
+          {/* Workspaces */}
+          {catTab === 'workspaces' && (
+            <>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {workspaces.filter(w => w.isOwn && w.id !== 'personal').map(ws => (
+                  <ItemPill
+                    key={ws.id}
+                    label={`${ws.icon} ${ws.label}${activeWorkspace?.id === ws.id ? ' (ativo)' : ''}`}
+                    onEdit={() => {}}
+                    onDelete={() => onDeleteWorkspace?.(ws)}
+                  />
+                ))}
+              </div>
+              <p className="text-xs t-text-dim">O espaço "Pessoal" não pode ser excluído.</p>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -675,18 +682,22 @@ function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBank
 function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const [above, setAbove] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
 
   function handleOpen() {
     if (btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      setAbove(rect.bottom + 90 > window.innerHeight);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setPos({
+        top: spaceBelow > 90 ? rect.bottom + 4 : rect.top - 88,
+        left: rect.left,
+      });
     }
     setMenuOpen(!menuOpen);
   }
 
   return (
-    <div className="relative">
+    <>
       <button
         ref={btnRef}
         onClick={handleOpen}
@@ -696,8 +707,9 @@ function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => vo
       </button>
       {menuOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-          <div className={`absolute left-0 t-card border rounded-lg shadow-lg z-50 min-w-[120px] overflow-hidden ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+          <div className="fixed inset-0 z-[998]" onClick={() => setMenuOpen(false)} />
+          <div className="fixed t-card border rounded-lg shadow-lg z-[999] min-w-[120px] overflow-hidden"
+            style={{ top: pos.top, left: pos.left }}>
             <button onClick={() => { onEdit(); setMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-sm t-text hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
               ✏️ Editar
@@ -709,6 +721,6 @@ function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => vo
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
