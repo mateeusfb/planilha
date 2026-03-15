@@ -15,7 +15,6 @@ const navLinks: { id: PageId; icon: string; label: string }[] = [
   { id: 'expenses', icon: '💳', label: 'Lançamentos' },
   { id: 'analysis', icon: '📈', label: 'Análise' },
   { id: 'summary', icon: '📄', label: 'Resumo Mensal' },
-  { id: 'settings', icon: '⚙', label: 'Configurações' },
 ];
 
 export function Avatar({ member, size = 26 }: { member: Member; size?: number }) {
@@ -69,7 +68,7 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
   // Conteúdo da sidebar (compartilhado entre desktop e mobile)
   const sidebarContent = (
     <>
-      {/* Logo + toggle (desktop) */}
+      {/* Logo + toggle */}
       <div className="px-3 py-4 border-b t-border flex items-center justify-between">
         {!collapsed && (
           <div className="min-w-0">
