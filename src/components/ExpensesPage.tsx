@@ -200,7 +200,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             </button>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr>
                 {['Descrição','Categoria','Valor','Data','Pagamento','Parcelas','Membro','Ações'].map(h => (
@@ -254,6 +255,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -261,7 +263,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       {panelOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) closePanel(); }}>
           <div className="absolute inset-0 bg-black/40"></div>
-          <div className="relative w-full max-w-xl t-card rounded-2xl shadow-2xl border overflow-hidden max-h-[90vh] flex flex-col animate-modal-in">
+          <div className="relative w-full max-w-xl t-card rounded-none md:rounded-2xl shadow-2xl border overflow-hidden h-full md:h-auto md:max-h-[90vh] flex flex-col animate-modal-in">
             {/* Header */}
             <div className="t-card border-b t-border px-6 py-4 flex items-center justify-between flex-shrink-0">
               <h3 className="text-lg font-bold t-text">

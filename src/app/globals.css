@@ -1,8 +1,24 @@
 @import "tailwindcss";
 
+/* ── Mobile ── */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
 /* ── Typography ── */
 body {
   font-family: var(--font-roboto), 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Touch-friendly inputs on mobile */
+@media (max-width: 767px) {
+  input, select, textarea, button {
+    font-size: 16px !important; /* Evita zoom no iOS */
+  }
+  .t-card {
+    border-radius: 12px;
+  }
 }
 
 h1, h2, h3, h4, h5, h6,

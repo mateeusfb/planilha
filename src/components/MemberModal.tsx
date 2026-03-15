@@ -57,7 +57,7 @@ export default function MemberModal({ isOpen, onClose, editingMemberId }: Props)
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="t-card rounded-2xl p-7 w-full max-w-md shadow-xl border">
+      <div className="t-card rounded-2xl p-5 md:p-7 w-[90%] max-w-md shadow-xl border">
         <h3 className="text-base font-bold mb-5">{editingMemberId ? 'Editar Membro' : 'Adicionar Membro'}</h3>
 
         {/* Photo */}

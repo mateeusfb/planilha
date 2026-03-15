@@ -168,7 +168,7 @@ export default function Dashboard() {
     <>
       {/* Resumo Financeiro — sempre expandido, olho para ocultar/mostrar valores */}
       <div className="t-card rounded-xl border mb-4 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5">
+        <div className="flex items-center justify-between px-4 md:px-5 py-3">
           <h3 className="text-sm font-bold">Resumo Financeiro</h3>
           <button onClick={toggleValues}
             className="text-lg cursor-pointer hover:opacity-60 transition-opacity px-1"
@@ -176,16 +176,16 @@ export default function Dashboard() {
             👁
           </button>
         </div>
-        <div className="px-5 pb-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="px-3 md:px-5 pb-4 md:pb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
             <div className="t-card rounded-xl p-4 border">
               <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Receitas</div>
-              <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</HiddenValue>
+              <HiddenValue hidden={valuesHidden} className="text-lg md:text-2xl font-bold text-green-600">{fmt(data.totalIncome)}</HiddenValue>
               <div className="text-xs text-slate-400 mt-1">{data.incomesNormais.length} entrada{data.incomesNormais.length !== 1 ? 's' : ''} em {fmtMonth(activeMonth)}</div>
             </div>
             <div className="t-card rounded-xl p-4 border">
               <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Despesas</div>
-              <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</HiddenValue>
+              <HiddenValue hidden={valuesHidden} className="text-lg md:text-2xl font-bold text-red-600">{fmt(data.despesasReais)}</HiddenValue>
               <div className="text-xs text-slate-400 mt-1">
                 {valuesHidden ? '••••' : data.diffText}
                 {!valuesHidden && data.familyShare > 0 && <><br /><span className="text-[0.72rem]">incl. {fmt(data.familyShare)} rateio familiar</span></>}
@@ -207,7 +207,7 @@ export default function Dashboard() {
             </div>
             <div className="t-card rounded-xl p-4 border">
               <div className="text-xs text-slate-500 font-semibold uppercase tracking-wide mb-1">Saldo Investimentos</div>
-              <HiddenValue hidden={valuesHidden} className="text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</HiddenValue>
+              <HiddenValue hidden={valuesHidden} className="text-lg md:text-2xl font-bold text-blue-600">{fmt(data.investTotal)}</HiddenValue>
               <div className="text-xs text-slate-400 mt-1">{valuesHidden ? '••••' : data.investSub}</div>
             </div>
           </div>
@@ -216,10 +216,10 @@ export default function Dashboard() {
 
       {/* Gráficos — sempre expandido, sem colapsável */}
       <div className="t-card rounded-xl border mb-4 overflow-hidden">
-        <div className="px-5 py-3.5">
+        <div className="px-4 md:px-5 py-3">
           <h3 className="text-sm font-bold">Gráficos</h3>
         </div>
-        <div className="px-5 pb-5">
+        <div className="px-3 md:px-5 pb-4 md:pb-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Gastos por Categoria</h4>
