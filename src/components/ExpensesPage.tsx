@@ -3,8 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, genId } from '@/lib/helpers';
-import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS, CAT_COLORS } from '@/lib/constants';
-import type { Expense } from '@/lib/types';
+import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS, CAT_COLORS, DEFAULT_ACCOUNTS, accountLabel } from '@/lib/constants';
+import type { Expense, Account } from '@/lib/types';
 import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
@@ -45,16 +45,15 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [searchAll, setSearchAll] = useState(false);
   const [colsMenuOpen, setColsMenuOpen] = useState(false);
 
-  const DEFAULT_COLUMNS = ['desc', 'cat', 'value', 'date', 'payment', 'bank', 'member', 'actions'];
-  const visibleCols = state.tableColumns || DEFAULT_COLUMNS;
+  const DEFAULT_COLUMNS = ['desc', 'cat', 'value', 'date', 'account', 'member', 'actions'];
+  const visibleCols = (state.tableColumns || DEFAULT_COLUMNS).map(c => c === 'payment' || c === 'bank' ? 'account' : c).filter((c, i, arr) => arr.indexOf(c) === i);
 
   const allColumns: { id: string; label: string; sortable?: 'desc' | 'value' | 'cat' | 'date' | 'member' }[] = [
     { id: 'desc', label: 'Descrição', sortable: 'desc' },
     { id: 'cat', label: 'Categoria', sortable: 'cat' },
     { id: 'value', label: 'Valor', sortable: 'value' },
     { id: 'date', label: 'Data', sortable: 'date' },
-    { id: 'payment', label: 'Pagamento' },
-    { id: 'bank', label: 'Instituição' },
+    { id: 'account', label: 'Conta' },
     { id: 'member', label: 'Membro', sortable: 'member' },
     { id: 'actions', label: 'Ações' },
   ];
@@ -92,6 +91,9 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
   const allBanks = [...BASE_BANKS, ...(state.customBanks || [])];
+  const accounts: Account[] = state.accounts.length > 0 ? state.accounts : DEFAULT_ACCOUNTS;
+  const defaultAccount = accounts.find(a => a.isDefault) || accounts[0];
+  const [selectedAccountId, setSelectedAccountId] = useState(defaultAccount?.id || '');
   const individuals = getIndividualMembers();
   const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
 
@@ -113,6 +115,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     setMonth(activeMonth); setMemberId('all');
     setFormType('expense'); setCat(EXPENSE_CATS[0]);
     setPurchaseDate(new Date().toISOString().split('T')[0]);
+    setSelectedAccountId(defaultAccount?.id || '');
     setEditingId(null);
   }
 
@@ -130,6 +133,10 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
     if (!month) return toast('Selecione o mês.', 'warning');
 
+    const account = accounts.find(a => a.id === selectedAccountId) || defaultAccount;
+    const derivedPayment = account?.type || payment;
+    const derivedBank = (account?.name === account?.type || account?.name === 'PIX' || account?.name === 'Carteira') ? '' : (account?.name || bank);
+
     const selectedMember = members.find(m => m.id === memberId);
     const isConjunta = selectedMember?.isConjunta && formType === 'expense';
 
@@ -144,8 +151,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       individuals.forEach(m => {
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
-          month, payment, installment: 0, memberId: m.id,
-          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
+          month, payment: derivedPayment, installment: 0, memberId: m.id,
+          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: derivedBank || undefined,
           conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
           createdAt: Date.now(),
         });
@@ -164,8 +171,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         const entryMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
-          month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
-          installmentGroupId: groupId, memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
+          month: entryMonth, payment: derivedPayment, installment: installmentN, installmentCurrent: i,
+          installmentGroupId: groupId, memberId, note, purchaseDate, bank: derivedBank || undefined, createdAt: Date.now(),
         });
       }
       closePanel();
@@ -174,10 +181,10 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
     const expense: Expense = {
       id: editingId || genId(), type: formType, desc: desc.trim(), cat, value: val,
-      month, payment: formType === 'income' ? '-' : payment,
+      month, payment: formType === 'income' ? '-' : derivedPayment,
       installment: isInstallment ? installmentN : 0,
       installmentCurrent: isInstallment ? installmentCurrent : 0,
-      memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
+      memberId, note, purchaseDate, bank: derivedBank || undefined, createdAt: Date.now(),
     };
 
     setSaving(true);
@@ -204,6 +211,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     setNote(e.note || '');
     setBank(e.bank || '');
     setPurchaseDate(e.purchaseDate || new Date().toISOString().split('T')[0]);
+    // Match existing expense to an account
+    const matchedAccount = accounts.find(a => {
+      const aBank = (a.name === a.type || a.name === 'PIX' || a.name === 'Carteira') ? '' : a.name;
+      return a.type === e.payment && aBank === (e.bank || '');
+    });
+    setSelectedAccountId(matchedAccount?.id || defaultAccount?.id || '');
     setPanelOpen(true);
   }
 
@@ -271,8 +284,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             </select>
             <select value={filterPay} onChange={e => setFilterPay(e.target.value)}
               className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
-              <option value="">Todas formas</option>
-              {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
+              <option value="">Todas contas</option>
+              {accounts.map(a => <option key={a.id} value={a.type}>{accountLabel(a)}</option>)}
             </select>
             <select value={filterMember} onChange={e => setFilterMember(e.target.value)}
               className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
@@ -449,14 +462,13 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                           {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
                         </td>
                       ),
-                      payment: (
-                        <td key="payment" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
-                        </td>
-                      ),
-                      bank: (
-                        <td key="bank" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          {e.bank || <span className="t-text-dim">-</span>}
+                      account: (
+                        <td key="account" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+                          {isIncome ? '-' : (
+                            <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">
+                              {e.bank ? `${e.bank} · ${e.payment}` : e.payment}
+                            </span>
+                          )}
                         </td>
                       ),
                       member: (
@@ -541,36 +553,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </select>
               </div>
 
-              {formType === 'expense' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <select value={payment} onChange={e => {
-                    if (e.target.value === '__new_pay__') setInputModal({ type: 'pay' });
-                    else setPayment(e.target.value);
-                  }} className={inputClass}>
-                    {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
-                    <option value="__new_pay__">+ Nova...</option>
-                  </select>
-                  <select value={bank} onChange={e => {
-                    if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                    else setBank(e.target.value);
-                  }} className={inputClass}>
-                    <option value="">Instituição (opcional)</option>
-                    {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
-                    <option value="__new_bank__">+ Nova...</option>
-                  </select>
-                </div>
-              )}
-
-              {formType === 'income' && (
-                <select value={bank} onChange={e => {
-                  if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                  else setBank(e.target.value);
-                }} className={inputClass}>
-                  <option value="">Instituição (opcional)</option>
-                  {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
-                  <option value="__new_bank__">+ Nova...</option>
-                </select>
-              )}
+              {/* Conta unificada */}
+              <select value={selectedAccountId} onChange={e => setSelectedAccountId(e.target.value)} className={inputClass}>
+                {accounts.map(a => (
+                  <option key={a.id} value={a.id}>{accountLabel(a)}</option>
+                ))}
+              </select>
 
               {formType === 'expense' && (
                 <div className="flex items-center gap-3">

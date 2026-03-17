@@ -39,7 +39,15 @@ export interface AppState {
   customCats: string[];
   customPayments: string[];
   customBanks: string[];
+  accounts: Account[];
   tableColumns?: string[];
+}
+
+export interface Account {
+  id: string;
+  name: string;       // ex: "Nubank", "Carteira", "Inter"
+  type: string;       // ex: "Débito", "Crédito", "PIX", "Dinheiro"
+  isDefault?: boolean;
 }
 
 export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';

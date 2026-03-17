@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { fmt, genId } from '@/lib/helpers';
-import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
+import { genId } from '@/lib/helpers';
+import { INCOME_CATS, EXPENSE_CATS, DEFAULT_ACCOUNTS, accountLabel } from '@/lib/constants';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
-import { Plus, X } from 'lucide-react';
-import type { Expense } from '@/lib/types';
+import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import type { Expense, Account } from '@/lib/types';
 
 export default function QuickExpense() {
   const { state, setState, addExpense, getIndividualMembers } = useStore();
@@ -20,29 +20,33 @@ export default function QuickExpense() {
   const [cat, setCat] = useState(EXPENSE_CATS[0]);
   const [value, setValue] = useState('');
   const [month, setMonth] = useState(activeMonth);
-  const [payment, setPayment] = useState('Credito');
   const [memberId, setMemberId] = useState('all');
-  const [bank, setBank] = useState('');
   const [note, setNote] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [isInstallment, setIsInstallment] = useState(false);
   const [installmentN, setInstallmentN] = useState(2);
   const [saving, setSaving] = useState(false);
-  const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay' | 'bank' } | null>(null);
+  const [inputModal, setInputModal] = useState<{ type: 'cat' } | null>(null);
+  const [showMore, setShowMore] = useState(false);
+
+  // Accounts
+  const accounts: Account[] = state.accounts.length > 0 ? state.accounts : DEFAULT_ACCOUNTS;
+  const defaultAccount = accounts.find(a => a.isDefault) || accounts[0];
+  const [selectedAccountId, setSelectedAccountId] = useState(defaultAccount?.id || '');
 
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
-  const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
-  const allBanks = [...BASE_BANKS, ...(state.customBanks || [])];
   const individuals = getIndividualMembers();
   const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
   const catOptions = formType === 'income' ? INCOME_CATS : allExpenseCats;
 
   function clearAndClose() {
-    setDesc(''); setValue(''); setNote(''); setBank('');
-    setPayment('Credito'); setIsInstallment(false); setInstallmentN(2);
+    setDesc(''); setValue(''); setNote('');
+    setIsInstallment(false); setInstallmentN(2);
     setMonth(activeMonth); setMemberId('all');
     setFormType('expense'); setCat(EXPENSE_CATS[0]);
     setPurchaseDate(new Date().toISOString().split('T')[0]);
+    setSelectedAccountId(defaultAccount?.id || '');
+    setShowMore(false);
     setOpen(false);
   }
 
@@ -58,6 +62,10 @@ export default function QuickExpense() {
     if (!desc.trim()) return toast('Digite a descrição.', 'warning');
     const val = parseFloat(value);
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
+
+    const account = accounts.find(a => a.id === selectedAccountId) || defaultAccount;
+    const payment = account?.type || 'Debito';
+    const bank = (account?.name === account?.type || account?.name === 'PIX' || account?.name === 'Carteira') ? '' : (account?.name || '');
 
     setSaving(true);
 
@@ -126,84 +134,67 @@ export default function QuickExpense() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descrição" autoFocus className={inputClass} />
-                </div>
-                <div>
-                  <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="Valor (R$)" min="0" step="0.01" className={inputClass} />
-                </div>
-                <div>
-                  <select value={cat} onChange={e => {
-                    if (e.target.value === '__new__') setInputModal({ type: 'cat' });
-                    else setCat(e.target.value);
-                  }} className={inputClass}>
-                    {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                    <option value="__new__">+ Nova...</option>
-                  </select>
-                </div>
-              </div>
+              {/* Campos essenciais: Descrição, Valor, Categoria, Conta */}
+              <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descrição" autoFocus className={inputClass} />
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
-                    <option value="all" disabled={formType === 'income'}>Família</option>
-                    {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conj.)</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {formType === 'expense' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <select value={payment} onChange={e => {
-                    if (e.target.value === '__new_pay__') setInputModal({ type: 'pay' });
-                    else setPayment(e.target.value);
-                  }} className={inputClass}>
-                    {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
-                    <option value="__new_pay__">+ Nova...</option>
-                  </select>
-                  <select value={bank} onChange={e => {
-                    if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                    else setBank(e.target.value);
-                  }} className={inputClass}>
-                    <option value="">Instituição (opcional)</option>
-                    {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
-                    <option value="__new_bank__">+ Nova...</option>
-                  </select>
-                </div>
-              )}
-
-              {formType === 'income' && (
-                <select value={bank} onChange={e => {
-                  if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                  else setBank(e.target.value);
+                <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="Valor (R$)" min="0" step="0.01" className={inputClass} />
+                <select value={cat} onChange={e => {
+                  if (e.target.value === '__new__') setInputModal({ type: 'cat' });
+                  else setCat(e.target.value);
                 }} className={inputClass}>
-                  <option value="">Instituição (opcional)</option>
-                  {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
-                  <option value="__new_bank__">+ Nova...</option>
+                  {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="__new__">+ Nova...</option>
                 </select>
-              )}
+              </div>
 
-              {formType === 'expense' && (
-                <div className="flex items-center gap-3">
-                  <label className="toggle-switch">
-                    <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
-                    <span className="toggle-slider"></span>
-                  </label>
-                  <span className="text-sm t-text">Parcelado</span>
-                  {isInstallment && (
-                    <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
-                      className="w-16 px-2 py-1.5 border rounded-lg text-sm t-input" />
+              {/* Conta unificada */}
+              <select value={selectedAccountId} onChange={e => setSelectedAccountId(e.target.value)} className={inputClass}>
+                {accounts.map(a => (
+                  <option key={a.id} value={a.id}>{accountLabel(a)}</option>
+                ))}
+              </select>
+
+              {/* Botão "Mais opções" */}
+              <button
+                type="button"
+                onClick={() => setShowMore(!showMore)}
+                className="flex items-center gap-1 text-xs font-semibold t-text-dim hover:t-text cursor-pointer transition-colors"
+              >
+                {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                {showMore ? 'Menos opções' : 'Mais opções'}
+              </button>
+
+              {/* Campos opcionais colapsados */}
+              {showMore && (
+                <div className="space-y-3 pt-1">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className={inputClass} />
+                    <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
+                      <option value="all" disabled={formType === 'income'}>Família</option>
+                      {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                      {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conj.)</option>)}
+                    </select>
+                  </div>
+
+                  {formType === 'expense' && (
+                    <div className="flex items-center gap-3">
+                      <label className="toggle-switch">
+                        <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
+                        <span className="toggle-slider"></span>
+                      </label>
+                      <span className="text-sm t-text">Parcelado</span>
+                      {isInstallment && (
+                        <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
+                          className="w-16 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                      )}
+                      {isInstallment && <span className="text-xs t-text-dim">parcelas</span>}
+                    </div>
                   )}
-                  {isInstallment && <span className="text-xs t-text-dim">parcelas</span>}
+
+                  <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Observação (opcional)" className={inputClass} />
                 </div>
               )}
-
-              <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Observação (opcional)" className={inputClass} />
             </div>
 
             {/* Footer */}
@@ -225,17 +216,11 @@ export default function QuickExpense() {
           if (inputModal?.type === 'cat') {
             setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name] }));
             setCat(name);
-          } else if (inputModal?.type === 'pay') {
-            setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name] }));
-            setPayment(name);
-          } else if (inputModal?.type === 'bank') {
-            setState(prev => ({ ...prev, customBanks: [...(prev.customBanks || []), name] }));
-            setBank(name);
           }
           toast(`"${name}" adicionado!`, 'success');
         }}
-        title={inputModal?.type === 'cat' ? 'Nova Categoria' : inputModal?.type === 'pay' ? 'Nova Forma de Pagamento' : 'Nova Instituição'}
-        placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : inputModal?.type === 'pay' ? 'Nome da forma...' : 'Nome da instituição...'}
+        title="Nova Categoria"
+        placeholder="Nome da categoria..."
       />
 
       <style jsx>{`

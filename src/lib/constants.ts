@@ -15,3 +15,19 @@ export const INCOME_CATS = ['Salario','Freelance','Aluguel Recebido','Dividendos
 export const EXPENSE_CATS = ['Moradia','Alimentacao','Transporte','Saude','Educacao','Lazer','Vestuario','Assinaturas','Investimento','Outros'];
 export const BASE_PAYMENTS = ['Credito','Debito','PIX','Dinheiro','Boleto','Transferencia'];
 export const BASE_BANKS = ['Nubank','Inter','Itaú','Bradesco','Santander','Banco do Brasil','Caixa','C6 Bank','BTG Pactual','Sicoob'];
+
+export const DEFAULT_ACCOUNTS = [
+  { id: 'acc-carteira', name: 'Carteira', type: 'Dinheiro', isDefault: true },
+  { id: 'acc-pix', name: 'PIX', type: 'PIX' },
+  { id: 'acc-nubank-deb', name: 'Nubank', type: 'Débito' },
+  { id: 'acc-nubank-cred', name: 'Nubank', type: 'Crédito' },
+  { id: 'acc-inter-deb', name: 'Inter', type: 'Débito' },
+  { id: 'acc-inter-cred', name: 'Inter', type: 'Crédito' },
+  { id: 'acc-itau-deb', name: 'Itaú', type: 'Débito' },
+  { id: 'acc-bradesco-deb', name: 'Bradesco', type: 'Débito' },
+];
+
+export function accountLabel(acc: { name: string; type: string }): string {
+  if (acc.name === acc.type || acc.name === 'PIX' || acc.name === 'Carteira') return acc.name;
+  return `${acc.name} · ${acc.type}`;
+}
