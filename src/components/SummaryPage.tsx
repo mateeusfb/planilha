@@ -84,7 +84,7 @@ export default function SummaryPage() {
     const memberName = activeMember === 'all' ? 'Família' : (state.members.find(m => m.id === activeMember)?.name || 'Membro');
     const sortedCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
     const topCat = sortedCats[0];
-    const tips = generateTips(expenses, activeMember, getIndividualMembers);
+    const tips = generateTips(expenses, activeMember, getIndividualMembers, familyShare);
 
     return {
       totalIncome, despesasReais, saldo, investTotal, investSaida, totalIncomeInvest,

@@ -156,7 +156,7 @@ export default function Dashboard() {
       });
     }
 
-    const tips = generateTips(allEntries, activeMember, getIndividualMembers);
+    const tips = generateTips(allEntries, activeMember, getIndividualMembers, familyShare);
 
     return {
       totalIncome, despesasReais, saldo, investTotal, investSub,

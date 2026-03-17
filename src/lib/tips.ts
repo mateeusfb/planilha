@@ -11,7 +11,8 @@ export interface Tip {
 export function generateTips(
   expenses: Expense[],
   activeMember: string,
-  getIndividualMembers: () => Member[]
+  getIndividualMembers: () => Member[],
+  familyShare: number = 0
 ): Tip[] {
   const tips: Tip[] = [];
   const outflows = expenses.filter(e => e.type !== 'income');
@@ -23,7 +24,7 @@ export function generateTips(
   const totalIncomeInvest = getTotal(incomesInvest);
 
   const investSaida = outflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-  const despesasReais = getTotal(outflows) - investSaida;
+  const despesasReais = getTotal(outflows) - investSaida + familyShare;
   const saldoInvest = investSaida + totalIncomeInvest;
   const saldo = totalIncome - despesasReais;
 
