@@ -83,7 +83,7 @@ export default function PeriodFilter() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}></div>
-          <div className="absolute top-full mt-1 right-0 z-50 t-card border rounded-xl shadow-xl w-80 overflow-hidden">
+          <div className="absolute top-full mt-1 right-0 z-50 t-popup border rounded-xl shadow-xl w-80 overflow-hidden">
             {/* Tabs */}
             <div className="flex border-b t-border">
               <button onClick={() => setTab('month')}

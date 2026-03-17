@@ -153,6 +153,17 @@ body {
 .t-accent-light { background: var(--accent-light); color: var(--accent); }
 .t-row:hover { background: var(--bg-card-hover); }
 .t-badge { background: var(--bg); }
+.t-popup {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+[data-theme="dark"] .t-popup {
+  background: rgba(30, 41, 59, 0.88);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
 
 /* ── Glassmorphism: solidez para elementos de conteúdo ── */
 table th {
