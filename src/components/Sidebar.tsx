@@ -74,8 +74,8 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
       <div className="px-3 py-4 border-b t-border flex items-center justify-between">
         {!collapsed && (
           <div className="min-w-0">
-            <h1 className="text-base font-bold t-accent truncate">Finanças Família</h1>
-            <p className="text-[0.72rem] t-text-dim mt-0.5 truncate">Controle inteligente</p>
+            <h1 className="text-base font-bold t-accent truncate">Folga</h1>
+            <p className="text-[0.72rem] t-text-dim mt-0.5 truncate">Controle financeiro</p>
           </div>
         )}
         {/* Desktop: toggle collapse. Mobile: close */}

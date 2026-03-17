@@ -6,11 +6,11 @@ const montserrat = Montserrat({ subsets: ["latin"], variable: "--font-montserrat
 const roboto = Roboto({ subsets: ["latin"], variable: "--font-roboto", weight: ["300", "400", "500", "700"] });
 
 export const metadata: Metadata = {
-  title: "Finanças Família - Controle de Gastos",
-  description: "Controle inteligente de gastos familiares",
+  title: "Folga - Controle Financeiro",
+  description: "Controle financeiro, para você ter uma folga",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   themeColor: "#2563eb",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Finanças" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Folga" },
 };
 
 export default function RootLayout({
