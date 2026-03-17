@@ -355,7 +355,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                   {colsMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-[998]" onClick={() => setColsMenuOpen(false)} />
-                      <div className="absolute right-0 top-full mt-1 t-popup border rounded-lg shadow-lg z-[999] p-2 min-w-[220px]">
+                      <div className="absolute right-0 top-full mt-1 t-card border rounded-lg shadow-lg z-[999] p-2 min-w-[220px]">
                         <div className="text-[0.68rem] t-text-dim font-semibold uppercase mb-1.5 px-2">Colunas visíveis</div>
                         {/* Colunas ativas na ordem atual */}
                         {visibleCols.map((colId, idx) => {

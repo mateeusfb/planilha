@@ -29,43 +29,39 @@ h1, h2, h3, h4, h5, h6,
 
 /* ── Theme variables ── */
 :root {
-  --bg: #dfe5f0;
-  --bg-card: rgba(255, 255, 255, 0.42);
-  --bg-card-hover: rgba(255, 255, 255, 0.55);
-  --bg-input: rgba(255, 255, 255, 0.6);
-  --bg-sidebar: rgba(255, 255, 255, 0.25);
-  --bg-topbar: rgba(255, 255, 255, 0.4);
-  --border: rgba(255, 255, 255, 0.6);
-  --border-light: rgba(255, 255, 255, 0.35);
+  --bg: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-input: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-topbar: #ffffff;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
   --text: #1e293b;
   --text-muted: #64748b;
   --text-dim: #94a3b8;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
-  --accent-light: rgba(37, 99, 235, 0.1);
+  --accent-light: #eff6ff;
   --shadow: rgba(0,0,0,0.06);
-  --glass-blur: 20px;
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 [data-theme="dark"] {
-  --bg: #080d1a;
-  --bg-card: rgba(30, 41, 59, 0.35);
-  --bg-card-hover: rgba(40, 53, 72, 0.5);
-  --bg-input: rgba(30, 41, 59, 0.55);
-  --bg-sidebar: rgba(15, 23, 42, 0.3);
-  --bg-topbar: rgba(30, 41, 59, 0.35);
-  --border: rgba(255, 255, 255, 0.12);
-  --border-light: rgba(255, 255, 255, 0.06);
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --bg-card-hover: #283548;
+  --bg-input: #1e293b;
+  --bg-sidebar: #1e293b;
+  --bg-topbar: #1e293b;
+  --border: #334155;
+  --border-light: #1e293b;
   --text: #e2e8f0;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
   --accent: #3b82f6;
   --accent-hover: #2563eb;
-  --accent-light: rgba(59,130,246,0.12);
-  --shadow: rgba(0,0,0,0.4);
-  --glass-blur: 24px;
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --accent-light: rgba(59,130,246,0.1);
+  --shadow: rgba(0,0,0,0.3);
 }
 
 /* ── Accent color overrides ── */
@@ -86,21 +82,8 @@ h1, h2, h3, h4, h5, h6,
 /* ── Apply theme to base elements ── */
 body {
   background: var(--bg);
-  background-image:
-    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 20%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
-    radial-gradient(ellipse at 75% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(ellipse at 30% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
-  background-attachment: fixed;
   color: var(--text);
   transition: background 0.3s, color 0.3s;
-}
-[data-theme="dark"] body {
-  background-image:
-    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.18) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 20%, rgba(236, 72, 153, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 75% 80%, rgba(59, 130, 246, 0.14) 0%, transparent 50%),
-    radial-gradient(ellipse at 30% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
 }
 
 /* Custom scrollbar */
@@ -109,31 +92,12 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--text-dim); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ── Themed utility classes (Glassmorphism) ── */
+/* ── Themed utility classes ── */
 .t-bg { background: var(--bg); }
-.t-card {
-  background: var(--bg-card);
-  border-color: var(--border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
-}
+.t-card { background: var(--bg-card); border-color: var(--border); transition: background 0.3s, border-color 0.3s; }
 .t-card-hover:hover { background: var(--bg-card-hover); }
-.t-sidebar {
-  background: var(--bg-sidebar);
-  border-color: var(--border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glass-shadow);
-}
-.t-topbar {
-  background: var(--bg-topbar);
-  border-color: var(--border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-}
+.t-sidebar { background: var(--bg-sidebar); border-color: var(--border); }
+.t-topbar { background: var(--bg-topbar); border-color: var(--border); }
 .t-border { border-color: var(--border); }
 .t-border-light { border-color: var(--border-light); }
 .t-text { color: var(--text); }
@@ -143,8 +107,6 @@ body {
   background: var(--bg-input);
   border-color: var(--border);
   color: var(--text);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .t-input:focus { border-color: var(--accent); }
 .t-accent { color: var(--accent); }
@@ -153,42 +115,13 @@ body {
 .t-accent-light { background: var(--accent-light); color: var(--accent); }
 .t-row:hover { background: var(--bg-card-hover); }
 .t-badge { background: var(--bg); }
-.t-popup {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: var(--border);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-}
-[data-theme="dark"] .t-popup {
-  background: rgba(30, 41, 59, 0.88);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-}
-
-/* ── Glassmorphism: solidez para elementos de conteúdo ── */
-table th {
-  background: rgba(241, 245, 249, 0.7) !important;
-}
-table td {
-  background: rgba(255, 255, 255, 0.15);
-}
-.badge, [class*="badge-"] {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-/* Badges de tipo (Despesa/Receita) mais opacos */
-.bg-red-50, .bg-green-50, .bg-blue-50, .bg-amber-50,
-.bg-green-100, .bg-red-100, .bg-amber-100 {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
 
 /* ── Dark mode overrides for Tailwind utility classes ── */
 [data-theme="dark"] {
   /* Backgrounds */
-  & .bg-white { background-color: var(--bg-card) !important; backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); }
+  & .bg-white { background-color: var(--bg-card) !important; }
   & .bg-slate-50 { background-color: var(--bg) !important; }
-  & .bg-slate-100 { background-color: rgba(40, 53, 72, 0.4) !important; }
+  & .bg-slate-100 { background-color: #283548 !important; }
   & .hover\:bg-slate-50:hover { background-color: var(--bg-card-hover) !important; }
   & .hover\:bg-slate-50\/50:hover { background-color: rgba(40,53,72,0.5) !important; }
 
@@ -212,8 +145,8 @@ table td {
   & option { background-color: var(--bg-card) !important; color: var(--text) !important; }
 
   /* Table */
-  & table th { background-color: rgba(15,23,42,0.6) !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
-  & table td { background-color: rgba(15,23,42,0.2) !important; border-color: var(--border-light) !important; }
+  & table th { background-color: rgba(15,23,42,0.5) !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
+  & table td { border-color: var(--border-light) !important; }
   & table tr:hover td { background-color: var(--bg-card-hover) !important; }
 
   /* Badges & pills */
@@ -278,18 +211,11 @@ table td {
   transform: translateX(18px);
 }
 
-/* ── Glassmorphism modal backdrop ── */
-.fixed.bg-black\/40,
-[data-theme="dark"] .fixed.bg-black\/40 {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
 /* ── Print styles ── */
 @media print {
   body { background: white !important; color: black !important; }
   .t-sidebar, .t-topbar, .print\:hidden, nav, aside, button { display: none !important; }
   .print-area { padding: 0 !important; margin: 0 !important; }
-  .t-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; break-inside: avoid; backdrop-filter: none !important; background: white !important; }
+  .t-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; break-inside: avoid; }
   * { transition: none !important; animation: none !important; }
 }

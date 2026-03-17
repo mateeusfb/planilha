@@ -50,7 +50,7 @@ function WorkspaceSwitcher({ workspaces, active, onSwitch, onCreateNew }: {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 t-popup border rounded-xl shadow-lg p-2 min-w-56 z-50">
+          <div className="absolute right-0 top-full mt-1 t-card border rounded-xl shadow-lg p-2 min-w-56 z-50">
             <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1">Meus espaços</div>
             {workspaces.filter(w => w.isOwn).map(ws => (
               <button key={ws.id} onClick={() => { onSwitch(ws); setOpen(false); }}
@@ -105,7 +105,7 @@ function CreateWorkspaceModal({ isOpen, onClose, onCreate }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="t-popup rounded-2xl p-7 w-full max-w-md shadow-xl border">
+      <div className="t-card rounded-2xl p-7 w-full max-w-md shadow-xl border">
         <h3 className="text-base font-bold mb-4">Criar novo espaço</h3>
         <div className="mb-4">
           <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Nome</label>
@@ -159,7 +159,7 @@ function UserMenu({ user, onSignOut, onGoToSettings, workspaces, activeWorkspace
       {open && (
         <>
           <div className="fixed inset-0 z-[55]" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 t-popup border rounded-xl shadow-lg p-3 min-w-48 z-[60]">
+          <div className="absolute right-0 top-full mt-1 t-card border rounded-xl shadow-lg p-3 min-w-48 z-[60]">
             <div className="text-sm font-semibold t-text mb-0.5">{user?.user_metadata?.name || 'Usuário'}</div>
             <div className="text-xs t-text-dim mb-3">{user?.email}</div>
             {/* Workspace switcher mobile */}
