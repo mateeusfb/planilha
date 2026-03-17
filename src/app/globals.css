@@ -30,11 +30,11 @@ h1, h2, h3, h4, h5, h6,
 /* ── Theme variables ── */
 :root {
   --bg: #dfe5f0;
-  --bg-card: rgba(255, 255, 255, 0.3);
-  --bg-card-hover: rgba(255, 255, 255, 0.45);
-  --bg-input: rgba(255, 255, 255, 0.5);
-  --bg-sidebar: rgba(255, 255, 255, 0.2);
-  --bg-topbar: rgba(255, 255, 255, 0.3);
+  --bg-card: rgba(255, 255, 255, 0.42);
+  --bg-card-hover: rgba(255, 255, 255, 0.55);
+  --bg-input: rgba(255, 255, 255, 0.6);
+  --bg-sidebar: rgba(255, 255, 255, 0.25);
+  --bg-topbar: rgba(255, 255, 255, 0.4);
   --border: rgba(255, 255, 255, 0.6);
   --border-light: rgba(255, 255, 255, 0.35);
   --text: #1e293b;
@@ -154,6 +154,24 @@ body {
 .t-row:hover { background: var(--bg-card-hover); }
 .t-badge { background: var(--bg); }
 
+/* ── Glassmorphism: solidez para elementos de conteúdo ── */
+table th {
+  background: rgba(241, 245, 249, 0.7) !important;
+}
+table td {
+  background: rgba(255, 255, 255, 0.15);
+}
+.badge, [class*="badge-"] {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+/* Badges de tipo (Despesa/Receita) mais opacos */
+.bg-red-50, .bg-green-50, .bg-blue-50, .bg-amber-50,
+.bg-green-100, .bg-red-100, .bg-amber-100 {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 /* ── Dark mode overrides for Tailwind utility classes ── */
 [data-theme="dark"] {
   /* Backgrounds */
@@ -183,8 +201,8 @@ body {
   & option { background-color: var(--bg-card) !important; color: var(--text) !important; }
 
   /* Table */
-  & table th { background-color: rgba(15,23,42,0.5) !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
-  & table td { border-color: var(--border-light) !important; }
+  & table th { background-color: rgba(15,23,42,0.6) !important; color: var(--text-muted) !important; border-color: var(--border) !important; }
+  & table td { background-color: rgba(15,23,42,0.2) !important; border-color: var(--border-light) !important; }
   & table tr:hover td { background-color: var(--bg-card-hover) !important; }
 
   /* Badges & pills */
