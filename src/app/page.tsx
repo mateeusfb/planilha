@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider, useStore } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
-import PeriodFilter from '@/components/PeriodFilter';
 import type { PageId, Workspace } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
 import { ToastProvider } from '@/components/Toast';
@@ -91,7 +90,6 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
                 onCreateNew={onCreateWorkspace}
               />
             </div>
-            <PeriodFilter />
             <button onClick={toggleMode} title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}
               className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
               {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}

@@ -7,6 +7,7 @@ import { CAT_COLORS } from '@/lib/constants';
 import { FileText, Download } from 'lucide-react';
 import { useToast } from './Toast';
 import { exportToPDF } from '@/lib/export';
+import PeriodFilter from './PeriodFilter';
 
 export default function SummaryPage() {
   const { state, getExpensesForMonth, getIndividualMembers } = useStore();
@@ -108,16 +109,19 @@ export default function SummaryPage() {
               {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponível no mês' : 'Total de despesas (sem investimentos)'} | {data.expenses.length} lançamentos
             </div>
           </div>
-          <button
-            onClick={handleExportPDF}
-            disabled={exporting}
-            className="print:hidden px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-semibold cursor-pointer backdrop-blur-sm transition-colors flex items-center gap-2 flex-shrink-0"
-          >
-            {exporting ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : <FileText size={16} />}
-            {exporting ? 'Gerando...' : 'Exportar PDF'}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <PeriodFilter />
+            <button
+              onClick={handleExportPDF}
+              disabled={exporting}
+              className="print:hidden px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-semibold cursor-pointer backdrop-blur-sm transition-colors flex items-center gap-2"
+            >
+              {exporting ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : <FileText size={16} />}
+              {exporting ? 'Gerando...' : 'Exportar PDF'}
+            </button>
+          </div>
         </div>
       </div>
 

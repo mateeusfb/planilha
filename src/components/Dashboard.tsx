@@ -7,6 +7,7 @@ import { CAT_COLORS } from '@/lib/constants';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import PeriodFilter from './PeriodFilter';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 /* ── Animated Counter ── */
@@ -186,11 +187,14 @@ export default function Dashboard() {
       <div className="mb-4 animate-fade-in-up">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold t-text">Resumo Financeiro</h3>
-          <button onClick={toggleValues}
-            className="cursor-pointer hover:opacity-60 transition-opacity px-1"
-            title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}>
-            {valuesHidden ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <PeriodFilter />
+            <button onClick={toggleValues}
+              className="cursor-pointer hover:opacity-60 transition-opacity px-1"
+              title={valuesHidden ? 'Mostrar valores' : 'Ocultar valores'}>
+              {valuesHidden ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">

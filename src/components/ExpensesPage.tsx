@@ -9,6 +9,7 @@ import { useToast } from './Toast';
 import InputModal from './InputModal';
 import { useExpenseForm } from '@/hooks/useExpenseForm';
 import { Search, BarChart3, X, SlidersHorizontal, Download } from 'lucide-react';
+import PeriodFilter from './PeriodFilter';
 import { exportToCSV } from '@/lib/export';
 
 interface Props {
@@ -284,7 +285,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
             {/* Desktop: tabela com colunas configuráveis */}
             <div className="hidden md:block overflow-x-auto">
-              <div className="flex justify-end px-4 py-2 border-b t-border">
+              <div className="flex items-center justify-end gap-2 px-4 py-2 border-b t-border">
+                <PeriodFilter />
                 <div className="relative">
                   <button onClick={() => setColsMenuOpen(!colsMenuOpen)}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[0.72rem] font-semibold t-text-dim hover:t-text cursor-pointer transition-colors border t-border">

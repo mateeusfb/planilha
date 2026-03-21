@@ -7,6 +7,7 @@ import { CAT_COLORS, PAY_COLORS } from '@/lib/constants';
 import { useToast } from './Toast';
 import { Tag, CreditCard, Landmark, User, ImageIcon, FileText, Download } from 'lucide-react';
 import { exportToPDF } from '@/lib/export';
+import PeriodFilter from './PeriodFilter';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie, Doughnut } from 'react-chartjs-2';
@@ -251,7 +252,8 @@ export default function AnalysisPage() {
               </button>
             ))}
           </div>
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <PeriodFilter />
             <button onClick={() => exportAs('png')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
               <ImageIcon size={14} /> PNG
