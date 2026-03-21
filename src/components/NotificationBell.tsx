@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Bell, Check, AlertTriangle, Info, CheckCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bell, Check, AlertTriangle, Info, CheckCheck, Megaphone } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { AppNotification } from '@/hooks/useNotifications';
 
@@ -30,25 +30,36 @@ const typeIcons: Record<string, React.ReactNode> = {
   ok: <Check size={14} className="text-green-500" />,
   '!': <AlertTriangle size={14} className="text-amber-500" />,
   i: <Info size={14} className="text-blue-500" />,
+  system: <Megaphone size={14} className="text-indigo-500" />,
 };
 
-function NotificationItem({ notification, onRead }: { notification: AppNotification; onRead: (id: string) => void }) {
+function NotificationItem({ notification, onRead }: {
+  notification: AppNotification;
+  onRead: (id: string, source: 'assistant' | 'system') => void;
+}) {
   const style = typeStyles[notification.type] || typeStyles.info;
+  const isSystem = notification.source === 'system';
+  const icon = isSystem ? typeIcons.system : (typeIcons[notification.icon] || typeIcons.i);
 
   return (
     <button
-      onClick={() => !notification.read && onRead(notification.id)}
+      onClick={() => !notification.read && onRead(notification.id, notification.source)}
       className={`w-full text-left p-3 rounded-lg border-l-[3px] transition-all cursor-pointer ${style.border} ${
         notification.read ? 'opacity-50' : `${style.bg} hover:opacity-80`
       }`}
     >
       <div className="flex items-start gap-2.5">
         <div className="flex-shrink-0 mt-0.5">
-          {typeIcons[notification.icon] || typeIcons.i}
+          {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-xs font-semibold t-text truncate">{notification.title}</span>
+            {isSystem && (
+              <span className="text-[0.6rem] px-1.5 py-px rounded-full bg-indigo-500/10 text-indigo-500 font-semibold flex-shrink-0">
+                Folga
+              </span>
+            )}
             {!notification.read && (
               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${style.dot}`} />
             )}
@@ -64,7 +75,6 @@ function NotificationItem({ notification, onRead }: { notification: AppNotificat
 export default function NotificationBell() {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape
   useEffect(() => {
@@ -77,7 +87,7 @@ export default function NotificationBell() {
   }, [open]);
 
   return (
-    <div className="relative z-[60]" ref={dropdownRef}>
+    <div className="relative z-[60]">
       {/* Bell button */}
       <button
         onClick={() => setOpen(!open)}
@@ -125,7 +135,7 @@ export default function NotificationBell() {
                 </div>
               ) : (
                 notifications.map(n => (
-                  <NotificationItem key={n.id} notification={n} onRead={markAsRead} />
+                  <NotificationItem key={`${n.source}-${n.id}`} notification={n} onRead={markAsRead} />
                 ))
               )}
             </div>

@@ -8,20 +8,21 @@ import { getCurrentMonth } from '@/lib/helpers';
 
 export interface AppNotification {
   id: string;
+  source: 'assistant' | 'system';
   type: 'good' | 'info' | 'warn' | 'bad';
   icon: string;
   title: string;
   body: string;
   read: boolean;
   createdAt: string;
-  month: string;
+  month?: string;
 }
 
 interface UseNotificationsReturn {
   notifications: AppNotification[];
   unreadCount: number;
   loading: boolean;
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: string, source: 'assistant' | 'system') => Promise<void>;
   markAllAsRead: () => Promise<void>;
 }
 
@@ -32,7 +33,6 @@ export function useNotifications(): UseNotificationsReturn {
 
   const currentMonth = getCurrentMonth();
 
-  // Fetch or generate notifications
   useEffect(() => {
     if (!userId || state.expenses === undefined) return;
 
@@ -41,8 +41,8 @@ export function useNotifications(): UseNotificationsReturn {
     async function loadNotifications() {
       setLoading(true);
 
-      // Build query for current user + workspace + month
-      let query = supabase
+      // ── 1. Load personal (assistant) notifications ──
+      let personalQuery = supabase
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
@@ -50,63 +50,85 @@ export function useNotifications(): UseNotificationsReturn {
         .order('created_at', { ascending: false });
 
       if (workspaceId) {
-        query = query.eq('workspace_id', workspaceId);
+        personalQuery = personalQuery.eq('workspace_id', workspaceId);
       } else {
-        query = query.is('workspace_id', null);
+        personalQuery = personalQuery.is('workspace_id', null);
       }
 
-      const { data: existing } = await query;
+      const { data: existingPersonal } = await personalQuery;
 
       if (cancelled) return;
 
-      if (existing && existing.length > 0) {
-        // Notifications already exist for this month — use them
-        setNotifications(existing.map(rowToNotification));
-        setLoading(false);
-        return;
+      let personalNotifs: AppNotification[] = [];
+
+      if (existingPersonal && existingPersonal.length > 0) {
+        personalNotifs = existingPersonal.map(r => rowToNotification(r, 'assistant'));
+      } else {
+        // Generate from tips
+        const allEntries = getExpensesForMonth(currentMonth, 'all');
+        if (allEntries.length > 0) {
+          const tips = generateTips(allEntries, 'all', getIndividualMembers, 0);
+          if (tips.length > 0) {
+            const rows = tips.map(tip => ({
+              user_id: userId,
+              workspace_id: workspaceId || null,
+              month: currentMonth,
+              type: tip.type,
+              icon: tip.icon,
+              title: tip.title,
+              body: tip.text,
+              read: false,
+            }));
+
+            const { data: inserted } = await supabase
+              .from('notifications')
+              .insert(rows)
+              .select();
+
+            if (!cancelled && inserted) {
+              personalNotifs = inserted.map(r => rowToNotification(r, 'assistant'));
+            }
+          }
+        }
       }
-
-      // No notifications yet — generate from tips
-      const allEntries = getExpensesForMonth(currentMonth, 'all');
-
-      // Only generate if there's data to analyze
-      if (allEntries.length === 0) {
-        setNotifications([]);
-        setLoading(false);
-        return;
-      }
-
-      const tips = generateTips(allEntries, 'all', getIndividualMembers, 0);
-
-      if (tips.length === 0) {
-        setNotifications([]);
-        setLoading(false);
-        return;
-      }
-
-      // Insert into Supabase
-      const rows = tips.map(tip => ({
-        user_id: userId,
-        workspace_id: workspaceId || null,
-        month: currentMonth,
-        type: tip.type,
-        icon: tip.icon,
-        title: tip.title,
-        body: tip.text,
-        read: false,
-      }));
-
-      const { data: inserted } = await supabase
-        .from('notifications')
-        .insert(rows)
-        .select();
 
       if (cancelled) return;
 
-      if (inserted) {
-        setNotifications(inserted.map(rowToNotification));
-      }
+      // ── 2. Load system announcements ──
+      const { data: announcements } = await supabase
+        .from('system_announcements')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: false });
 
+      const { data: reads } = await supabase
+        .from('announcement_reads')
+        .select('announcement_id')
+        .eq('user_id', userId);
+
+      if (cancelled) return;
+
+      const readIds = new Set((reads || []).map(r => r.announcement_id));
+
+      const systemNotifs: AppNotification[] = (announcements || [])
+        .filter(a => !a.expires_at || new Date(a.expires_at) > new Date())
+        .map(a => ({
+          id: a.id as string,
+          source: 'system' as const,
+          type: (a.type || 'info') as AppNotification['type'],
+          icon: (a.icon || 'i') as string,
+          title: a.title as string,
+          body: a.body as string,
+          read: readIds.has(a.id),
+          createdAt: a.created_at as string,
+        }));
+
+      // ── 3. Merge: system first, then personal ──
+      const all = [...systemNotifs, ...personalNotifs].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setNotifications(all);
       setLoading(false);
     }
 
@@ -114,37 +136,59 @@ export function useNotifications(): UseNotificationsReturn {
     return () => { cancelled = true; };
   }, [userId, workspaceId, currentMonth, state.expenses.length]);
 
-  const markAsRead = useCallback(async (id: string) => {
-    // Optimistic update
+  const markAsRead = useCallback(async (id: string, source: 'assistant' | 'system') => {
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
-    await supabase.from('notifications').update({ read: true }).eq('id', id);
-  }, []);
+
+    if (source === 'assistant') {
+      await supabase.from('notifications').update({ read: true }).eq('id', id);
+    } else {
+      await supabase.from('announcement_reads').upsert({
+        user_id: userId,
+        announcement_id: id,
+      });
+    }
+  }, [userId]);
 
   const markAllAsRead = useCallback(async () => {
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
-    if (unreadIds.length === 0) return;
+    const unread = notifications.filter(n => !n.read);
+    if (unread.length === 0) return;
 
-    // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    await supabase.from('notifications').update({ read: true }).in('id', unreadIds);
-  }, [notifications]);
+
+    // Mark personal notifications
+    const personalIds = unread.filter(n => n.source === 'assistant').map(n => n.id);
+    if (personalIds.length > 0) {
+      await supabase.from('notifications').update({ read: true }).in('id', personalIds);
+    }
+
+    // Mark system announcements
+    const systemIds = unread.filter(n => n.source === 'system').map(n => n.id);
+    if (systemIds.length > 0) {
+      const readRows = systemIds.map(aid => ({
+        user_id: userId,
+        announcement_id: aid,
+      }));
+      await supabase.from('announcement_reads').upsert(readRows);
+    }
+  }, [notifications, userId]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return { notifications, unreadCount, loading, markAsRead, markAllAsRead };
 }
 
-function rowToNotification(r: Record<string, unknown>): AppNotification {
+function rowToNotification(r: Record<string, unknown>, source: 'assistant' | 'system'): AppNotification {
   return {
     id: r.id as string,
+    source,
     type: r.type as AppNotification['type'],
     icon: r.icon as string,
     title: r.title as string,
     body: r.body as string,
     read: r.read as boolean,
     createdAt: r.created_at as string,
-    month: r.month as string,
+    month: r.month as string | undefined,
   };
 }
