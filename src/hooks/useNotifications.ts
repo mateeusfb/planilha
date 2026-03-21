@@ -123,7 +123,48 @@ export function useNotifications(): UseNotificationsReturn {
           createdAt: a.created_at as string,
         }));
 
-      // ── 3. Merge: system first, then personal ──
+      // ── 3. Check incomplete profile (daily reminder) ──
+      const today = new Date().toISOString().slice(0, 10);
+      const profileReminderKey = `profile_reminder_${today}`;
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('phone, gender, birth_date, city, occupation')
+        .eq('user_id', userId)
+        .single();
+
+      if (cancelled) return;
+
+      const isProfileComplete = profile && profile.phone && profile.gender && profile.birth_date;
+
+      if (!isProfileComplete) {
+        // Check if we already sent a reminder today
+        const alreadySent = personalNotifs.some(n => n.body?.includes(profileReminderKey));
+
+        if (!alreadySent) {
+          const reminderRow = {
+            user_id: userId,
+            workspace_id: workspaceId || null,
+            month: currentMonth,
+            type: 'info',
+            icon: 'i',
+            title: 'Complete seu perfil',
+            body: `Preencha seu telefone, gênero e data de nascimento nas Configurações para uma experiência personalizada. ${profileReminderKey}`,
+            read: false,
+          };
+          const { data: reminderInserted } = await supabase
+            .from('notifications')
+            .insert(reminderRow)
+            .select()
+            .single();
+
+          if (!cancelled && reminderInserted) {
+            personalNotifs = [rowToNotification(reminderInserted, 'assistant'), ...personalNotifs];
+          }
+        }
+      }
+
+      // ── 4. Merge: system first, then personal ──
       const all = [...systemNotifs, ...personalNotifs].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );

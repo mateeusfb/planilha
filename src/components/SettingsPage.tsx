@@ -59,6 +59,49 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets' | 'recurring'>('cats');
 
+  // Profile
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profileGender, setProfileGender] = useState('');
+  const [profileBirthDate, setProfileBirthDate] = useState('');
+  const [profileCity, setProfileCity] = useState('');
+  const [profileOccupation, setProfileOccupation] = useState('');
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // Load profile
+  useEffect(() => {
+    if (!user) return;
+    async function loadProfile() {
+      const { data } = await supabase.from('user_profiles').select('*').eq('user_id', user!.id).single();
+      if (data) {
+        setProfilePhone(data.phone || '');
+        setProfileGender(data.gender || '');
+        setProfileBirthDate(data.birth_date || '');
+        setProfileCity(data.city || '');
+        setProfileOccupation(data.occupation || '');
+      }
+      setProfileLoaded(true);
+    }
+    loadProfile();
+  }, [user]);
+
+  async function saveProfile() {
+    if (!user) return;
+    setProfileSaving(true);
+    const row = {
+      user_id: user.id,
+      phone: profilePhone.trim() || null,
+      gender: profileGender || null,
+      birth_date: profileBirthDate || null,
+      city: profileCity.trim() || null,
+      occupation: profileOccupation.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+    await supabase.from('user_profiles').upsert(row);
+    toast('Perfil atualizado!', 'success');
+    setProfileSaving(false);
+  }
+
   async function handleDeleteAccount() {
     if (deleteConfirmText !== 'EXCLUIR') return;
     setDeleting(true);
@@ -454,6 +497,58 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
           });
         }}
       />
+
+      {/* Perfil do usuário */}
+      <div className="t-card border rounded-xl p-6 mt-6">
+        <h3 className="text-base font-bold t-text mb-1">Meu Perfil</h3>
+        <p className="text-xs t-text-muted mb-4">Essas informações nos ajudam a personalizar sua experiência.</p>
+        {profileLoaded && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold t-text-muted mb-1">Telefone</label>
+                <input value={profilePhone} onChange={e => setProfilePhone(e.target.value)}
+                  placeholder="(11) 99999-9999" type="tel"
+                  className="w-full px-3 py-2.5 rounded-lg t-input border text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold t-text-muted mb-1">Gênero</label>
+                <select value={profileGender} onChange={e => setProfileGender(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg t-input border text-sm cursor-pointer">
+                  <option value="">Selecione...</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="feminino">Feminino</option>
+                  <option value="outro">Outro</option>
+                  <option value="prefiro_nao_dizer">Prefiro não dizer</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold t-text-muted mb-1">Data de nascimento</label>
+                <input type="date" value={profileBirthDate} onChange={e => setProfileBirthDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg t-input border text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold t-text-muted mb-1">Cidade</label>
+                <input value={profileCity} onChange={e => setProfileCity(e.target.value)}
+                  placeholder="Sua cidade"
+                  className="w-full px-3 py-2.5 rounded-lg t-input border text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold t-text-muted mb-1">Profissão</label>
+              <input value={profileOccupation} onChange={e => setProfileOccupation(e.target.value)}
+                placeholder="Ex: Designer, Programador, Administrador..."
+                className="w-full px-3 py-2.5 rounded-lg t-input border text-sm" />
+            </div>
+            <button onClick={saveProfile} disabled={profileSaving}
+              className="px-4 py-2 t-accent-bg text-white rounded-lg text-sm font-semibold cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50">
+              {profileSaving ? 'Salvando...' : 'Salvar perfil'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Zona de perigo */}
       <div className="t-card border border-red-200 rounded-xl p-6 mt-6">
