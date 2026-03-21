@@ -500,6 +500,23 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </div>
               )}
 
+              {form.formType === 'expense' && !form.editingId && !form.isInstallment && (
+                <div className="flex items-center gap-3">
+                  <label className="toggle-switch">
+                    <input type="checkbox" checked={form.isRecurring} onChange={e => form.setIsRecurring(e.target.checked)} />
+                    <span className="toggle-slider"></span>
+                  </label>
+                  <span className="text-sm t-text">Recorrente (mensal)</span>
+                  {form.isRecurring && (
+                    <>
+                      <span className="text-xs t-text-dim">dia</span>
+                      <input type="number" value={form.recurringDay} onChange={e => form.setRecurringDay(Number(e.target.value))} min={1} max={28}
+                        className="w-14 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                    </>
+                  )}
+                </div>
+              )}
+
               <input type="text" value={form.note} onChange={e => form.setNote(e.target.value)} placeholder="Observação (opcional)" className={inputClass} />
             </div>
 

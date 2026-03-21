@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { AppState, Member, Expense } from './types';
+import type { AppState, Member, Expense, RecurringExpense } from './types';
 import { COLORS } from './constants';
 import { getCurrentMonth } from './helpers';
 import { SkeletonDashboard } from '@/components/Skeleton';
@@ -73,6 +73,10 @@ interface StoreContextType {
   removeMember: (id: string) => void;
   setActiveMember: (id: string) => void;
   setActiveMonth: (ym: string) => void;
+  recurringExpenses: RecurringExpense[];
+  addRecurring: (r: Omit<RecurringExpense, 'id' | 'active'>) => Promise<void>;
+  updateRecurring: (id: string, data: Partial<RecurringExpense>) => Promise<void>;
+  removeRecurring: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -80,6 +84,7 @@ const StoreContext = createContext<StoreContextType | null>(null);
 export function StoreProvider({ children, userId, workspaceId }: { children: ReactNode; userId: string; workspaceId?: string }) {
   const [state, setStateRaw] = useState<AppState>(defaultState);
   const [loaded, setLoaded] = useState(false);
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
 
   // ── Load from Supabase ──
   useEffect(() => {
@@ -115,6 +120,64 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           const newSettings = { user_id: userId, custom_cats: [], custom_payments: [], custom_banks: [], active_month: getCurrentMonth() };
           await supabase.from('settings').upsert(newSettings, { onConflict: 'user_id' });
           settings = newSettings;
+        }
+
+        // Load recurring expenses
+        let recurringQuery = supabase.from('recurring_expenses').select('*').eq('user_id', userId);
+        if (workspaceId) {
+          recurringQuery = recurringQuery.eq('workspace_id', workspaceId);
+        } else {
+          recurringQuery = recurringQuery.is('workspace_id', null);
+        }
+        const { data: recurringData } = await recurringQuery;
+        const dbRecurring: RecurringExpense[] = (recurringData || []).map((r: Record<string, unknown>) => ({
+          id: r.id as string,
+          description: r.description as string,
+          category: r.category as string,
+          value: Number(r.value),
+          payment: r.payment as string,
+          bank: r.bank as string | undefined,
+          memberId: r.member_id as string,
+          dayOfMonth: Number(r.day_of_month),
+          active: r.active as boolean,
+        }));
+        setRecurringExpenses(dbRecurring);
+
+        // Auto-generate recurring expenses for current month
+        const currentMonth = settings?.active_month || getCurrentMonth();
+        const activeRecurring = dbRecurring.filter(r => r.active);
+        if (activeRecurring.length > 0) {
+          const { data: generated } = await supabase
+            .from('recurring_generated')
+            .select('recurring_id')
+            .eq('month', currentMonth)
+            .in('recurring_id', activeRecurring.map(r => r.id));
+          const alreadyGenerated = new Set((generated || []).map((g: Record<string, unknown>) => g.recurring_id));
+
+          const toGenerate = activeRecurring.filter(r => !alreadyGenerated.has(r.id));
+          const newExpenses: Expense[] = [];
+          for (const r of toGenerate) {
+            const expId = crypto.randomUUID();
+            const expense: Expense = {
+              id: expId,
+              type: 'expense',
+              desc: r.description,
+              cat: r.category,
+              value: r.value,
+              month: currentMonth,
+              payment: r.payment,
+              installment: 0,
+              memberId: r.memberId,
+              bank: r.bank,
+              purchaseDate: `${currentMonth}-${String(r.dayOfMonth).padStart(2, '0')}`,
+              note: 'Recorrente',
+              createdAt: Date.now(),
+            };
+            newExpenses.push(expense);
+            await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
+            await supabase.from('recurring_generated').insert({ recurring_id: r.id, month: currentMonth, expense_id: expId });
+          }
+          dbExpenses.push(...newExpenses);
         }
 
         setStateRaw(prev => ({
@@ -305,6 +368,37 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     supabase.from('settings').upsert({ user_id: userId, active_month: ym }, { onConflict: 'user_id' });
   }, [userId]);
 
+  const addRecurring = useCallback(async (r: Omit<RecurringExpense, 'id' | 'active'>) => {
+    const row = {
+      user_id: userId, workspace_id: workspaceId || null,
+      description: r.description, category: r.category, value: r.value,
+      payment: r.payment, bank: r.bank || null, member_id: r.memberId,
+      day_of_month: r.dayOfMonth, active: true,
+    };
+    const { data, error } = await supabase.from('recurring_expenses').insert(row).select('id').single();
+    if (error) { console.error('Erro ao criar recorrência:', error.message); return; }
+    setRecurringExpenses(prev => [...prev, { ...r, id: data.id, active: true }]);
+  }, [userId, workspaceId]);
+
+  const updateRecurring = useCallback(async (id: string, data: Partial<RecurringExpense>) => {
+    const dbData: Record<string, unknown> = {};
+    if (data.description !== undefined) dbData.description = data.description;
+    if (data.category !== undefined) dbData.category = data.category;
+    if (data.value !== undefined) dbData.value = data.value;
+    if (data.payment !== undefined) dbData.payment = data.payment;
+    if (data.bank !== undefined) dbData.bank = data.bank || null;
+    if (data.memberId !== undefined) dbData.member_id = data.memberId;
+    if (data.dayOfMonth !== undefined) dbData.day_of_month = data.dayOfMonth;
+    if (data.active !== undefined) dbData.active = data.active;
+    await supabase.from('recurring_expenses').update(dbData).eq('id', id);
+    setRecurringExpenses(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
+  }, []);
+
+  const removeRecurring = useCallback(async (id: string) => {
+    await supabase.from('recurring_expenses').delete().eq('id', id);
+    setRecurringExpenses(prev => prev.filter(r => r.id !== id));
+  }, []);
+
   if (!loaded) {
     return (
       <div className="flex min-h-screen">
@@ -322,6 +416,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       addExpense, updateExpense, removeExpense,
       addMember, updateMember, removeMember,
       setActiveMember, setActiveMonth,
+      recurringExpenses, addRecurring, updateRecurring, removeRecurring,
     }}>
       {children}
     </StoreContext.Provider>

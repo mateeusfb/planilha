@@ -22,6 +22,8 @@ export interface ExpenseFormState {
   purchaseDate: string;
   bank: string;
   saving: boolean;
+  isRecurring: boolean;
+  recurringDay: number;
 }
 
 export interface ExpenseFormActions {
@@ -38,6 +40,8 @@ export interface ExpenseFormActions {
   setNote: (v: string) => void;
   setPurchaseDate: (v: string) => void;
   setBank: (v: string) => void;
+  setIsRecurring: (v: boolean) => void;
+  setRecurringDay: (v: number) => void;
   switchType: (type: 'expense' | 'income') => void;
   clearForm: () => void;
   startEdit: (e: Expense) => void;
@@ -45,7 +49,7 @@ export interface ExpenseFormActions {
 }
 
 export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
-  const { state, setState, addExpense, updateExpense, getIndividualMembers } = useStore();
+  const { state, setState, addExpense, updateExpense, getIndividualMembers, addRecurring } = useStore();
   const { activeMonth, members } = state;
   const individuals = getIndividualMembers();
 
@@ -64,6 +68,8 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [bank, setBank] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState(1);
 
   function switchType(type: 'expense' | 'income') {
     setFormType(type);
@@ -81,6 +87,7 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
     setFormType('expense'); setCat(EXPENSE_CATS[0]);
     setPurchaseDate(new Date().toISOString().split('T')[0]);
     setEditingId(null);
+    setIsRecurring(false); setRecurringDay(1);
   }
 
   function startEdit(e: Expense) {
@@ -97,7 +104,7 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
     setPurchaseDate(e.purchaseDate || new Date().toISOString().split('T')[0]);
   }
 
-  function handleSave(opts?: { onSuccess?: () => void; skipConjunta?: boolean }) {
+  async function handleSave(opts?: { onSuccess?: () => void; skipConjunta?: boolean }) {
     const val = parseFloat(value);
 
     const selectedMember = members.find(m => m.id === memberId);
@@ -154,6 +161,18 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
       updateExpense(editingId, expense);
     } else {
       addExpense(expense);
+      // Create recurring rule if toggled
+      if (isRecurring && formType === 'expense') {
+        await addRecurring({
+          description: desc.trim(),
+          category: cat,
+          value: val,
+          payment,
+          bank: bank || undefined,
+          memberId,
+          dayOfMonth: recurringDay,
+        });
+      }
     }
     setSaving(false);
     opts?.onSuccess?.();
@@ -162,10 +181,11 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
   return {
     formType, editingId, desc, cat, value, month, payment,
     isInstallment, installmentN, installmentCurrent, memberId,
-    note, purchaseDate, bank, saving,
+    note, purchaseDate, bank, saving, isRecurring, recurringDay,
     setFormType, setDesc, setCat, setValue, setMonth, setPayment,
     setIsInstallment, setInstallmentN, setInstallmentCurrent,
     setMemberId, setNote, setPurchaseDate, setBank,
+    setIsRecurring, setRecurringDay,
     switchType, clearForm, startEdit, handleSave,
   };
 }

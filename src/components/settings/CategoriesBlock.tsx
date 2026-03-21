@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
-import type { Member, Workspace } from '@/lib/types';
-import { Tag, CreditCard, Landmark, Users, FolderOpen, ChevronDown, Target } from 'lucide-react';
+import type { Member, Workspace, RecurringExpense } from '@/lib/types';
+import { Tag, CreditCard, Landmark, Users, FolderOpen, ChevronDown, Target, Repeat } from 'lucide-react';
 import ItemPill from './ItemPill';
 import { fmt } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 
-type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets';
+type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets' | 'recurring';
 
 interface Props {
   catTab: CatTabId;
@@ -22,6 +22,9 @@ interface Props {
   onDeleteWorkspace?: (ws: Workspace) => void;
   categoryBudgets?: Record<string, number>;
   onBudgetChange?: (cat: string, value: number) => void;
+  recurringExpenses?: RecurringExpense[];
+  onToggleRecurring?: (id: string, active: boolean) => void;
+  onDeleteRecurring?: (id: string) => void;
 }
 
 export default function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBanks,
@@ -29,6 +32,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
   members, onAddMember, onEditMember, onDeleteMember,
   workspaces = [], activeWorkspace, onDeleteWorkspace,
   categoryBudgets = {}, onBudgetChange,
+  recurringExpenses = [], onToggleRecurring, onDeleteRecurring,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -38,6 +42,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
     { id: 'banks', label: 'Instituições', icon: <Landmark size={14} /> },
     { id: 'members', label: 'Membros', icon: <Users size={14} /> },
     { id: 'budgets', label: 'Orçamento', icon: <Target size={14} /> },
+    { id: 'recurring', label: 'Recorrentes', icon: <Repeat size={14} /> },
     ...(workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0
       ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: <FolderOpen size={14} /> }]
       : []),
@@ -156,6 +161,40 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
                   );
                 })}
               </div>
+            </>
+          )}
+
+          {/* Recurring */}
+          {catTab === 'recurring' && (
+            <>
+              {recurringExpenses.length === 0 ? (
+                <p className="text-sm t-text-dim">Nenhuma despesa recorrente cadastrada. Ao criar uma despesa, marque como "Recorrente" para que ela seja lançada automaticamente todo mês.</p>
+              ) : (
+                <div className="space-y-2">
+                  {recurringExpenses.map(r => {
+                    const catColor = CAT_COLORS[r.category] || '#94a3b8';
+                    return (
+                      <div key={r.id} className={`flex items-center gap-3 p-3 rounded-lg border t-border ${!r.active ? 'opacity-50' : ''}`}>
+                        <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: catColor }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium t-text truncate">{r.description}</div>
+                          <div className="text-xs t-text-dim">{r.category} &middot; {fmt(r.value)} &middot; dia {r.dayOfMonth}</div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <label className="toggle-switch">
+                            <input type="checkbox" checked={r.active} onChange={e => onToggleRecurring?.(r.id, e.target.checked)} />
+                            <span className="toggle-slider"></span>
+                          </label>
+                          <button onClick={() => onDeleteRecurring?.(r.id)}
+                            className="px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[0.72rem] font-semibold hover:bg-red-100 cursor-pointer">
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
 

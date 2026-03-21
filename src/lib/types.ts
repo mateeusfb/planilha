@@ -53,4 +53,16 @@ export interface Workspace {
   ownerEmail?: string;
 }
 
+export interface RecurringExpense {
+  id: string;
+  description: string;
+  category: string;
+  value: number;
+  payment: string;
+  bank?: string;
+  memberId: string;
+  dayOfMonth: number;
+  active: boolean;
+}
+
 export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';

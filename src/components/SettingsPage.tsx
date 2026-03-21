@@ -36,7 +36,7 @@ interface PendingInvite {
 }
 
 export default function SettingsPage({ onAddMember, onEditMember, workspaces = [], activeWorkspace, onWorkspaceDeleted }: Props) {
-  const { state, setState, removeMember, getIndividualMembers } = useStore();
+  const { state, setState, removeMember, getIndividualMembers, recurringExpenses, updateRecurring, removeRecurring } = useStore();
   const { user } = useAuth();
   const customCats = state.customCats || [];
   const customPays = state.customPayments || [];
@@ -57,7 +57,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
-  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets'>('cats');
+  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets' | 'recurring'>('cats');
 
   async function handleDeleteAccount() {
     if (deleteConfirmText !== 'EXCLUIR') return;
@@ -416,6 +416,18 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         addPay={addPay} editPay={editPay} deletePay={deletePay}
         addBank={addBank} editBank={editBank} deleteBank={deleteBank}
         members={allMembers} onAddMember={onAddMember} onEditMember={onEditMember} onDeleteMember={handleDeleteMember}
+        recurringExpenses={recurringExpenses}
+        onToggleRecurring={(id, active) => updateRecurring(id, { active })}
+        onDeleteRecurring={(id) => {
+          setConfirmModal({
+            open: true,
+            message: 'Excluir esta despesa recorrente?',
+            onConfirm: () => {
+              removeRecurring(id);
+              toast('Recorrência excluída.', 'success');
+            },
+          });
+        }}
         categoryBudgets={state.categoryBudgets}
         onBudgetChange={(cat, value) => {
           setState(prev => ({
