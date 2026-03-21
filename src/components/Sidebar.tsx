@@ -3,13 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import type { PageId, Member } from '@/lib/types';
-import { Home, CreditCard, BarChart3, FileText, TrendingUp, Menu, X, Plus } from 'lucide-react';
+import { Home, CreditCard, BarChart3, FileText, TrendingUp, Menu, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface SidebarProps {
   activePage: PageId;
   onPageChange: (page: PageId) => void;
-  onAddMember?: () => void;
 }
 
 const navLinks: { id: PageId; icon: ReactNode; label: string }[] = [
@@ -37,23 +36,13 @@ export function Avatar({ member, size = 26 }: { member: Member; size?: number })
   );
 }
 
-export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps) {
-  const { state, setActiveMember } = useStore();
-  const { members, activeMember } = state;
+export function Sidebar({ activePage, onPageChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const individuals = members.filter(m => m.id !== 'all' && !m.isConjunta);
-  const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
 
   // Fechar menu mobile ao trocar de página
   function handlePageChange(page: PageId) {
     onPageChange(page);
-    setMobileOpen(false);
-  }
-
-  function handleMemberChange(id: string) {
-    setActiveMember(id);
     setMobileOpen(false);
   }
 
@@ -107,61 +96,6 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
         ))}
       </nav>
 
-      {/* Members */}
-      <div className="px-1.5 pb-3 border-t t-border pt-3">
-        {!collapsed && <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1.5">Membros</div>}
-
-        <button onClick={() => handleMemberChange('all')}
-          title={collapsed ? 'Família (todos)' : undefined}
-          className={`w-full flex items-center gap-2 px-2.5 py-2 md:py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
-            activeMember === 'all' ? 't-accent-light' : 't-text hover:opacity-80'
-          } ${collapsed ? 'justify-center' : ''}`}>
-          <span className="rounded-full flex items-center justify-center text-white flex-shrink-0 font-bold"
-            style={{ width: 26, height: 26, background: '#2563eb', fontSize: 11 }}>F</span>
-          {!collapsed && <span className="truncate">Família (todos)</span>}
-        </button>
-
-        {individuals.map(m => (
-          <button key={m.id} onClick={() => handleMemberChange(m.id)}
-            title={collapsed ? m.name : undefined}
-            className={`w-full flex items-center gap-2 px-2.5 py-2 md:py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
-              activeMember === m.id ? 't-accent-light' : 't-text hover:opacity-80'
-            } ${collapsed ? 'justify-center' : ''}`}>
-            <Avatar member={m} size={26} />
-            {!collapsed && <span className="truncate">{m.name}</span>}
-          </button>
-        ))}
-
-        {conjuntas.length > 0 && (
-          <>
-            {!collapsed && <div className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400 px-2.5 mt-2 mb-1">Contas Conjuntas</div>}
-            {conjuntas.map(m => (
-              <button key={m.id} onClick={() => handleMemberChange(m.id)}
-                title={collapsed ? m.name : undefined}
-                className={`w-full flex items-center gap-2 px-2.5 py-2 md:py-[7px] rounded-lg text-[0.82rem] font-medium transition-colors text-left cursor-pointer ${
-                  activeMember === m.id ? 't-accent-light' : 't-text hover:opacity-80'
-                } ${collapsed ? 'justify-center' : ''}`}>
-                <Avatar member={m} size={26} />
-                {!collapsed && (
-                  <>
-                    <span className="truncate">{m.name}</span>
-                    <span className="bg-amber-50 text-amber-700 text-[0.62rem] px-1.5 py-px rounded-full ml-0.5 flex-shrink-0">conjunta</span>
-                  </>
-                )}
-              </button>
-            ))}
-          </>
-        )}
-
-        {onAddMember && (
-          <button onClick={() => { onAddMember(); setMobileOpen(false); }}
-            title={collapsed ? 'Adicionar membro' : undefined}
-            className={`w-full flex items-center gap-2 px-2.5 py-2 md:py-[7px] rounded-lg text-sm text-slate-400 border border-dashed t-border mt-1 hover:opacity-80 transition-colors cursor-pointer ${collapsed ? 'justify-center' : ''}`}>
-            <Plus size={16} className="flex-shrink-0" />
-            {!collapsed && <span>Adicionar membro</span>}
-          </button>
-        )}
-      </div>
     </>
   );
 
