@@ -4,12 +4,9 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
-import { generateTips } from '@/lib/tips';
-import type { Tip } from '@/lib/tips';
-
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { Check, AlertTriangle, Info, Eye, EyeOff, ChevronDown, Brain, Target, TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 /* ── Animated Counter ── */
@@ -44,28 +41,6 @@ function AnimatedValue({ value, prefix = 'R$ ', hidden, className, style }: {
   const formatted = display.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return <span className={className} style={style}>{prefix}{formatted}</span>;
 }
-
-function TipItem({ tip }: { tip: Tip }) {
-  const styles: Record<string, string> = {
-    good: 'bg-green-50 border-green-500',
-    info: 'bg-blue-50 border-blue-600',
-    warn: 'bg-amber-50 border-amber-500',
-    bad: 'bg-red-50 border-red-500',
-  };
-  const icons: Record<string, React.ReactNode> = {
-    ok: <Check size={18} className="text-green-600" />,
-    '!': <AlertTriangle size={18} className="text-amber-500" />,
-    i: <Info size={18} className="text-blue-600" />,
-  };
-  return (
-    <div className={`flex gap-3 p-3 rounded-lg mb-2 border-l-[3px] text-[0.83rem] leading-relaxed ${styles[tip.type]}`}>
-      <div className="flex-shrink-0 mt-0.5">{icons[tip.icon] || <Info size={18} className="text-blue-600" />}</div>
-      <div><strong className="block font-semibold mb-0.5">{tip.title}</strong>{tip.text}</div>
-    </div>
-  );
-}
-
-export { TipItem };
 
 // Componente de seção colapsável
 function Section({ title, icon, children, defaultOpen = false, valuesHidden, onToggleValues }: {
@@ -192,8 +167,6 @@ export default function Dashboard() {
       });
     }
 
-    const tips = generateTips(allEntries, activeMember, getIndividualMembers, familyShare);
-
     const budgets = state.categoryBudgets || {};
     const budgetItems = Object.entries(budgets)
       .filter(([, limit]) => limit > 0)
@@ -209,7 +182,7 @@ export default function Dashboard() {
     return {
       totalIncome, despesasReais, saldo, investTotal, investSub,
       diffText, diffPct, familyShare, familyBreakdown, incomesNormais,
-      catLabels, catData, catColors, monthlyData, tips, budgetItems, savingsRate,
+      catLabels, catData, catColors, monthlyData, budgetItems, savingsRate,
     };
   }, [activeMonth, activeMember, state.expenses, state.members, state.categoryBudgets, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
 
@@ -413,12 +386,6 @@ export default function Dashboard() {
         </Section>
       )}
 
-      {/* Dicas */}
-      <Section title="Dicas do Assistente Financeiro" icon={<Brain size={18} />}>
-        {data.tips.length > 0 ? data.tips.map((t, i) => <TipItem key={i} tip={t} />) : (
-          <div className="t-text-dim text-sm">Adicione lançamentos para receber dicas.</div>
-        )}
-      </Section>
     </>
   );
 }

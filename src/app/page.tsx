@@ -22,6 +22,7 @@ import QuickExpense from '@/components/QuickExpense';
 import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import UserMenu from '@/components/UserMenu';
+import NotificationBell from '@/components/NotificationBell';
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -92,6 +93,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
               className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
               {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
+            <NotificationBell />
             <UserMenu
               user={user}
               onSignOut={signOut}

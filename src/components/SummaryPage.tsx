@@ -4,9 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
-import { generateTips } from '@/lib/tips';
-import { TipItem } from './Dashboard';
-import { FileText, Brain, Download } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import { useToast } from './Toast';
 import { exportToPDF } from '@/lib/export';
 
@@ -88,12 +86,10 @@ export default function SummaryPage() {
     const memberName = activeMember === 'all' ? 'Família' : (state.members.find(m => m.id === activeMember)?.name || 'Membro');
     const sortedCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
     const topCat = sortedCats[0];
-    const tips = generateTips(expenses, activeMember, getIndividualMembers, familyShare);
-
     return {
       totalIncome, despesasReais, saldo, investTotal, investSaida, totalIncomeInvest,
       familyShare, indivCount, familyBreakdown, byCat, byPay, total, sortedCats, topCat,
-      monthHistory, memberName, tips, expenses, outflows,
+      monthHistory, memberName, expenses, outflows,
     };
   }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getIndividualMembers]);
 
@@ -190,12 +186,6 @@ export default function SummaryPage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Tips */}
-      <div className="t-card rounded-xl p-5 border mb-5">
-        <h3 className="text-sm font-bold mb-4 flex items-center gap-2"><Brain size={16} /> Análise e Recomendações</h3>
-        {data.tips.map((t, i) => <TipItem key={i} tip={t} />)}
       </div>
 
       {/* Full table */}

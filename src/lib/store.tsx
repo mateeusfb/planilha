@@ -58,6 +58,8 @@ function rowToExpense(r: Record<string, unknown>): Expense {
 }
 
 interface StoreContextType {
+  userId: string;
+  workspaceId?: string;
   state: AppState;
   setState: (updater: (prev: AppState) => AppState) => void;
   getExpensesForMonth: (ym: string, memberId: string) => Expense[];
@@ -411,6 +413,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   return (
     <StoreContext.Provider value={{
+      userId, workspaceId,
       state, setState,
       getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIncomes, getIndividualMembers,
       addExpense, updateExpense, removeExpense,
