@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { AppState, Member, Expense, RecurringExpense } from './types';
+import type { AppState, Member, Expense, RecurringExpense, Investment, InvestmentGoal } from './types';
 import { COLORS } from './constants';
 import { getCurrentMonth } from './helpers';
 import { SkeletonDashboard } from '@/components/Skeleton';
@@ -79,6 +79,14 @@ interface StoreContextType {
   addRecurring: (r: Omit<RecurringExpense, 'id' | 'active'>) => Promise<void>;
   updateRecurring: (id: string, data: Partial<RecurringExpense>) => Promise<void>;
   removeRecurring: (id: string) => Promise<void>;
+  investments: Investment[];
+  investmentGoals: InvestmentGoal[];
+  addInvestment: (inv: Omit<Investment, 'id' | 'active'>) => Promise<void>;
+  updateInvestment: (id: string, data: Partial<Investment>) => Promise<void>;
+  removeInvestment: (id: string) => Promise<void>;
+  addGoal: (goal: Omit<InvestmentGoal, 'id' | 'active'>) => Promise<void>;
+  updateGoal: (id: string, data: Partial<InvestmentGoal>) => Promise<void>;
+  removeGoal: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -87,6 +95,8 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   const [state, setStateRaw] = useState<AppState>(defaultState);
   const [loaded, setLoaded] = useState(false);
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [investmentGoals, setInvestmentGoals] = useState<InvestmentGoal[]>([]);
 
   // ── Load from Supabase ──
   useEffect(() => {
@@ -207,6 +217,29 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           }
         } catch { /* ignore */ }
       }
+      // ── Load investments ──
+      let invQuery = supabase.from('investments').select('*').eq('user_id', userId).eq('active', true);
+      if (workspaceId) invQuery = invQuery.eq('workspace_id', workspaceId);
+      else invQuery = invQuery.is('workspace_id', null);
+      const { data: dbInv } = await invQuery;
+      if (dbInv) setInvestments(dbInv.map((r: Record<string, unknown>) => ({
+        id: r.id as string, name: r.name as string, type: r.type as Investment['type'],
+        amountInvested: Number(r.amount_invested), currentValue: Number(r.current_value),
+        purchaseDate: r.purchase_date as string | undefined, maturityDate: r.maturity_date as string | undefined,
+        notes: r.notes as string | undefined, active: r.active as boolean,
+      })));
+
+      // ── Load investment goals ──
+      let goalQuery = supabase.from('investment_goals').select('*').eq('user_id', userId).eq('active', true);
+      if (workspaceId) goalQuery = goalQuery.eq('workspace_id', workspaceId);
+      else goalQuery = goalQuery.is('workspace_id', null);
+      const { data: dbGoals } = await goalQuery;
+      if (dbGoals) setInvestmentGoals(dbGoals.map((r: Record<string, unknown>) => ({
+        id: r.id as string, name: r.name as string, targetValue: Number(r.target_value),
+        currentValue: Number(r.current_value), deadline: r.deadline as string | undefined,
+        icon: (r.icon as string) || '🎯', active: r.active as boolean,
+      })));
+
       setLoaded(true);
     }
 
@@ -401,6 +434,71 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     setRecurringExpenses(prev => prev.filter(r => r.id !== id));
   }, []);
 
+  // ── Investment CRUD ──
+  const addInvestment = useCallback(async (inv: Omit<Investment, 'id' | 'active'>) => {
+    const row = {
+      user_id: userId, workspace_id: workspaceId || null,
+      name: inv.name, type: inv.type, amount_invested: inv.amountInvested,
+      current_value: inv.currentValue, purchase_date: inv.purchaseDate || null,
+      maturity_date: inv.maturityDate || null, notes: inv.notes || null, active: true,
+    };
+    const { data } = await supabase.from('investments').insert(row).select().single();
+    if (data) setInvestments(prev => [...prev, {
+      id: data.id, name: data.name, type: data.type, amountInvested: Number(data.amount_invested),
+      currentValue: Number(data.current_value), purchaseDate: data.purchase_date,
+      maturityDate: data.maturity_date, notes: data.notes, active: true,
+    }]);
+  }, [userId, workspaceId]);
+
+  const updateInvestment = useCallback(async (id: string, data: Partial<Investment>) => {
+    const row: Record<string, unknown> = {};
+    if (data.name !== undefined) row.name = data.name;
+    if (data.type !== undefined) row.type = data.type;
+    if (data.amountInvested !== undefined) row.amount_invested = data.amountInvested;
+    if (data.currentValue !== undefined) row.current_value = data.currentValue;
+    if (data.purchaseDate !== undefined) row.purchase_date = data.purchaseDate;
+    if (data.maturityDate !== undefined) row.maturity_date = data.maturityDate;
+    if (data.notes !== undefined) row.notes = data.notes;
+    await supabase.from('investments').update(row).eq('id', id);
+    setInvestments(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+  }, []);
+
+  const removeInvestment = useCallback(async (id: string) => {
+    await supabase.from('investments').update({ active: false }).eq('id', id);
+    setInvestments(prev => prev.filter(i => i.id !== id));
+  }, []);
+
+  // ── Goal CRUD ──
+  const addGoal = useCallback(async (goal: Omit<InvestmentGoal, 'id' | 'active'>) => {
+    const row = {
+      user_id: userId, workspace_id: workspaceId || null,
+      name: goal.name, target_value: goal.targetValue, current_value: goal.currentValue,
+      deadline: goal.deadline || null, icon: goal.icon || '🎯', active: true,
+    };
+    const { data } = await supabase.from('investment_goals').insert(row).select().single();
+    if (data) setInvestmentGoals(prev => [...prev, {
+      id: data.id, name: data.name, targetValue: Number(data.target_value),
+      currentValue: Number(data.current_value), deadline: data.deadline,
+      icon: data.icon || '🎯', active: true,
+    }]);
+  }, [userId, workspaceId]);
+
+  const updateGoal = useCallback(async (id: string, data: Partial<InvestmentGoal>) => {
+    const row: Record<string, unknown> = {};
+    if (data.name !== undefined) row.name = data.name;
+    if (data.targetValue !== undefined) row.target_value = data.targetValue;
+    if (data.currentValue !== undefined) row.current_value = data.currentValue;
+    if (data.deadline !== undefined) row.deadline = data.deadline;
+    if (data.icon !== undefined) row.icon = data.icon;
+    await supabase.from('investment_goals').update(row).eq('id', id);
+    setInvestmentGoals(prev => prev.map(g => g.id === id ? { ...g, ...data } : g));
+  }, []);
+
+  const removeGoal = useCallback(async (id: string) => {
+    await supabase.from('investment_goals').update({ active: false }).eq('id', id);
+    setInvestmentGoals(prev => prev.filter(g => g.id !== id));
+  }, []);
+
   if (!loaded) {
     return (
       <div className="flex min-h-screen">
@@ -420,6 +518,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       addMember, updateMember, removeMember,
       setActiveMember, setActiveMonth,
       recurringExpenses, addRecurring, updateRecurring, removeRecurring,
+      investments, investmentGoals,
+      addInvestment, updateInvestment, removeInvestment,
+      addGoal, updateGoal, removeGoal,
     }}>
       {children}
     </StoreContext.Provider>

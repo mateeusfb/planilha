@@ -23,6 +23,7 @@ import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/NotificationBell';
+import InvestmentsPage from '@/components/InvestmentsPage';
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -64,6 +65,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     dashboard: 'Início',
     expenses: 'Lançamentos',
     analysis: 'Análise de Gastos',
+    investments: 'Investimentos',
     summary: 'Resumo Mensal',
     settings: 'Configurações',
   };
@@ -119,6 +121,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
                 <ExpensesPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
               )}
               {activePage === 'analysis' && <AnalysisPage />}
+              {activePage === 'investments' && <InvestmentsPage />}
               {activePage === 'summary' && <SummaryPage />}
               {activePage === 'settings' && (
                 <SettingsPage

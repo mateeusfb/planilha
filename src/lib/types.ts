@@ -65,4 +65,28 @@ export interface RecurringExpense {
   active: boolean;
 }
 
-export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';
+export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'summary' | 'settings';
+
+export type InvestmentType = 'renda_fixa' | 'renda_variavel' | 'crypto' | 'previdencia' | 'poupanca' | 'outros';
+
+export interface Investment {
+  id: string;
+  name: string;
+  type: InvestmentType;
+  amountInvested: number;
+  currentValue: number;
+  purchaseDate?: string;
+  maturityDate?: string;
+  notes?: string;
+  active: boolean;
+}
+
+export interface InvestmentGoal {
+  id: string;
+  name: string;
+  targetValue: number;
+  currentValue: number;
+  deadline?: string;
+  icon: string;
+  active: boolean;
+}
