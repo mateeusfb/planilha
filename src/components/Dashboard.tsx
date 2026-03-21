@@ -6,7 +6,7 @@ import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 /* ── Animated Counter ── */
@@ -102,9 +102,7 @@ export default function Dashboard() {
     const outflows = allEntries.filter(e => e.type !== 'income');
 
     const incomesNormais = incomes.filter(e => e.cat !== 'Investimento');
-    const incomesInvest = incomes.filter(e => e.cat === 'Investimento');
     const totalIncome = getTotal(incomesNormais);
-    const totalIncomeInvest = getTotal(incomesInvest);
     let totalExpense = getTotal(outflows);
 
     let familyShare = 0;
@@ -120,7 +118,6 @@ export default function Dashboard() {
     }
 
     const investSaida = outflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-    const investTotal = investSaida + totalIncomeInvest;
     const despesasReais = totalExpense - investSaida;
     const saldo = totalIncome - despesasReais;
 
@@ -144,11 +141,6 @@ export default function Dashboard() {
         if (mbTotal > 0) familyBreakdown.push({ label: mb.name, value: mbTotal });
       });
     }
-
-    const investSubParts: string[] = [];
-    if (investSaida > 0) investSubParts.push(`${fmt(investSaida)} aplicado`);
-    if (totalIncomeInvest > 0) investSubParts.push(`${fmt(totalIncomeInvest)} rendimento`);
-    const investSub = investSubParts.length > 0 ? investSubParts.join(' | ') : (totalIncome > 0 ? '0% da receita' : 'Sem movimentação');
 
     const byCat = groupBy(outflows, 'cat');
     const catLabels = Object.keys(byCat);
@@ -180,7 +172,7 @@ export default function Dashboard() {
     const savingsRate = totalIncome > 0 ? Math.round((1 - despesasReais / totalIncome) * 100) : 0;
 
     return {
-      totalIncome, despesasReais, saldo, investTotal, investSub,
+      totalIncome, despesasReais, saldo,
       diffText, diffPct, familyShare, familyBreakdown, incomesNormais,
       catLabels, catData, catColors, monthlyData, budgetItems, savingsRate,
     };
@@ -201,7 +193,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="bento-grid">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {/* Card: Receitas */}
           <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-1">
             <div className="flex items-center justify-between mb-3">
@@ -251,8 +243,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Card: Saldo — span 2 on large */}
-          <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-3 col-span-2 lg:col-span-1">
+          {/* Card: Saldo */}
+          <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-3">
             <div className="flex items-center justify-between mb-3">
               <div className="text-xs t-text-muted font-semibold uppercase tracking-wide">Saldo Disponível</div>
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${data.saldo >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
@@ -275,18 +267,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Card: Investimentos */}
-          <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-4 col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-xs t-text-muted font-semibold uppercase tracking-wide">Investimentos</div>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                <PiggyBank size={16} style={{ color: 'var(--accent)' }} />
-              </div>
-            </div>
-            <AnimatedValue value={data.investTotal} hidden={valuesHidden}
-              className="text-lg md:text-2xl font-bold" style={{ color: 'var(--accent)' }} />
-            <div className="text-xs t-text-dim mt-2">{valuesHidden ? '••••' : data.investSub}</div>
-          </div>
         </div>
       </div>
 
