@@ -6,8 +6,9 @@ import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 import { generateTips } from '@/lib/tips';
 import { TipItem } from './Dashboard';
-import { FileText, Brain } from 'lucide-react';
+import { FileText, Brain, Download } from 'lucide-react';
 import { useToast } from './Toast';
+import { exportToPDF } from '@/lib/export';
 
 export default function SummaryPage() {
   const { state, getExpensesForMonth, getIndividualMembers } = useStore();
@@ -16,13 +17,16 @@ export default function SummaryPage() {
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
 
-  function handleExportPDF() {
+  async function handleExportPDF() {
+    if (!printRef.current) return;
     setExporting(true);
-    setTimeout(() => {
-      window.print();
-      setExporting(false);
-      toast('PDF gerado! Use "Salvar como PDF" na janela de impressão.', 'info');
-    }, 100);
+    try {
+      await exportToPDF(printRef.current, `resumo-${activeMonth}`);
+      toast('PDF exportado!', 'success');
+    } catch {
+      toast('Erro ao exportar PDF.', 'error');
+    }
+    setExporting(false);
   }
 
   const data = useMemo(() => {

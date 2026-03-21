@@ -8,7 +8,8 @@ import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import { useExpenseForm } from '@/hooks/useExpenseForm';
-import { Search, BarChart3, X, SlidersHorizontal } from 'lucide-react';
+import { Search, BarChart3, X, SlidersHorizontal, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/export';
 
 interface Props {
   onDeleteRequest: (id: string) => void;
@@ -201,6 +202,30 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               className="px-4 py-2.5 md:py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors cursor-pointer min-h-[44px] md:min-h-0">
               + Receita
             </button>
+            {filteredExpenses.length > 0 && (
+              <button onClick={() => {
+                const headers = ['Descrição', 'Tipo', 'Categoria', 'Valor', 'Data', 'Pagamento', 'Instituição', 'Membro', 'Observação'];
+                const rows = filteredExpenses.map(e => {
+                  const member = members.find(m => m.id === e.memberId);
+                  return [
+                    e.desc,
+                    e.type === 'income' ? 'Receita' : 'Despesa',
+                    e.cat,
+                    e.value.toFixed(2).replace('.', ','),
+                    e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '',
+                    e.payment,
+                    e.bank || '',
+                    member?.name || 'Família',
+                    e.note || '',
+                  ];
+                });
+                exportToCSV(headers, rows, `lancamentos-${activeMonth}`);
+                toast('CSV exportado!', 'success');
+              }}
+                className="px-4 py-2.5 md:py-1.5 border t-border rounded-lg text-sm font-semibold t-text hover:opacity-80 transition-colors cursor-pointer min-h-[44px] md:min-h-0 flex items-center gap-1.5">
+                <Download size={14} /> CSV
+              </button>
+            )}
           </div>
         </div>
         {filteredExpenses.length === 0 ? (
