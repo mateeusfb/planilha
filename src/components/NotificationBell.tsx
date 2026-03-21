@@ -60,7 +60,7 @@ function NotificationModal({ notification, onClose }: {
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-md t-card border rounded-2xl shadow-2xl animate-modal-in overflow-hidden">
+      <div className="relative w-full max-w-md border t-border rounded-2xl shadow-2xl animate-modal-in overflow-hidden" style={{ background: 'var(--bg-elevated)' }}>
         {/* Header colorido */}
         <div className={`px-5 py-4 border-b t-border ${style.bg}`}>
           <div className="flex items-start justify-between">
@@ -197,7 +197,7 @@ export default function NotificationBell() {
         {open && (
           <>
             <div className="fixed inset-0 z-[55]" onClick={() => setOpen(false)} />
-            <div className="absolute right-0 top-full mt-1.5 w-80 md:w-96 max-h-[70vh] t-card border rounded-xl shadow-lg z-[60] flex flex-col overflow-hidden animate-fade-in-up">
+            <div className="absolute right-0 top-full mt-1.5 w-80 md:w-96 max-h-[70vh] border t-border rounded-xl shadow-lg z-[60] flex flex-col overflow-hidden animate-fade-in-up" style={{ background: 'var(--bg-elevated)' }}>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b t-border">
                 <h3 className="text-sm font-bold t-text">Notificações</h3>

@@ -43,6 +43,7 @@ h1, h2, h3, h4, h5, h6,
   --accent: #6366f1;
   --accent-hover: #4f46e5;
   --accent-light: #eef2ff;
+  --bg-elevated: #ffffff;
   --shadow: rgba(0,0,0,0.06);
   --glass-bg: rgba(255,255,255,0.7);
   --glass-border: rgba(255,255,255,0.8);
@@ -66,6 +67,7 @@ h1, h2, h3, h4, h5, h6,
   --accent: #818cf8;
   --accent-hover: #6366f1;
   --accent-light: rgba(129,140,248,0.1);
+  --bg-elevated: #1a1a2e;
   --shadow: rgba(0,0,0,0.4);
   --glass-bg: rgba(255,255,255,0.03);
   --glass-border: rgba(255,255,255,0.06);
