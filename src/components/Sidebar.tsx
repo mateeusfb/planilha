@@ -55,7 +55,7 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const w = collapsed ? 'w-[60px]' : 'w-fit';
+  const w = collapsed ? 'w-[60px]' : 'w-[170px]';
 
   // Conteúdo da sidebar (compartilhado entre desktop e mobile)
   const sidebarContent = (
