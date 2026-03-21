@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Workspace } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
 import { Settings, LogOut, User } from 'lucide-react';
 
 interface Props {
-  user: { email?: string; user_metadata?: { name?: string } } | null;
+  user: { id?: string; email?: string; user_metadata?: { name?: string } } | null;
   onSignOut: () => void;
   onGoToSettings: () => void;
   onGoToProfile: () => void;
@@ -18,12 +19,23 @@ interface Props {
 
 export default function UserMenu({ user, onSignOut, onGoToSettings, onGoToProfile, workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: Props) {
   const [open, setOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('user_profiles').select('avatar_url').eq('user_id', user.id).single()
+      .then(({ data }) => { if (data?.avatar_url) setAvatarUrl(data.avatar_url); });
+  }, [user?.id]);
 
   return (
     <div className="relative z-[60]">
       <button onClick={() => setOpen(!open)}
-        className="w-10 h-10 md:w-8 md:h-8 rounded-full t-accent-bg text-white text-sm md:text-xs font-bold flex items-center justify-center cursor-pointer">
-        {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+        className="w-10 h-10 md:w-8 md:h-8 rounded-full overflow-hidden t-accent-bg text-white text-sm md:text-xs font-bold flex items-center justify-center cursor-pointer">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
+        )}
       </button>
       {open && (
         <>
