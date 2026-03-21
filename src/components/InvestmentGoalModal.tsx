@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { InvestmentGoal } from '@/lib/types';
 
-const ICONS = ['🎯', '🏠', '🚗', '✈️', '🎓', '💰', '🏖️', '👶', '💍', '📱', '🏥', '🔒'];
+const ICONS = ['🎯', '🏠', '🚗', '✈️', '🎓', '💰', '🏖️', '👶', '💍', '📱', '🏥', '🔒', '📊', '💼', '🛒', '🏢'];
 
 interface Props {
   isOpen: boolean;
@@ -66,8 +66,8 @@ export default function InvestmentGoalModal({ isOpen, onClose, onSave, editing }
             <div className="flex flex-wrap gap-2">
               {ICONS.map(ic => (
                 <button key={ic} type="button" onClick={() => setIcon(ic)}
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg cursor-pointer transition-all ${
-                    icon === ic ? 't-accent-bg shadow-md scale-110' : 'bg-slate-100 hover:bg-slate-200'
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg cursor-pointer border-2 transition-all ${
+                    icon === ic ? 'border-blue-500 bg-blue-50 scale-110' : 'border-slate-200'
                   }`}>
                   {ic}
                 </button>
