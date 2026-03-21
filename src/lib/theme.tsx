@@ -52,7 +52,7 @@ function hslToHex(h: number, s: number, l: number): string {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('light');
   const [accent, setAccentState] = useState<AccentColor>('blue');
-  const [customColor, setCustomColorState] = useState('#2563eb');
+  const [customColor, setCustomColorState] = useState('#6366f1');
   const [loaded, setLoaded] = useState(false);
 
   // Load from localStorage

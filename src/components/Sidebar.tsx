@@ -73,9 +73,14 @@ export function Sidebar({ activePage, onPageChange, onAddMember }: SidebarProps)
       {/* Logo + toggle */}
       <div className="px-3 py-4 border-b t-border flex items-center justify-between">
         {!collapsed && (
-          <div className="min-w-0">
-            <h1 className="text-base font-bold t-accent truncate">Finanças Família</h1>
-            <p className="text-[0.72rem] t-text-dim mt-0.5 truncate">Controle inteligente</p>
+          <div className="min-w-0 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-indigo-500/20">
+              <span className="text-white text-sm font-bold">F</span>
+            </div>
+            <div>
+              <h1 className="text-base font-bold t-accent truncate">Folga</h1>
+              <p className="text-[0.68rem] t-text-dim truncate">Controle financeiro</p>
+            </div>
           </div>
         )}
         {/* Desktop: toggle collapse. Mobile: close */}

@@ -10,13 +10,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#2563eb",
+  themeColor: "#6366f1",
 };
 
 export const metadata: Metadata = {
-  title: "Finanças Família - Controle de Gastos",
-  description: "Controle inteligente de gastos familiares",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Finanças" },
+  title: "Folga - Controle Financeiro",
+  description: "Controle financeiro, para você ter uma folga",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Folga" },
 };
 
 export default function RootLayout({
