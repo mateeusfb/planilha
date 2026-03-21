@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import type { PageId, Member } from '@/lib/types';
-import { Home, CreditCard, BarChart3, FileText, TrendingUp, Menu, X } from 'lucide-react';
+import { Home, CreditCard, BarChart3, FileText, TrendingUp, Menu, ChevronLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface SidebarProps {
@@ -77,7 +77,7 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
         <button onClick={() => { if (mobileOpen) setMobileOpen(false); else setCollapsed(!collapsed); }}
           className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center t-text-muted hover:opacity-80 transition-colors cursor-pointer"
           title={mobileOpen ? 'Fechar menu' : collapsed ? 'Expandir menu' : 'Recolher menu'}>
-          {mobileOpen ? <X size={18} /> : collapsed ? <Menu size={18} /> : <X size={18} />}
+          {mobileOpen ? <ChevronLeft size={18} /> : collapsed ? <Menu size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
