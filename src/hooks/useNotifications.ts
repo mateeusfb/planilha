@@ -16,6 +16,7 @@ export interface AppNotification {
   read: boolean;
   createdAt: string;
   month?: string;
+  action?: string; // ex: 'go_settings_profile'
 }
 
 interface UseNotificationsReturn {
@@ -62,7 +63,11 @@ export function useNotifications(): UseNotificationsReturn {
       let personalNotifs: AppNotification[] = [];
 
       if (existingPersonal && existingPersonal.length > 0) {
-        personalNotifs = existingPersonal.map(r => rowToNotification(r, 'assistant'));
+        personalNotifs = existingPersonal.map(r => {
+          const n = rowToNotification(r, 'assistant');
+          if (n.title === 'Complete seu perfil') n.action = 'go_settings_profile';
+          return n;
+        });
       } else {
         // Generate from tips
         const allEntries = getExpensesForMonth(currentMonth, 'all');
@@ -125,7 +130,6 @@ export function useNotifications(): UseNotificationsReturn {
 
       // ── 3. Check incomplete profile (daily reminder) ──
       const today = new Date().toISOString().slice(0, 10);
-      const profileReminderKey = `profile_reminder_${today}`;
 
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -139,7 +143,7 @@ export function useNotifications(): UseNotificationsReturn {
 
       if (!isProfileComplete) {
         // Check if we already sent a reminder today
-        const alreadySent = personalNotifs.some(n => n.body?.includes(profileReminderKey));
+        const alreadySent = personalNotifs.some(n => n.title === 'Complete seu perfil' && n.createdAt?.startsWith(today));
 
         if (!alreadySent) {
           const reminderRow = {
@@ -149,7 +153,7 @@ export function useNotifications(): UseNotificationsReturn {
             type: 'info',
             icon: 'i',
             title: 'Complete seu perfil',
-            body: `Preencha seu telefone, gênero e data de nascimento nas Configurações para uma experiência personalizada. ${profileReminderKey}`,
+            body: 'Preencha seu telefone, gênero e data de nascimento para uma experiência personalizada. Toque aqui para ir às Configurações.',
             read: false,
           };
           const { data: reminderInserted } = await supabase
@@ -159,7 +163,9 @@ export function useNotifications(): UseNotificationsReturn {
             .single();
 
           if (!cancelled && reminderInserted) {
-            personalNotifs = [rowToNotification(reminderInserted, 'assistant'), ...personalNotifs];
+            const notif = rowToNotification(reminderInserted, 'assistant');
+            notif.action = 'go_settings_profile';
+            personalNotifs = [notif, ...personalNotifs];
           }
         }
       }

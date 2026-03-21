@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bell, Check, AlertTriangle, Info, CheckCheck, Megaphone, X } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { AppNotification } from '@/hooks/useNotifications';
+import type { PageId } from '@/lib/types';
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -40,10 +41,15 @@ const typeIconsLarge: Record<string, React.ReactNode> = {
   system: <Megaphone size={22} className="text-indigo-500" />,
 };
 
+const ACTION_LABELS: Record<string, { label: string; page: PageId }> = {
+  go_settings_profile: { label: 'Ir para Configurações', page: 'settings' },
+};
+
 /* ── Modal de notificação completa ── */
-function NotificationModal({ notification, onClose }: {
+function NotificationModal({ notification, onClose, onNavigate }: {
   notification: AppNotification;
   onClose: () => void;
+  onNavigate?: (page: PageId) => void;
 }) {
   const style = typeStyles[notification.type] || typeStyles.info;
   const isSystem = notification.source === 'system';
@@ -95,12 +101,22 @@ function NotificationModal({ notification, onClose }: {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t t-border flex justify-end">
+        <div className="px-5 py-3 border-t t-border flex justify-end gap-2">
+          {notification.action && ACTION_LABELS[notification.action] && onNavigate && (
+            <button
+              onClick={() => { onNavigate(ACTION_LABELS[notification.action!].page); onClose(); }}
+              className="px-4 py-2 text-sm font-medium t-accent-bg text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              {ACTION_LABELS[notification.action].label}
+            </button>
+          )}
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium t-accent-bg text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+            className={`px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity cursor-pointer ${
+              notification.action ? 'border t-border t-text' : 't-accent-bg text-white'
+            }`}
           >
-            Entendi
+            {notification.action ? 'Fechar' : 'Entendi'}
           </button>
         </div>
       </div>
@@ -157,7 +173,7 @@ function NotificationItem({ notification, onRead, onOpen }: {
 }
 
 /* ── Bell principal ── */
-export default function NotificationBell() {
+export default function NotificationBell({ onNavigate }: { onNavigate?: (page: PageId) => void }) {
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
@@ -245,6 +261,7 @@ export default function NotificationBell() {
         <NotificationModal
           notification={selectedNotif}
           onClose={() => setSelectedNotif(null)}
+          onNavigate={onNavigate}
         />
       )}
     </>
