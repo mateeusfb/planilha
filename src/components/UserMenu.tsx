@@ -3,19 +3,20 @@
 import { useState } from 'react';
 import type { Workspace } from '@/lib/types';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut, User } from 'lucide-react';
 
 interface Props {
   user: { email?: string; user_metadata?: { name?: string } } | null;
   onSignOut: () => void;
   onGoToSettings: () => void;
+  onGoToProfile: () => void;
   workspaces: Workspace[];
   activeWorkspace: Workspace;
   onSwitchWorkspace: (ws: Workspace) => void;
   onCreateWorkspace: () => void;
 }
 
-export default function UserMenu({ user, onSignOut, onGoToSettings, workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: Props) {
+export default function UserMenu({ user, onSignOut, onGoToSettings, onGoToProfile, workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -39,6 +40,10 @@ export default function UserMenu({ user, onSignOut, onGoToSettings, workspaces, 
                 onCreateNew={() => { onCreateWorkspace(); setOpen(false); }}
               />
             </div>
+            <button onClick={() => { onGoToProfile(); setOpen(false); }}
+              className="w-full text-left text-sm t-text hover:opacity-80 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
+              <User size={16} /> Meu Perfil
+            </button>
             <button onClick={() => { onGoToSettings(); setOpen(false); }}
               className="w-full text-left text-sm t-text hover:opacity-80 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
               <Settings size={16} /> Configurações

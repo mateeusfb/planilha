@@ -24,6 +24,7 @@ import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/NotificationBell';
 import InvestmentsPage from '@/components/InvestmentsPage';
+import ProfilePage from '@/components/ProfilePage';
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -67,6 +68,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     analysis: 'Análise de Gastos',
     investments: 'Investimentos',
     summary: 'Resumo Mensal',
+    profile: 'Meu Perfil',
     settings: 'Configurações',
   };
 
@@ -99,6 +101,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
             <UserMenu
               user={user}
               onSignOut={signOut}
+              onGoToProfile={() => setActivePage('profile')}
               onGoToSettings={() => setActivePage('settings')}
               workspaces={workspaces}
               activeWorkspace={activeWorkspace}
@@ -123,6 +126,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
               {activePage === 'analysis' && <AnalysisPage />}
               {activePage === 'investments' && <InvestmentsPage />}
               {activePage === 'summary' && <SummaryPage />}
+              {activePage === 'profile' && <ProfilePage />}
               {activePage === 'settings' && (
                 <SettingsPage
                   onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}

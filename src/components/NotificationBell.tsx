@@ -42,7 +42,7 @@ const typeIconsLarge: Record<string, React.ReactNode> = {
 };
 
 const ACTION_LABELS: Record<string, { label: string; page: PageId }> = {
-  go_settings_profile: { label: 'Ir para Configurações', page: 'settings' },
+  go_settings_profile: { label: 'Completar perfil', page: 'profile' },
 };
 
 /* ── Modal de notificação completa ── */
