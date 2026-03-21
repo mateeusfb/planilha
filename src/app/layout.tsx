@@ -14,9 +14,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+<<<<<<< HEAD
   title: "Finanças Família - Controle de Gastos",
   description: "Controle inteligente de gastos familiares",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Finanças" },
+=======
+  title: "Folga - Controle Financeiro",
+  description: "Controle financeiro, para você ter uma folga",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  themeColor: "#2563eb",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Folga" },
+>>>>>>> 17dc23cfc80f041f9b495fc03e6542bd9814bb80
 };
 
 export default function RootLayout({

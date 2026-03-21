@@ -25,7 +25,7 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
   const steps = [
     {
       icon: <Hand size={36} />,
-      title: 'Bem-vindo ao Finanças Família!',
+      title: 'Bem-vindo ao Folga!',
       subtitle: 'Vamos configurar sua planilha em poucos passos',
       content: (
         <div className="space-y-4">
