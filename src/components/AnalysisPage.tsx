@@ -5,7 +5,8 @@ import { useStore } from '@/lib/store';
 import { fmt, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS, PAY_COLORS } from '@/lib/constants';
 import { useToast } from './Toast';
-import { Tag, CreditCard, Landmark, User, ImageIcon, FileText } from 'lucide-react';
+import { Tag, CreditCard, Landmark, User, ImageIcon, FileText, Download } from 'lucide-react';
+import { exportToPDF } from '@/lib/export';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie, Doughnut } from 'react-chartjs-2';
@@ -172,7 +173,7 @@ export default function AnalysisPage() {
 
       const chartX = Math.round((w - chartCanvas.width) / 2);
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         ctx.drawImage(img, chartX, pad + 30);
         const detailY = pad + 30 + chartCanvas.height + 20;
         ctx.font = 'bold 11px sans-serif';
@@ -207,13 +208,21 @@ export default function AnalysisPage() {
           link.click();
           toast('Imagem exportada!', 'success');
         } else {
-          const win = window.open('', '_blank');
-          if (win) {
-            win.document.write(`<html><head><title>Análise - ${tabTitles[chartTab]}</title><style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f8f9fa}img{max-width:100%;height:auto}</style></head><body><img src="${finalData}"/></body></html>`);
-            win.document.close();
-            setTimeout(() => win.print(), 500);
-          }
-          toast('PDF gerado!', 'success');
+          // Create temporary element for PDF export
+          const tempDiv = document.createElement('div');
+          tempDiv.style.cssText = 'padding:30px;background:white;width:600px;position:absolute;left:-9999px';
+          const title = document.createElement('h2');
+          title.textContent = `Análise por ${tabTitles[chartTab]}`;
+          title.style.cssText = 'font:bold 18px sans-serif;margin-bottom:16px;color:#1e293b';
+          tempDiv.appendChild(title);
+          const imgEl = document.createElement('img');
+          imgEl.src = finalData;
+          imgEl.style.cssText = 'max-width:100%;height:auto';
+          tempDiv.appendChild(imgEl);
+          document.body.appendChild(tempDiv);
+          await exportToPDF(tempDiv, `analise-${tabTitles[chartTab].toLowerCase()}`);
+          document.body.removeChild(tempDiv);
+          toast('PDF exportado!', 'success');
         }
         setExporting(false);
       };
@@ -245,7 +254,7 @@ export default function AnalysisPage() {
           <div className="flex gap-1 flex-shrink-0">
             <button onClick={() => exportAs('png')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
-              <ImageIcon size={14} /> JPEG
+              <ImageIcon size={14} /> PNG
             </button>
             <button onClick={() => exportAs('pdf')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">

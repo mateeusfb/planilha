@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -8,6 +10,16 @@ interface Props {
 }
 
 export default function DeleteModal({ isOpen, onClose, onConfirm, message }: Props) {
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter') onConfirm();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, onConfirm]);
+
   if (!isOpen) return null;
 
   return (
@@ -18,7 +30,7 @@ export default function DeleteModal({ isOpen, onClose, onConfirm, message }: Pro
           {message || 'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.'}
         </p>
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2 border t-border rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Cancelar</button>
           <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 cursor-pointer">Excluir</button>
         </div>
       </div>

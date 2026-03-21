@@ -133,8 +133,8 @@ function InviteHandler() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <div className="bg-white rounded-2xl p-8 max-w-md text-center border shadow-xl">
+    <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-md text-center border border-slate-200 dark:border-slate-700 shadow-xl">
         {status === 'loading' && (
           <>
             <div className="text-4xl mb-4 animate-pulse">⏳</div>

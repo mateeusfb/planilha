@@ -2,43 +2,30 @@
 
 import { useState, useMemo } from 'react';
 import { useStore } from '@/lib/store';
-import { fmt, genId } from '@/lib/helpers';
+import { fmt } from '@/lib/helpers';
 import { INCOME_CATS, EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS, CAT_COLORS } from '@/lib/constants';
-import type { Expense } from '@/lib/types';
 import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
-import { Search, BarChart3, X, SlidersHorizontal } from 'lucide-react';
+import { useExpenseForm } from '@/hooks/useExpenseForm';
+import { Search, BarChart3, X, SlidersHorizontal, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/export';
 
 interface Props {
   onDeleteRequest: (id: string) => void;
 }
 
 export default function ExpensesPage({ onDeleteRequest }: Props) {
-  const { state, setState, getExpensesForMonth, getIndividualMembers, addExpense, updateExpense } = useStore();
+  const { state, setState, getExpensesForMonth, getIndividualMembers } = useStore();
   const { activeMonth, activeMember, members, expenses } = state;
 
+  const form = useExpenseForm();
   const [panelOpen, setPanelOpen] = useState(false);
-  const [formType, setFormType] = useState<'expense' | 'income'>('expense');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [desc, setDesc] = useState('');
-  const [cat, setCat] = useState(EXPENSE_CATS[0]);
-  const [value, setValue] = useState('');
-  const [month, setMonth] = useState(activeMonth);
-  const [payment, setPayment] = useState('Credito');
-  const [isInstallment, setIsInstallment] = useState(false);
-  const [installmentN, setInstallmentN] = useState(2);
-  const [installmentCurrent, setInstallmentCurrent] = useState(1);
-  const [memberId, setMemberId] = useState('all');
-  const [note, setNote] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [bank, setBank] = useState('');
 
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   const [filterPay, setFilterPay] = useState('');
   const [filterMember, setFilterMember] = useState('');
-  const [saving, setSaving] = useState(false);
   const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay' | 'bank'; defaultValue?: string } | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'value' | 'desc' | 'cat' | 'member'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -96,114 +83,42 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const conjuntas = members.filter(m => m.id !== 'all' && m.isConjunta);
 
   function openPanel(type?: 'expense' | 'income') {
-    clearForm();
-    if (type) switchType(type);
+    form.clearForm();
+    if (type) form.switchType(type);
     setPanelOpen(true);
   }
 
   function closePanel() {
-    clearForm();
+    form.clearForm();
     setPanelOpen(false);
   }
 
-  function clearForm() {
-    setDesc(''); setValue(''); setNote(''); setBank('');
-    setPayment('Credito'); setIsInstallment(false);
-    setInstallmentN(2); setInstallmentCurrent(1);
-    setMonth(activeMonth); setMemberId('all');
-    setFormType('expense'); setCat(EXPENSE_CATS[0]);
-    setPurchaseDate(new Date().toISOString().split('T')[0]);
-    setEditingId(null);
-  }
-
-  function switchType(type: 'expense' | 'income') {
-    setFormType(type);
-    setCat(type === 'income' ? INCOME_CATS[0] : EXPENSE_CATS[0]);
-    if (type === 'income' && memberId === 'all' && individuals.length > 0) {
-      setMemberId(individuals[0].id);
-    }
-  }
-
   function handleSave() {
-    if (!desc.trim()) return toast('Digite a descrição.', 'warning');
-    const val = parseFloat(value);
+    if (!form.desc.trim()) return toast('Digite a descrição.', 'warning');
+    const val = parseFloat(form.value);
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
-    if (!month) return toast('Selecione o mês.', 'warning');
+    if (!form.month) return toast('Selecione o mês.', 'warning');
 
-    const selectedMember = members.find(m => m.id === memberId);
-    const isConjunta = selectedMember?.isConjunta && formType === 'expense';
+    const selectedMember = members.find(m => m.id === form.memberId);
+    const isConjunta = selectedMember?.isConjunta && form.formType === 'expense';
 
-    if (isConjunta) {
-      if (individuals.length === 0) return toast('Nenhum membro individual cadastrado.', 'warning');
-      const splitValue = val / individuals.length;
-      const groupId = editingId || genId();
-      if (editingId) {
-        setState(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.conjuntaGroupId !== groupId) }));
-      }
-      setSaving(true);
-      individuals.forEach(m => {
-        addExpense({
-          id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
-          month, payment, installment: 0, memberId: m.id,
-          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
-          conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
-          createdAt: Date.now(),
-        });
-      });
-      setSaving(false);
-      toast('Despesa conjunta salva com sucesso!', 'success');
-      closePanel();
-      return;
+    if (isConjunta && individuals.length === 0) {
+      return toast('Nenhum membro individual cadastrado.', 'warning');
     }
 
-    if (isInstallment && !editingId && formType === 'expense') {
-      const groupId = genId();
-      const [baseY, baseM] = month.split('-').map(Number);
-      for (let i = installmentCurrent; i <= installmentN; i++) {
-        const d = new Date(baseY, baseM - 1 + (i - installmentCurrent), 1);
-        const entryMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        addExpense({
-          id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
-          month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
-          installmentGroupId: groupId, memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
-        });
-      }
-      closePanel();
-      return;
-    }
-
-    const expense: Expense = {
-      id: editingId || genId(), type: formType, desc: desc.trim(), cat, value: val,
-      month, payment: formType === 'income' ? '-' : payment,
-      installment: isInstallment ? installmentN : 0,
-      installmentCurrent: isInstallment ? installmentCurrent : 0,
-      memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
-    };
-
-    setSaving(true);
-    if (editingId) {
-      updateExpense(editingId, expense);
-      toast('Lançamento atualizado!', 'success');
-    } else {
-      addExpense(expense);
-      toast('Lançamento salvo com sucesso!', 'success');
-    }
-    setSaving(false);
-    closePanel();
+    form.handleSave({
+      onSuccess: () => {
+        const msg = form.editingId ? 'Lançamento atualizado!' :
+          isConjunta ? 'Despesa conjunta salva com sucesso!' :
+          'Lançamento salvo com sucesso!';
+        toast(msg, 'success');
+        closePanel();
+      },
+    });
   }
 
-  function startEdit(e: Expense) {
-    setEditingId(e.id);
-    switchType(e.type);
-    setDesc(e.desc); setCat(e.cat); setValue(String(e.value));
-    setMonth(e.month); setPayment(e.payment);
-    setIsInstallment(e.installment > 0);
-    setInstallmentN(e.installment || 2);
-    setInstallmentCurrent(e.installmentCurrent || 1);
-    setMemberId(e.memberId || 'all');
-    setNote(e.note || '');
-    setBank(e.bank || '');
-    setPurchaseDate(e.purchaseDate || new Date().toISOString().split('T')[0]);
+  function handleStartEdit(e: Parameters<typeof form.startEdit>[0]) {
+    form.startEdit(e);
     setPanelOpen(true);
   }
 
@@ -239,7 +154,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     return sortDir === 'desc' ? ' ↓' : ' ↑';
   }
 
-  const catOptions = formType === 'income' ? INCOME_CATS : allExpenseCats;
+  const catOptions = form.formType === 'income' ? INCOME_CATS : allExpenseCats;
 
   const inputClass = "w-full px-3 py-2.5 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100";
 
@@ -287,6 +202,30 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               className="px-4 py-2.5 md:py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors cursor-pointer min-h-[44px] md:min-h-0">
               + Receita
             </button>
+            {filteredExpenses.length > 0 && (
+              <button onClick={() => {
+                const headers = ['Descrição', 'Tipo', 'Categoria', 'Valor', 'Data', 'Pagamento', 'Instituição', 'Membro', 'Observação'];
+                const rows = filteredExpenses.map(e => {
+                  const member = members.find(m => m.id === e.memberId);
+                  return [
+                    e.desc,
+                    e.type === 'income' ? 'Receita' : 'Despesa',
+                    e.cat,
+                    e.value.toFixed(2).replace('.', ','),
+                    e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '',
+                    e.payment,
+                    e.bank || '',
+                    member?.name || 'Família',
+                    e.note || '',
+                  ];
+                });
+                exportToCSV(headers, rows, `lancamentos-${activeMonth}`);
+                toast('CSV exportado!', 'success');
+              }}
+                className="px-4 py-2.5 md:py-1.5 border t-border rounded-lg text-sm font-semibold t-text hover:opacity-80 transition-colors cursor-pointer min-h-[44px] md:min-h-0 flex items-center gap-1.5">
+                <Download size={14} /> CSV
+              </button>
+            )}
           </div>
         </div>
         {filteredExpenses.length === 0 ? (
@@ -334,7 +273,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                         {e.installment > 0 && <span>{e.installmentCurrent || 1}/{e.installment}x</span>}
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => startEdit(e)} className="px-2.5 py-1.5 border t-border rounded-lg text-[0.75rem] font-semibold t-card-hover cursor-pointer">Editar</button>
+                        <button onClick={() => handleStartEdit(e)} className="px-2.5 py-1.5 border t-border rounded-lg text-[0.75rem] font-semibold t-card-hover cursor-pointer">Editar</button>
                         <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-[0.75rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
                       </div>
                     </div>
@@ -345,7 +284,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
             {/* Desktop: tabela com colunas configuráveis */}
             <div className="hidden md:block overflow-x-auto">
-              {/* Botão de configurar colunas */}
               <div className="flex justify-end px-4 py-2 border-b t-border">
                 <div className="relative">
                   <button onClick={() => setColsMenuOpen(!colsMenuOpen)}
@@ -357,7 +295,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                       <div className="fixed inset-0 z-[998]" onClick={() => setColsMenuOpen(false)} />
                       <div className="absolute right-0 top-full mt-1 t-card border rounded-lg shadow-lg z-[999] p-2 min-w-[220px]">
                         <div className="text-[0.68rem] t-text-dim font-semibold uppercase mb-1.5 px-2">Colunas visíveis</div>
-                        {/* Colunas ativas na ordem atual */}
                         {visibleCols.map((colId, idx) => {
                           const col = allColumns.find(c => c.id === colId);
                           if (!col) return null;
@@ -381,7 +318,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                             </div>
                           );
                         })}
-                        {/* Colunas ocultas */}
                         {allColumns.filter(c => !visibleCols.includes(c.id)).length > 0 && (
                           <>
                             <div className="text-[0.68rem] t-text-dim font-semibold uppercase mt-2 mb-1 px-2">Ocultas</div>
@@ -469,7 +405,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                       ),
                       actions: (
                         <td key="actions" className="px-4 py-2.5 border-b t-border-light">
-                          <button onClick={() => startEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
+                          <button onClick={() => handleStartEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
                           <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
                         </td>
                       ),
@@ -493,38 +429,36 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center" onClick={e => { if (e.target === e.currentTarget) closePanel(); }}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full max-w-md t-card rounded-t-2xl md:rounded-2xl shadow-2xl border overflow-hidden max-h-[85vh] flex flex-col animate-modal-in">
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b t-border flex-shrink-0">
-              <h3 className="text-base font-bold t-text">{editingId ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
+              <h3 className="text-base font-bold t-text">{form.editingId ? 'Editar Lançamento' : 'Novo Lançamento'}</h3>
               <button onClick={closePanel} className="w-8 h-8 rounded-full flex items-center justify-center hover:opacity-70 t-text-dim cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-5 space-y-3 overflow-y-auto flex-1">
-              {/* Type toggle */}
               <div className="flex gap-2">
-                <button onClick={() => switchType('expense')}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'expense' ? 'bg-red-600 text-white' : 'border border-red-300 text-red-600'}`}>
+                <button onClick={() => form.switchType('expense')}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${form.formType === 'expense' ? 'bg-red-600 text-white' : 'border border-red-300 text-red-600'}`}>
                   Despesa
                 </button>
-                <button onClick={() => switchType('income')}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${formType === 'income' ? 'bg-green-600 text-white' : 'border border-green-300 text-green-600'}`}>
+                <button onClick={() => form.switchType('income')}
+                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${form.formType === 'income' ? 'bg-green-600 text-white' : 'border border-green-300 text-green-600'}`}>
                   Receita
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <input type="text" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descrição" autoFocus className={inputClass} />
+                  <input type="text" value={form.desc} onChange={e => form.setDesc(e.target.value)} placeholder="Descrição" autoFocus className={inputClass} />
                 </div>
                 <div>
-                  <input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="Valor (R$)" min="0" step="0.01" className={inputClass} />
+                  <input type="number" value={form.value} onChange={e => form.setValue(e.target.value)} placeholder="Valor (R$)" min="0" step="0.01" className={inputClass} />
                 </div>
                 <div>
-                  <select value={cat} onChange={e => {
+                  <select value={form.cat} onChange={e => {
                     if (e.target.value === '__new__') setInputModal({ type: 'cat' });
-                    else setCat(e.target.value);
+                    else form.setCat(e.target.value);
                   }} className={inputClass}>
                     {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
                     <option value="__new__">+ Nova...</option>
@@ -533,26 +467,26 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className={inputClass} />
-                <select value={memberId} onChange={e => setMemberId(e.target.value)} className={inputClass}>
-                  <option value="all" disabled={formType === 'income'}>Família</option>
+                <input type="date" value={form.purchaseDate} onChange={e => form.setPurchaseDate(e.target.value)} className={inputClass} />
+                <select value={form.memberId} onChange={e => form.setMemberId(e.target.value)} className={inputClass}>
+                  <option value="all" disabled={form.formType === 'income'}>Família</option>
                   {individuals.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   {conjuntas.map(m => <option key={m.id} value={m.id}>{m.name} (conj.)</option>)}
                 </select>
               </div>
 
-              {formType === 'expense' && (
+              {form.formType === 'expense' && (
                 <div className="grid grid-cols-2 gap-3">
-                  <select value={payment} onChange={e => {
+                  <select value={form.payment} onChange={e => {
                     if (e.target.value === '__new_pay__') setInputModal({ type: 'pay' });
-                    else setPayment(e.target.value);
+                    else form.setPayment(e.target.value);
                   }} className={inputClass}>
                     {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
                     <option value="__new_pay__">+ Nova...</option>
                   </select>
-                  <select value={bank} onChange={e => {
+                  <select value={form.bank} onChange={e => {
                     if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                    else setBank(e.target.value);
+                    else form.setBank(e.target.value);
                   }} className={inputClass}>
                     <option value="">Instituição (opcional)</option>
                     {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -561,10 +495,10 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </div>
               )}
 
-              {formType === 'income' && (
-                <select value={bank} onChange={e => {
+              {form.formType === 'income' && (
+                <select value={form.bank} onChange={e => {
                   if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                  else setBank(e.target.value);
+                  else form.setBank(e.target.value);
                 }} className={inputClass}>
                   <option value="">Instituição (opcional)</option>
                   {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -572,34 +506,50 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </select>
               )}
 
-              {formType === 'expense' && (
+              {form.formType === 'expense' && (
                 <div className="flex items-center gap-3">
                   <label className="toggle-switch">
-                    <input type="checkbox" checked={isInstallment} onChange={e => setIsInstallment(e.target.checked)} />
+                    <input type="checkbox" checked={form.isInstallment} onChange={e => form.setIsInstallment(e.target.checked)} />
                     <span className="toggle-slider"></span>
                   </label>
                   <span className="text-sm t-text">Parcelado</span>
-                  {isInstallment && (
+                  {form.isInstallment && (
                     <>
-                      <input type="number" value={installmentCurrent} onChange={e => setInstallmentCurrent(Number(e.target.value))} min={1} max={60}
+                      <input type="number" value={form.installmentCurrent} onChange={e => form.setInstallmentCurrent(Number(e.target.value))} min={1} max={60}
                         className="w-14 px-2 py-1.5 border rounded-lg text-sm t-input" />
                       <span className="text-xs t-text-dim">de</span>
-                      <input type="number" value={installmentN} onChange={e => setInstallmentN(Number(e.target.value))} min={2} max={60}
+                      <input type="number" value={form.installmentN} onChange={e => form.setInstallmentN(Number(e.target.value))} min={2} max={60}
                         className="w-14 px-2 py-1.5 border rounded-lg text-sm t-input" />
                     </>
                   )}
                 </div>
               )}
 
-              <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Observação (opcional)" className={inputClass} />
+              {form.formType === 'expense' && !form.editingId && !form.isInstallment && (
+                <div className="flex items-center gap-3">
+                  <label className="toggle-switch">
+                    <input type="checkbox" checked={form.isRecurring} onChange={e => form.setIsRecurring(e.target.checked)} />
+                    <span className="toggle-slider"></span>
+                  </label>
+                  <span className="text-sm t-text">Recorrente (mensal)</span>
+                  {form.isRecurring && (
+                    <>
+                      <span className="text-xs t-text-dim">dia</span>
+                      <input type="number" value={form.recurringDay} onChange={e => form.setRecurringDay(Number(e.target.value))} min={1} max={28}
+                        className="w-14 px-2 py-1.5 border rounded-lg text-sm t-input" />
+                    </>
+                  )}
+                </div>
+              )}
+
+              <input type="text" value={form.note} onChange={e => form.setNote(e.target.value)} placeholder="Observação (opcional)" className={inputClass} />
             </div>
 
-            {/* Footer */}
             <div className="px-5 py-3.5 border-t t-border flex-shrink-0">
-              <button onClick={handleSave} disabled={saving}
+              <button onClick={handleSave} disabled={form.saving}
                 className="w-full py-2.5 t-accent-bg text-white rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2">
-                {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                {saving ? 'Salvando...' : editingId ? 'Atualizar' : 'Salvar'}
+                {form.saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {form.saving ? 'Salvando...' : form.editingId ? 'Atualizar' : 'Salvar'}
               </button>
             </div>
           </div>
@@ -612,31 +562,21 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         onConfirm={(name) => {
           if (inputModal?.type === 'cat') {
             setState(prev => ({ ...prev, customCats: [...(prev.customCats || []), name] }));
-            setCat(name);
+            form.setCat(name);
             toast(`Categoria "${name}" criada!`, 'success');
           } else if (inputModal?.type === 'pay') {
             setState(prev => ({ ...prev, customPayments: [...(prev.customPayments || []), name] }));
-            setPayment(name);
+            form.setPayment(name);
             toast(`Forma de pagamento "${name}" criada!`, 'success');
           } else if (inputModal?.type === 'bank') {
             setState(prev => ({ ...prev, customBanks: [...(prev.customBanks || []), name] }));
-            setBank(name);
+            form.setBank(name);
             toast(`Instituição "${name}" adicionada!`, 'success');
           }
         }}
         title={inputModal?.type === 'cat' ? 'Nova Categoria' : inputModal?.type === 'pay' ? 'Nova Forma de Pagamento' : 'Nova Instituição Financeira'}
         placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : inputModal?.type === 'pay' ? 'Nome da forma de pagamento...' : 'Nome da instituição...'}
       />
-
-      <style jsx>{`
-        @keyframes modalIn {
-          from { opacity: 0; transform: scale(0.95) translateY(10px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .animate-modal-in {
-          animation: modalIn 0.25s ease-out;
-        }
-      `}</style>
     </>
   );
 }

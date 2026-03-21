@@ -40,6 +40,29 @@ export interface AppState {
   customPayments: string[];
   customBanks: string[];
   tableColumns?: string[];
+  categoryBudgets: Record<string, number>;
+}
+
+export interface Workspace {
+  id: string;
+  userId: string;
+  workspaceId?: string;
+  label: string;
+  icon: string;
+  isOwn: boolean;
+  ownerEmail?: string;
+}
+
+export interface RecurringExpense {
+  id: string;
+  description: string;
+  category: string;
+  value: number;
+  payment: string;
+  bank?: string;
+  memberId: string;
+  dayOfMonth: number;
+  active: boolean;
 }
 
 export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';
