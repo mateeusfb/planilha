@@ -2,18 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/auth';
 import { COLORS } from '@/lib/constants';
 import { genId } from '@/lib/helpers';
+import { uploadAvatar, deleteAvatar } from '@/lib/storage';
 import { useToast } from './Toast';
-
-interface Workspace {
-  id: string;
-  userId: string;
-  workspaceId?: string;
-  label: string;
-  icon: string;
-  isOwn: boolean;
-}
+import type { Workspace } from '@/lib/types';
 
 interface Props {
   isOpen: boolean;
@@ -25,9 +19,12 @@ interface Props {
 
 export default function MemberModal({ isOpen, onClose, editingMemberId, workspaces = [], activeWorkspace }: Props) {
   const { state, addMember, updateMember } = useStore();
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [color, setColor] = useState(COLORS[0]);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
   const [isConjunta, setIsConjunta] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>('current');
@@ -48,7 +45,7 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
           setIsConjunta(!!member.isConjunta);
         }
       } else {
-        setName(''); setColor(COLORS[0]); setPhoto(null); setIsConjunta(false);
+        setName(''); setColor(COLORS[0]); setPhoto(null); setPhotoFile(null); setPhotoRemoved(false); setIsConjunta(false);
         setSelectedWorkspace('current');
       }
     }
@@ -57,41 +54,63 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Imagem muito grande. Máximo 5MB.', 'warning');
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoRemoved(false);
+    // Preview local
     const reader = new FileReader();
     reader.onload = (ev) => setPhoto(ev.target?.result as string);
     reader.readAsDataURL(file);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) return toast('Digite o nome do membro.', 'warning');
+    if (!user) return;
     setSaving(true);
 
-    if (editingMemberId) {
-      updateMember(editingMemberId, { name: name.trim(), color, photo, isConjunta });
-      toast('Membro atualizado!', 'success');
-      setSaving(false);
-      onClose();
-      return;
-    }
+    try {
+      if (editingMemberId) {
+        let photoUrl = photo;
+        if (photoFile) {
+          photoUrl = await uploadAvatar(photoFile, user.id, editingMemberId);
+        } else if (photoRemoved) {
+          await deleteAvatar(user.id, editingMemberId);
+          photoUrl = null;
+        }
+        updateMember(editingMemberId, { name: name.trim(), color, photo: photoUrl, isConjunta });
+        toast('Membro atualizado!', 'success');
+        setSaving(false);
+        onClose();
+        return;
+      }
 
-    const member = { id: genId(), name: name.trim(), color, photo, isConjunta };
+      const memberId = genId();
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        photoUrl = await uploadAvatar(photoFile, user.id, memberId);
+      }
+      const member = { id: memberId, name: name.trim(), color, photo: photoUrl, isConjunta };
 
-    if (selectedWorkspace === 'all') {
-      // Criar em todos os workspaces próprios
-      ownWorkspaces.forEach(ws => {
-        const wsId = ws.workspaceId || null;
-        addMember({ ...member, id: genId() }, wsId);
-      });
-      toast(`${name.trim()} adicionado em todos os espaços!`, 'success');
-    } else if (selectedWorkspace === 'current') {
-      addMember(member);
-      toast(`${name.trim()} adicionado!`, 'success');
-    } else {
-      // Workspace específico
-      const ws = ownWorkspaces.find(w => w.id === selectedWorkspace);
-      const wsId = ws?.workspaceId || null;
-      addMember(member, wsId);
-      toast(`${name.trim()} adicionado em ${ws?.label || 'workspace'}!`, 'success');
+      if (selectedWorkspace === 'all') {
+        ownWorkspaces.forEach(ws => {
+          const wsId = ws.workspaceId || null;
+          addMember({ ...member, id: genId() }, wsId);
+        });
+        toast(`${name.trim()} adicionado em todos os espaços!`, 'success');
+      } else if (selectedWorkspace === 'current') {
+        addMember(member);
+        toast(`${name.trim()} adicionado!`, 'success');
+      } else {
+        const ws = ownWorkspaces.find(w => w.id === selectedWorkspace);
+        const wsId = ws?.workspaceId || null;
+        addMember(member, wsId);
+        toast(`${name.trim()} adicionado em ${ws?.label || 'workspace'}!`, 'success');
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     }
 
     setSaving(false);
@@ -112,7 +131,7 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
           {photo ? (
             <>
               <img src={photo} alt="Preview" className="w-[72px] h-[72px] rounded-full object-cover mx-auto mb-2 border-[3px] border-slate-200" />
-              <button onClick={e => { e.stopPropagation(); setPhoto(null); }} className="text-xs text-red-600 cursor-pointer">Remover foto</button>
+              <button onClick={e => { e.stopPropagation(); setPhoto(null); setPhotoFile(null); setPhotoRemoved(true); }} className="text-xs text-red-600 cursor-pointer">Remover foto</button>
             </>
           ) : (
             <>
