@@ -40,6 +40,7 @@ export interface AppState {
   customPayments: string[];
   customBanks: string[];
   tableColumns?: string[];
+  categoryBudgets: Record<string, number>;
 }
 
 export interface Workspace {

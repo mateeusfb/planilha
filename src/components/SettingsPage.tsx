@@ -57,7 +57,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
-  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces'>('cats');
+  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets'>('cats');
 
   async function handleDeleteAccount() {
     if (deleteConfirmText !== 'EXCLUIR') return;
@@ -416,6 +416,13 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         addPay={addPay} editPay={editPay} deletePay={deletePay}
         addBank={addBank} editBank={editBank} deleteBank={deleteBank}
         members={allMembers} onAddMember={onAddMember} onEditMember={onEditMember} onDeleteMember={handleDeleteMember}
+        categoryBudgets={state.categoryBudgets}
+        onBudgetChange={(cat, value) => {
+          setState(prev => ({
+            ...prev,
+            categoryBudgets: { ...prev.categoryBudgets, [cat]: value },
+          }));
+        }}
         workspaces={workspaces} activeWorkspace={activeWorkspace}
         onDeleteWorkspace={(ws) => {
           setConfirmModal({

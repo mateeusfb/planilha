@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
 import type { Member, Workspace } from '@/lib/types';
-import { Tag, CreditCard, Landmark, Users, FolderOpen, ChevronDown, Plus } from 'lucide-react';
+import { Tag, CreditCard, Landmark, Users, FolderOpen, ChevronDown, Target } from 'lucide-react';
 import ItemPill from './ItemPill';
+import { fmt } from '@/lib/helpers';
+import { CAT_COLORS } from '@/lib/constants';
 
-type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces';
+type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets';
 
 interface Props {
   catTab: CatTabId;
@@ -18,12 +20,15 @@ interface Props {
   members: Member[]; onAddMember: () => void; onEditMember: (id: string) => void; onDeleteMember: (id: string) => void;
   workspaces?: Workspace[]; activeWorkspace?: Workspace;
   onDeleteWorkspace?: (ws: Workspace) => void;
+  categoryBudgets?: Record<string, number>;
+  onBudgetChange?: (cat: string, value: number) => void;
 }
 
 export default function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBanks,
   addCat, editCat, deleteCat, addPay, editPay, deletePay, addBank, editBank, deleteBank,
   members, onAddMember, onEditMember, onDeleteMember,
   workspaces = [], activeWorkspace, onDeleteWorkspace,
+  categoryBudgets = {}, onBudgetChange,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -32,6 +37,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
     { id: 'pays', label: 'Pagamento', icon: <CreditCard size={14} /> },
     { id: 'banks', label: 'Instituições', icon: <Landmark size={14} /> },
     { id: 'members', label: 'Membros', icon: <Users size={14} /> },
+    { id: 'budgets', label: 'Orçamento', icon: <Target size={14} /> },
     ...(workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0
       ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: <FolderOpen size={14} /> }]
       : []),
@@ -116,6 +122,40 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
                 className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
                 + Adicionar membro
               </button>
+            </>
+          )}
+
+          {/* Budgets */}
+          {catTab === 'budgets' && (
+            <>
+              <p className="text-xs t-text-dim mb-3">Defina um limite mensal para cada categoria. Você verá o progresso no Dashboard.</p>
+              <div className="space-y-2">
+                {[...EXPENSE_CATS, ...customCats].filter(c => c !== 'Investimento').map(cat => {
+                  const current = categoryBudgets[cat] || 0;
+                  const catColor = CAT_COLORS[cat] || '#94a3b8';
+                  return (
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: catColor }} />
+                      <span className="text-sm t-text min-w-[100px]">{cat}</span>
+                      <div className="flex-1 relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs t-text-dim">R$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="50"
+                          value={current || ''}
+                          onChange={e => onBudgetChange?.(cat, Number(e.target.value) || 0)}
+                          placeholder="Sem limite"
+                          className="w-full pl-9 pr-3 py-1.5 border rounded-lg text-sm t-input text-right"
+                        />
+                      </div>
+                      {current > 0 && (
+                        <span className="text-xs t-text-dim whitespace-nowrap">{fmt(current)}/mês</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
 

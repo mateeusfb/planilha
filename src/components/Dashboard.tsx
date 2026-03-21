@@ -9,7 +9,7 @@ import type { Tip } from '@/lib/tips';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { Check, AlertTriangle, Info, Eye, EyeOff, ChevronDown, Brain } from 'lucide-react';
+import { Check, AlertTriangle, Info, Eye, EyeOff, ChevronDown, Brain, Target } from 'lucide-react';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 function TipItem({ tip }: { tip: Tip }) {
@@ -74,11 +74,11 @@ function Section({ title, icon, children, defaultOpen = false, valuesHidden, onT
 }
 
 // Valor que pode ser ocultado
-function HiddenValue({ children, hidden, className = '' }: { children: React.ReactNode; hidden: boolean; className?: string }) {
+function HiddenValue({ children, hidden, className = '', style }: { children: React.ReactNode; hidden: boolean; className?: string; style?: React.CSSProperties }) {
   if (hidden) {
-    return <span className={className} style={{ filter: 'blur(8px)', userSelect: 'none' }}>R$ •••••</span>;
+    return <span className={className} style={{ ...style, filter: 'blur(8px)', userSelect: 'none' }}>R$ •••••</span>;
   }
-  return <span className={className}>{children}</span>;
+  return <span className={className} style={style}>{children}</span>;
 }
 
 export default function Dashboard() {
@@ -158,10 +158,21 @@ export default function Dashboard() {
 
     const tips = generateTips(allEntries, activeMember, getIndividualMembers);
 
+    // Budget data
+    const budgets = state.categoryBudgets || {};
+    const budgetItems = Object.entries(budgets)
+      .filter(([, limit]) => limit > 0)
+      .map(([cat, limit]) => {
+        const spent = outflows.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0);
+        const pct = limit > 0 ? (spent / limit) * 100 : 0;
+        return { cat, limit, spent, pct };
+      })
+      .sort((a, b) => b.pct - a.pct);
+
     return {
       totalIncome, despesasReais, saldo, investTotal, investSub,
       diffText, familyShare, familyBreakdown, incomesNormais,
-      catLabels, catData, catColors, monthlyData, tips,
+      catLabels, catData, catColors, monthlyData, tips, budgetItems,
     };
   }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
 
@@ -262,6 +273,52 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Orçamentos por categoria */}
+      {data.budgetItems.length > 0 && (
+        <Section title="Orçamento por Categoria" icon={<Target size={18} />} defaultOpen>
+          <div className="space-y-3">
+            {data.budgetItems.map(b => {
+              const color = b.pct >= 100 ? '#dc2626' : b.pct >= 80 ? '#f59e0b' : '#16a34a';
+              const bgColor = b.pct >= 100 ? 'bg-red-50' : b.pct >= 80 ? 'bg-amber-50' : 'bg-green-50';
+              const catColor = CAT_COLORS[b.cat] || '#94a3b8';
+              return (
+                <div key={b.cat}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: catColor }} />
+                      <span className="text-sm font-medium t-text">{b.cat}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <HiddenValue hidden={valuesHidden} className="font-semibold" style={{ color }}>
+                        {fmt(b.spent)}
+                      </HiddenValue>
+                      <span className="t-text-dim">/</span>
+                      <HiddenValue hidden={valuesHidden} className="t-text-muted">
+                        {fmt(b.limit)}
+                      </HiddenValue>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[0.65rem] font-bold ${bgColor}`} style={{ color }}>
+                        {Math.round(b.pct)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(b.pct, 100)}%`, background: color }}
+                    />
+                  </div>
+                  {b.pct >= 100 && (
+                    <div className="text-[0.7rem] text-red-600 mt-0.5 font-medium">
+                      Limite ultrapassado em {fmt(b.spent - b.limit)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
 
       {/* Dicas — colapsável, fechado por padrão */}
       <Section title="Dicas do Assistente Financeiro" icon={<Brain size={18} />}>

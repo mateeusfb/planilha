@@ -19,6 +19,7 @@ const defaultState: AppState = {
   customCats: [],
   customPayments: [],
   customBanks: [],
+  categoryBudgets: {},
 };
 
 // ── Supabase row helpers ──
@@ -124,6 +125,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           customPayments: settings?.custom_payments || [],
           customBanks: settings?.custom_banks || [],
           tableColumns: settings?.table_columns || undefined,
+          categoryBudgets: settings?.category_budgets || {},
           activeMonth: settings?.active_month || getCurrentMonth(),
         }));
       } catch {
@@ -154,9 +156,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   const setState = useCallback((updater: (prev: AppState) => AppState) => {
     setStateRaw(prev => {
       const next = updater(prev);
-      if (prev.customCats !== next.customCats || prev.customPayments !== next.customPayments || prev.customBanks !== next.customBanks || prev.tableColumns !== next.tableColumns) {
+      if (prev.customCats !== next.customCats || prev.customPayments !== next.customPayments || prev.customBanks !== next.customBanks || prev.tableColumns !== next.tableColumns || prev.categoryBudgets !== next.categoryBudgets) {
         supabase.from('settings').upsert({
-          user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, custom_banks: next.customBanks, table_columns: next.tableColumns || null, active_month: next.activeMonth,
+          user_id: userId, custom_cats: next.customCats, custom_payments: next.customPayments, custom_banks: next.customBanks, table_columns: next.tableColumns || null, category_budgets: next.categoryBudgets || {}, active_month: next.activeMonth,
         }, { onConflict: 'user_id' });
       }
       return next;
