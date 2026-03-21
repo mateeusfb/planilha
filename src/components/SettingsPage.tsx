@@ -1,25 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
-import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
-import type { Member } from '@/lib/types';
-import { Tag, CreditCard, Landmark, Users, FolderOpen, Link, Copy, Check, ChevronDown, Pencil, Trash2, Plus } from 'lucide-react';
+import type { Member, Workspace } from '@/lib/types';
+import { Link, Copy, Check } from 'lucide-react';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
-
-interface Workspace {
-  id: string;
-  userId: string;
-  workspaceId?: string;
-  label: string;
-  icon: string;
-  isOwn: boolean;
-}
+import CollapsibleSection from './settings/CollapsibleSection';
+import CategoriesBlock from './settings/CategoriesBlock';
 
 interface Props {
   onAddMember: () => void;
@@ -54,21 +46,17 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   const allMembers = [...individuals, ...conjuntas];
   const ownWorkspaces = workspaces.filter(w => w.isOwn);
 
-  // Delete account state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const { signOut } = useAuth();
   const { toast } = useToast();
 
-  // InputModal state
   const [inputModalOpen, setInputModalOpen] = useState(false);
   const [inputModalConfig, setInputModalConfig] = useState<{ type: 'cat' | 'pay' | 'editCat' | 'editPay' | 'bank' | 'editBank'; index?: number; defaultValue?: string }>({ type: 'cat' });
 
-  // DeleteModal state for confirmations
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
-  // Categories unified tab
   const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces'>('cats');
 
   async function handleDeleteAccount() {
@@ -83,9 +71,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
     await signOut();
   }
 
-  // Invite state
   const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState('');
   const [generatedLink, setGeneratedLink] = useState('');
   const [shares, setShares] = useState<Share[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -95,15 +81,12 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   const loadShares = useCallback(async () => {
     if (!user) return;
-    // Meus convites aceitos
     const { data } = await supabase.from('shares').select('*').eq('owner_id', user.id);
     setShares(data || []);
 
-    // Meus links de convite
     const { data: links } = await supabase.from('invite_links').select('*').eq('owner_id', user.id).order('created_at', { ascending: false });
     setInviteLinks(links || []);
 
-    // Convites que recebi (pendentes)
     const { data: received } = await supabase.from('shares').select('*').eq('shared_email', user.email).eq('accepted', false);
     setPendingInvites(received || []);
   }, [user]);
@@ -115,10 +98,8 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   async function generateInviteLink() {
     if (!user) return;
     setInviteLoading(true);
-    setInviteMsg('');
     setGeneratedLink('');
 
-    // Determinar workspace_id do convite
     let wsId: string | null = null;
     if (inviteWorkspace === 'current') {
       wsId = activeWorkspace?.workspaceId || null;
@@ -379,7 +360,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         </button>
       }>
 
-        {/* Workspace selector para convite */}
         {ownWorkspaces.length > 1 && (
           <div className="mb-3">
             <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">CONVIDAR PARA</div>
@@ -410,7 +390,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
           </div>
         )}
 
-        {/* Pessoas com acesso */}
         {shares.length > 0 && (
           <div className="mt-3">
             <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PESSOAS COM ACESSO</div>
@@ -457,7 +436,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         }}
       />
 
-      {/* Zona de perigo - Excluir conta */}
+      {/* Zona de perigo */}
       <div className="t-card border border-red-200 rounded-xl p-6 mt-6">
         <h3 className="text-base font-bold text-red-600 mb-2">Zona de perigo</h3>
         <p className="text-sm t-text-muted mb-4">
@@ -526,202 +505,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         onConfirm={() => { confirmModal.onConfirm(); setConfirmModal(prev => ({ ...prev, open: false })); }}
         message={confirmModal.message}
       />
-    </>
-  );
-}
-
-function CollapsibleSection({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="t-card rounded-xl border mb-6 overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:opacity-80 transition-colors">
-        <h3 className="text-sm font-bold t-text">{title}</h3>
-        <div className="flex items-center gap-2">
-          {action}
-          <ChevronDown size={14} className="t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-        </div>
-      </button>
-      {open && <div className="px-5 pb-5">{children}</div>}
-    </div>
-  );
-}
-
-type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces';
-
-function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBanks,
-  addCat, editCat, deleteCat, addPay, editPay, deletePay, addBank, editBank, deleteBank,
-  members, onAddMember, onEditMember, onDeleteMember,
-  workspaces = [], activeWorkspace, onDeleteWorkspace,
-}: {
-  catTab: CatTabId;
-  setCatTab: (t: CatTabId) => void;
-  customCats: string[]; customPays: string[]; customBanks: string[];
-  addCat: () => void; editCat: (i: number) => void; deleteCat: (i: number) => void;
-  addPay: () => void; editPay: (i: number) => void; deletePay: (i: number) => void;
-  addBank: () => void; editBank: (i: number) => void; deleteBank: (i: number) => void;
-  members: Member[]; onAddMember: () => void; onEditMember: (id: string) => void; onDeleteMember: (id: string) => void;
-  workspaces?: Workspace[]; activeWorkspace?: Workspace;
-  onDeleteWorkspace?: (ws: Workspace) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  const tabs: { id: CatTabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'cats', label: 'Despesas', icon: <Tag size={14} /> },
-    { id: 'pays', label: 'Pagamento', icon: <CreditCard size={14} /> },
-    { id: 'banks', label: 'Instituições', icon: <Landmark size={14} /> },
-    { id: 'members', label: 'Membros', icon: <Users size={14} /> },
-    ...(workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0
-      ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: <FolderOpen size={14} /> }]
-      : []),
-  ];
-
-  const defaults: Record<string, string[]> = {
-    cats: EXPENSE_CATS,
-    pays: BASE_PAYMENTS,
-    banks: BASE_BANKS,
-  };
-
-  const customs: Record<string, string[]> = { cats: customCats, pays: customPays, banks: customBanks };
-  const addFn: Record<string, () => void> = { cats: addCat, pays: addPay, banks: addBank };
-  const editFn: Record<string, (i: number) => void> = { cats: editCat, pays: editPay, banks: editBank };
-  const deleteFn: Record<string, (i: number) => void> = { cats: deleteCat, pays: deletePay, banks: deleteBank };
-  const addLabels: Record<string, string> = { cats: '+ Nova categoria', pays: '+ Nova forma', banks: '+ Nova instituição' };
-
-  const isPillTab = catTab === 'cats' || catTab === 'pays' || catTab === 'banks';
-
-  return (
-    <div className="t-card rounded-xl border mb-6 overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer hover:opacity-80 transition-colors">
-        <h3 className="text-sm font-bold t-text">Categorias</h3>
-        <ChevronDown size={14} className="t-text-dim transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }} />
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5">
-          {/* Tabs */}
-          <div className="flex gap-1.5 mb-4 flex-wrap">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setCatTab(t.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                  catTab === t.id ? 't-accent-bg text-white shadow-sm' : 'bg-slate-100 t-text-muted hover:bg-slate-200'
-                }`}>
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Pills content (cats, pays, banks) */}
-          {isPillTab && (
-            <>
-              <div className="mb-3">
-                <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PADRÃO</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {defaults[catTab].map(item => (
-                    <span key={item} className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-full text-xs">{item}</span>
-                  ))}
-                </div>
-              </div>
-
-              {customs[catTab].length > 0 && (
-                <div className="mb-3">
-                  <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PERSONALIZADAS</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {customs[catTab].map((item, i) => (
-                      <ItemPill key={i} label={item} onEdit={() => editFn[catTab](i)} onDelete={() => deleteFn[catTab](i)} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <button onClick={addFn[catTab]}
-                className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
-                {addLabels[catTab]}
-              </button>
-            </>
-          )}
-
-          {/* Members */}
-          {catTab === 'members' && (
-            <>
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {members.map(m => (
-                  <ItemPill key={m.id} label={m.name} onEdit={() => onEditMember(m.id)} onDelete={() => onDeleteMember(m.id)} />
-                ))}
-              </div>
-              <button onClick={onAddMember}
-                className="px-2.5 py-1 border border-dashed border-slate-300 rounded-full text-xs font-semibold t-text-dim hover:border-slate-400 hover:t-text cursor-pointer transition-colors">
-                + Adicionar membro
-              </button>
-            </>
-          )}
-
-          {/* Workspaces */}
-          {catTab === 'workspaces' && (
-            <>
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {workspaces.filter(w => w.isOwn && w.id !== 'personal').map(ws => (
-                  <ItemPill
-                    key={ws.id}
-                    label={`${ws.icon} ${ws.label}${activeWorkspace?.id === ws.id ? ' (ativo)' : ''}`}
-                    onEdit={() => {}}
-                    onDelete={() => onDeleteWorkspace?.(ws)}
-                  />
-                ))}
-              </div>
-              <p className="text-xs t-text-dim">O espaço "Pessoal" não pode ser excluído.</p>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ItemPill({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-
-  function handleOpen() {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      setPos({
-        top: spaceBelow > 90 ? rect.bottom + 4 : rect.top - 88,
-        left: rect.left,
-      });
-    }
-    setMenuOpen(!menuOpen);
-  }
-
-  return (
-    <>
-      <button
-        ref={btnRef}
-        onClick={handleOpen}
-        className="px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all border border-[var(--accent)] t-accent bg-[var(--accent-light)] hover:opacity-80"
-      >
-        {label}
-      </button>
-      {menuOpen && (
-        <>
-          <div className="fixed inset-0 z-[998]" onClick={() => setMenuOpen(false)} />
-          <div className="fixed t-card border rounded-lg shadow-lg z-[999] min-w-[120px] overflow-hidden"
-            style={{ top: pos.top, left: pos.left }}>
-            <button onClick={() => { onEdit(); setMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm t-text hover:bg-slate-50 cursor-pointer flex items-center gap-2 transition-colors">
-              <Pencil size={14} /> Editar
-            </button>
-            <button onClick={() => { onDelete(); setMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer flex items-center gap-2 transition-colors">
-              <Trash2 size={14} /> Excluir
-            </button>
-          </div>
-        </>
-      )}
     </>
   );
 }

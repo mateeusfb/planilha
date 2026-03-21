@@ -5,10 +5,10 @@ import { StoreProvider, useStore } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import PeriodFilter from '@/components/PeriodFilter';
-import type { PageId } from '@/lib/types';
+import type { PageId, Workspace } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
 import { ToastProvider } from '@/components/Toast';
-import { Settings, LogOut, Moon, Sun, ChevronDown, Plus } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import ExpensesPage from '@/components/ExpensesPage';
 import AnalysisPage from '@/components/AnalysisPage';
@@ -19,172 +19,9 @@ import DeleteModal from '@/components/DeleteModal';
 import AuthPage from '@/components/AuthPage';
 import Onboarding from '@/components/Onboarding';
 import QuickExpense from '@/components/QuickExpense';
-
-interface Workspace {
-  id: string;          // 'personal' ou UUID do workspace
-  userId: string;      // userId do dono dos dados
-  workspaceId?: string; // UUID do workspace (null = pessoal padrão)
-  label: string;
-  icon: string;
-  isOwn: boolean;
-  ownerEmail?: string;
-}
-
-function WorkspaceSwitcher({ workspaces, active, onSwitch, onCreateNew }: {
-  workspaces: Workspace[];
-  active: Workspace;
-  onSwitch: (ws: Workspace) => void;
-  onCreateNew: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <button onClick={() => setOpen(!open)}
-        className="px-3 py-1.5 border rounded-lg text-xs font-medium t-card t-border cursor-pointer hover:opacity-80 flex items-center gap-1.5">
-        <span>{active.icon}</span>
-        <span className="max-w-[120px] truncate">{active.label}</span>
-        <ChevronDown size={14} className="t-text-dim" />
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 t-card border rounded-xl shadow-lg p-2 min-w-56 z-50">
-            <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1">Meus espaços</div>
-            {workspaces.filter(w => w.isOwn).map(ws => (
-              <button key={ws.id} onClick={() => { onSwitch(ws); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors mb-0.5 ${
-                  active.id === ws.id ? 't-accent-light font-semibold' : 't-text hover:opacity-80'
-                }`}>
-                <span className="mr-2">{ws.icon}</span>{ws.label}
-              </button>
-            ))}
-
-            <button onClick={() => { onCreateNew(); setOpen(false); }}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors text-blue-600 hover:bg-blue-50 mb-0.5">
-              <Plus size={14} className="mr-1" />Novo espaço
-            </button>
-
-            {workspaces.some(w => !w.isOwn) && (
-              <>
-                <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mt-2 mb-1">Compartilhados comigo</div>
-                {workspaces.filter(w => !w.isOwn).map(ws => (
-                  <button key={ws.id} onClick={() => { onSwitch(ws); setOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors mb-0.5 ${
-                      active.id === ws.id ? 't-accent-light font-semibold' : 't-text hover:opacity-80'
-                    }`}>
-                    <div className="flex items-center gap-2">
-                      <span>{ws.icon}</span>
-                      <div>
-                        <div className="font-medium">{ws.label}</div>
-                        <div className="text-[0.7rem] t-text-dim">{ws.ownerEmail}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function CreateWorkspaceModal({ isOpen, onClose, onCreate }: {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreate: (name: string, icon: string) => void;
-}) {
-  const [name, setName] = useState('');
-  const icons = ['📁', '🏢', '💼', '🏠', '🎯', '📊', '💰', '🛒'];
-  const [selectedIcon, setSelectedIcon] = useState('📁');
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="t-card rounded-2xl p-7 w-full max-w-md shadow-xl border">
-        <h3 className="text-base font-bold mb-4">Criar novo espaço</h3>
-        <div className="mb-4">
-          <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Nome</label>
-          <input type="text" value={name} onChange={e => setName(e.target.value)}
-            placeholder="Ex: Empresa, Freelance, Casa..."
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-        </div>
-        <div className="mb-5">
-          <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Ícone</label>
-          <div className="flex gap-2 flex-wrap">
-            {icons.map(ic => (
-              <button key={ic} onClick={() => setSelectedIcon(ic)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg cursor-pointer border-2 transition-all ${
-                  selectedIcon === ic ? 'border-blue-500 bg-blue-50 scale-110' : 'border-slate-200'
-                }`}>
-                {ic}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Cancelar</button>
-          <button onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedIcon); setName(''); } }}
-            disabled={!name.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
-            Criar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UserMenu({ user, onSignOut, onGoToSettings, workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
-  user: { email?: string; user_metadata?: { name?: string } } | null;
-  onSignOut: () => void;
-  onGoToSettings: () => void;
-  workspaces: Workspace[];
-  activeWorkspace: Workspace;
-  onSwitchWorkspace: (ws: Workspace) => void;
-  onCreateWorkspace: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="relative z-[60]">
-      <button onClick={() => setOpen(!open)}
-        className="w-10 h-10 md:w-8 md:h-8 rounded-full t-accent-bg text-white text-sm md:text-xs font-bold flex items-center justify-center cursor-pointer">
-        {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-[55]" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 t-card border rounded-xl shadow-lg p-3 min-w-48 z-[60]">
-            <div className="text-sm font-semibold t-text mb-0.5">{user?.user_metadata?.name || 'Usuário'}</div>
-            <div className="text-xs t-text-dim mb-3">{user?.email}</div>
-            {/* Workspace switcher mobile */}
-            <div className="sm:hidden mb-2 pb-2 border-b t-border">
-              <WorkspaceSwitcher
-                workspaces={workspaces}
-                active={activeWorkspace}
-                onSwitch={(ws) => { onSwitchWorkspace(ws); setOpen(false); }}
-                onCreateNew={() => { onCreateWorkspace(); setOpen(false); }}
-              />
-            </div>
-            <button onClick={() => { onGoToSettings(); setOpen(false); }}
-              className="w-full text-left text-sm t-text hover:opacity-80 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
-              <Settings size={16} /> Configurações
-            </button>
-            <button onClick={() => { onSignOut(); setOpen(false); }}
-              className="w-full text-left text-sm text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2 mt-1">
-              <LogOut size={16} /> Sair da conta
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
+import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
+import UserMenu from '@/components/UserMenu';
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -206,7 +43,6 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     return !localStorage.getItem('onboarding_done');
   });
 
-  // Check if truly new user (no members, no expenses)
   const isNewUser = state.members.filter(m => m.id !== 'all').length === 0 && state.expenses.length === 0;
 
   function handlePageChange(page: PageId) {
@@ -240,7 +76,6 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
         <div className="t-topbar border-b px-4 md:px-7 py-3 flex items-center justify-between sticky top-0 z-50">
           <h2 className="text-sm md:text-lg font-bold t-text ml-11 md:ml-0 truncate">{titles[activePage]}</h2>
           <div className="flex items-center gap-1 md:gap-2.5 flex-shrink-0">
@@ -269,7 +104,6 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-3 md:p-6 flex-1 overflow-y-auto">
           {showOnboarding && isNewUser ? (
             <Onboarding
@@ -325,7 +159,6 @@ function AuthGate() {
   const loadWorkspaces = useCallback(async () => {
     if (!user) return;
 
-    // 1. Workspace pessoal padrão
     const personal: Workspace = {
       id: 'personal',
       userId: user.id,
@@ -334,7 +167,6 @@ function AuthGate() {
       isOwn: true,
     };
 
-    // 2. Workspaces próprios criados pelo usuário
     const { data: ownWs } = await supabase
       .from('workspaces')
       .select('*')
@@ -350,7 +182,6 @@ function AuthGate() {
       isOwn: true,
     }));
 
-    // 3. Workspaces compartilhados comigo
     const { data: shared } = await supabase
       .from('shares')
       .select('owner_id, workspace_id')
@@ -361,7 +192,6 @@ function AuthGate() {
     if (shared) {
       for (const s of shared) {
         if (s.workspace_id) {
-          // Workspace específico compartilhado
           const { data: wsData } = await supabase.from('workspaces').select('*').eq('id', s.workspace_id).single();
           if (wsData) {
             sharedWorkspaces.push({
@@ -375,7 +205,6 @@ function AuthGate() {
             });
           }
         } else {
-          // Workspace pessoal compartilhado
           sharedWorkspaces.push({
             id: `shared-${s.owner_id}`,
             userId: s.owner_id,
@@ -418,7 +247,6 @@ function AuthGate() {
   if (!user) return <AuthPage />;
   if (isRecovery) return <AuthPage forceMode="reset" />;
 
-  // Verificar se há convite pendente no localStorage (vindo da página /convite)
   const pendingCode = typeof window !== 'undefined' ? localStorage.getItem('pending_invite_code') : null;
   if (pendingCode) {
     localStorage.removeItem('pending_invite_code');

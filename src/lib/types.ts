@@ -42,4 +42,14 @@ export interface AppState {
   tableColumns?: string[];
 }
 
+export interface Workspace {
+  id: string;
+  userId: string;
+  workspaceId?: string;
+  label: string;
+  icon: string;
+  isOwn: boolean;
+  ownerEmail?: string;
+}
+
 export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'summary' | 'settings';
