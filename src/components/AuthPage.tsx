@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { Wallet, BarChart3, Users, Brain, Eye, EyeOff } from 'lucide-react';
@@ -18,12 +18,11 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
   const [consent, setConsent] = useState(false);
 
   // Check if we're in password reset mode (from email link)
-  if (typeof window !== 'undefined' && mode !== 'reset') {
-    const hash = window.location.hash;
-    if (hash.includes('type=recovery')) {
-      setTimeout(() => setMode('reset'), 0);
+  useEffect(() => {
+    if (mode !== 'reset' && window.location.hash.includes('type=recovery')) {
+      setMode('reset');
     }
-  }
+  }, [mode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +32,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
 
     // Validate email format (skip for admin preview login)
     if (mode !== 'reset' && email !== 'admin' && !email.includes('@')) {
-      setError('Digite um email valido.'); setLoading(false); return;
+      setError('Digite um email válido.'); setLoading(false); return;
     }
 
     if (mode === 'signup') {
@@ -57,7 +56,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
       if (err) {
         setError(traduzirErro(err.message));
       } else {
-        setSuccess('Email de recuperacao enviado! Verifique sua caixa de entrada.');
+        setSuccess('Email de recuperação enviado! Verifique sua caixa de entrada.');
       }
     } else if (mode === 'reset') {
       if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
@@ -104,7 +103,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
   const buttons = {
     login: 'Entrar',
     signup: 'Criar conta',
-    forgot: 'Enviar email de recuperacao',
+    forgot: 'Enviar email de recuperação',
     reset: 'Salvar nova senha',
   };
 
@@ -142,8 +141,8 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
             {mode !== 'reset' && (
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
-                <input type="text" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="seu@email.com" required
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="seu@email.com" required autoComplete="email"
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
               </div>
             )}
@@ -184,7 +183,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
                 />
                 <span className="text-xs text-slate-400 leading-relaxed">
                   Ao criar sua conta, você concorda com nossa{' '}
-                  <a href="/privacidade" target="_blank" className="text-blue-400 underline hover:text-blue-300">politica de privacidade</a>.
+                  <a href="/privacidade" target="_blank" className="text-blue-400 underline hover:text-blue-300">política de privacidade</a>.
                   Seus dados financeiros são criptografados e armazenados com segurança. Você pode excluir sua conta e todos os dados a qualquer momento nas configurações.
                 </span>
               </label>
@@ -216,17 +215,17 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
                   Esqueci minha senha
                 </button>
                 <p className="text-slate-400 text-sm">
-                  Nao tem uma conta?{' '}
+                  Não tem uma conta?{' '}
                   <button onClick={() => switchMode('signup')}
                     className="text-blue-400 font-semibold hover:text-blue-300 transition-colors cursor-pointer">
-                    Criar conta gratis
+                    Criar conta grátis
                   </button>
                 </p>
               </>
             )}
             {mode === 'signup' && (
               <p className="text-slate-400 text-sm">
-                Ja tem uma conta?{' '}
+                Já tem uma conta?{' '}
                 <button onClick={() => switchMode('login')}
                   className="text-blue-400 font-semibold hover:text-blue-300 transition-colors cursor-pointer">
                   Fazer login

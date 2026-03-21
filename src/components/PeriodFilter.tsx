@@ -24,9 +24,9 @@ export function getFilterLabel(filter: DateFilter): string {
     case 'preset':
       const labels: Record<string, string> = {
         today: 'Hoje',
-        '7days': 'Ultimos 7 dias',
-        '15days': 'Ultimos 15 dias',
-        '30days': 'Ultimos 30 dias',
+        '7days': 'Últimos 7 dias',
+        '15days': 'Últimos 15 dias',
+        '30days': 'Últimos 30 dias',
       };
       return labels[filter.preset || ''] || '';
     case 'custom':
@@ -34,7 +34,7 @@ export function getFilterLabel(filter: DateFilter): string {
         if (filter.startDate === filter.endDate) return formatDate(filter.startDate);
         return `${formatDate(filter.startDate)} - ${formatDate(filter.endDate)}`;
       }
-      return 'Periodo personalizado';
+      return 'Período personalizado';
     default:
       return '';
   }
@@ -94,7 +94,7 @@ export default function PeriodFilter() {
               <button onClick={() => setTab('period')}
                 className={`flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${tab === 'period' ? 't-accent border-b-2' : 't-text-muted'}`}
                 style={tab === 'period' ? { borderBottomColor: 'var(--accent)' } : {}}>
-                Periodo
+                Período
               </button>
             </div>
 
@@ -115,9 +115,9 @@ export default function PeriodFilter() {
                 <div className="text-[0.7rem] t-text-dim font-semibold uppercase tracking-wider mb-1">Atalhos</div>
                 {[
                   { id: 'today', label: 'Hoje' },
-                  { id: '7days', label: 'Ultimos 7 dias' },
-                  { id: '15days', label: 'Ultimos 15 dias' },
-                  { id: '30days', label: 'Ultimos 30 dias' },
+                  { id: '7days', label: 'Últimos 7 dias' },
+                  { id: '15days', label: 'Últimos 15 dias' },
+                  { id: '30days', label: 'Últimos 30 dias' },
                 ].map(p => (
                   <button key={p.id} onClick={() => applyPreset(p.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
@@ -129,7 +129,7 @@ export default function PeriodFilter() {
 
                 {/* Custom range */}
                 <div className="border-t t-border pt-3 mt-2">
-                  <div className="text-[0.7rem] t-text-dim font-semibold uppercase tracking-wider mb-2">Periodo personalizado</div>
+                  <div className="text-[0.7rem] t-text-dim font-semibold uppercase tracking-wider mb-2">Período personalizado</div>
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div>
                       <label className="text-[0.7rem] t-text-dim block mb-1">De</label>
@@ -137,7 +137,7 @@ export default function PeriodFilter() {
                         className="w-full px-2 py-1.5 border rounded-lg text-xs t-input" />
                     </div>
                     <div>
-                      <label className="text-[0.7rem] t-text-dim block mb-1">Ate</label>
+                      <label className="text-[0.7rem] t-text-dim block mb-1">Até</label>
                       <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
                         className="w-full px-2 py-1.5 border rounded-lg text-xs t-input" />
                     </div>

@@ -130,7 +130,7 @@ export default function SummaryPage() {
           <Row key={i} label={fb.label} value={fmt(fb.value)} color="text-red-600" sub />
         ))}
         {data.familyShare > 0 && <>
-          <Row label="↳ Despesas proprias" value={fmt(data.despesasReais - data.familyShare)} color="text-red-600" sub />
+          <Row label="↳ Despesas próprias" value={fmt(data.despesasReais - data.familyShare)} color="text-red-600" sub />
           <Row label={`↳ Rateio familiar (1/${data.indivCount} membros)`} value={fmt(data.familyShare)} color="text-red-600" sub />
         </>}
         <div className="flex justify-between items-center py-2 border-b t-border-light text-sm bg-blue-50/60 rounded-lg px-2 my-1">
@@ -140,10 +140,10 @@ export default function SummaryPage() {
         {data.investSaida > 0 && <Row label="↳ Aplicado" value={fmt(data.investSaida)} color="text-blue-600" sub />}
         {data.totalIncomeInvest > 0 && <Row label="↳ Rendimento" value={fmt(data.totalIncomeInvest)} color="text-blue-600" sub />}
         <div className="flex justify-between items-center py-3 text-sm">
-          <span className="font-bold">Saldo Disponivel</span>
+          <span className="font-bold">Saldo Disponível</span>
           <span className={`font-bold text-lg ${data.saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(data.saldo)}</span>
         </div>
-        {data.totalIncome > 0 && <Row label="Taxa de Poupanca (incl. investimentos)" value={`${Math.max(0, Math.round((data.saldo + data.investTotal) / data.totalIncome * 100))}% da receita`} />}
+        {data.totalIncome > 0 && <Row label="Taxa de Poupança (incl. investimentos)" value={`${Math.max(0, Math.round((data.saldo + data.investTotal) / data.totalIncome * 100))}% da receita`} />}
         <Row label="Maior Categoria" value={data.topCat ? `${data.topCat[0]} (${fmt(data.topCat[1])})` : '-'} />
         <Row label="Parcelamentos Ativos" value={String(data.outflows.filter(e => e.installment > 0).length)} />
       </div>
@@ -169,7 +169,7 @@ export default function SummaryPage() {
 
       {/* Comparativo */}
       <div className="t-card rounded-xl p-6 border mb-5">
-        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Comparativo - Ultimos 3 Meses</h3>
+        <h3 className="text-base font-bold mb-4 pb-3 border-b t-border">Comparativo - Últimos 3 Meses</h3>
         {data.monthHistory.map(({ label, total: t, income: inc }) => (
           <div key={label} className="mb-3.5">
             <div className="flex justify-between text-sm mb-1">

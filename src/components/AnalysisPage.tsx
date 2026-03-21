@@ -245,7 +245,7 @@ export default function AnalysisPage() {
           <div className="flex gap-1 flex-shrink-0">
             <button onClick={() => exportAs('png')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
-              <ImageIcon size={14} /> JPEG
+              <ImageIcon size={14} /> PNG
             </button>
             <button onClick={() => exportAs('pdf')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
