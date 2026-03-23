@@ -57,7 +57,7 @@ export default function SummaryPage() {
     const byPay = groupBy(outflows, 'payment');
 
     // Family breakdown
-    let familyBreakdown: { label: string; value: number }[] = [];
+    const familyBreakdown: { label: string; value: number }[] = [];
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
       const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);

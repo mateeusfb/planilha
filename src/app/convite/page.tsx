@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { ThemeProvider } from '@/lib/theme';
@@ -126,7 +127,7 @@ function InviteHandler() {
           <div className="text-4xl mb-4">❌</div>
           <h2 className="text-lg font-bold mb-2">Link inválido</h2>
           <p className="text-sm text-slate-500 mb-4">Este link de convite não é válido.</p>
-          <a href="/" className="text-blue-600 text-sm font-semibold hover:underline">Ir para a planilha</a>
+          <Link href="/" className="text-blue-600 text-sm font-semibold hover:underline">Ir para a planilha</Link>
         </div>
       </div>
     );
@@ -156,9 +157,9 @@ function InviteHandler() {
             <p className="text-sm text-slate-500 mb-1">Você agora tem acesso a:</p>
             <p className="text-base font-semibold text-blue-600 mb-4">{wsName || 'Planilha compartilhada'}</p>
             <p className="text-xs text-slate-400 mb-5">Selecione o espaço compartilhado no seletor do topo da página.</p>
-            <a href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            <Link href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
               Acessar planilha
-            </a>
+            </Link>
           </>
         )}
 
@@ -167,9 +168,9 @@ function InviteHandler() {
             <div className="text-4xl mb-4">✅</div>
             <h2 className="text-lg font-bold mb-2">Você já tem acesso!</h2>
             <p className="text-sm text-slate-500 mb-5">Este convite já foi aceito anteriormente.</p>
-            <a href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            <Link href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
               Acessar planilha
-            </a>
+            </Link>
           </>
         )}
 
@@ -178,9 +179,9 @@ function InviteHandler() {
             <div className="text-4xl mb-4">🤔</div>
             <h2 className="text-lg font-bold mb-2">Este é seu próprio convite!</h2>
             <p className="text-sm text-slate-500 mb-5">Você não pode aceitar um convite que você mesmo criou.</p>
-            <a href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            <Link href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
               Voltar para a planilha
-            </a>
+            </Link>
           </>
         )}
 
@@ -189,9 +190,9 @@ function InviteHandler() {
             <div className="text-4xl mb-4">⏰</div>
             <h2 className="text-lg font-bold mb-2">Convite expirado</h2>
             <p className="text-sm text-slate-500 mb-5">Este link de convite expirou ou já foi utilizado. Peça um novo convite.</p>
-            <a href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            <Link href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
               Ir para a planilha
-            </a>
+            </Link>
           </>
         )}
 
@@ -200,9 +201,9 @@ function InviteHandler() {
             <div className="text-4xl mb-4">❌</div>
             <h2 className="text-lg font-bold mb-2">Erro ao aceitar convite</h2>
             <p className="text-sm text-slate-500 mb-5">Algo deu errado. Tente novamente ou peça um novo convite.</p>
-            <a href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+            <Link href="/" className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
               Ir para a planilha
-            </a>
+            </Link>
           </>
         )}
       </div>

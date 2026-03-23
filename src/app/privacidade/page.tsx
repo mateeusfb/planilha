@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Privacidade() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 py-12 px-4">
@@ -65,7 +67,7 @@ export default function Privacidade() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-          <a href="/" className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:text-blue-700 dark:hover:text-blue-300">&larr; Voltar ao aplicativo</a>
+          <Link href="/" className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:text-blue-700 dark:hover:text-blue-300">&larr; Voltar ao aplicativo</Link>
         </div>
       </div>
     </div>

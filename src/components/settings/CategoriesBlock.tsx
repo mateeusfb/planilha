@@ -168,7 +168,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
           {catTab === 'recurring' && (
             <>
               {recurringExpenses.length === 0 ? (
-                <p className="text-sm t-text-dim">Nenhuma despesa recorrente cadastrada. Ao criar uma despesa, marque como "Recorrente" para que ela seja lançada automaticamente todo mês.</p>
+                <p className="text-sm t-text-dim">Nenhuma despesa recorrente cadastrada. Ao criar uma despesa, marque como &quot;Recorrente&quot; para que ela seja lançada automaticamente todo mês.</p>
               ) : (
                 <div className="space-y-2">
                   {recurringExpenses.map(r => {
@@ -211,7 +211,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
                   />
                 ))}
               </div>
-              <p className="text-xs t-text-dim">O espaço "Pessoal" não pode ser excluído.</p>
+              <p className="text-xs t-text-dim">O espaço &quot;Pessoal&quot; não pode ser excluído.</p>
             </>
           )}
         </div>
