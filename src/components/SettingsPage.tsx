@@ -12,6 +12,8 @@ import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
 import CollapsibleSection from './settings/CollapsibleSection';
 import CategoriesBlock from './settings/CategoriesBlock';
+import { usePlan } from '@/lib/plans';
+import UpgradeModal from './UpgradeModal';
 
 interface Props {
   onAddMember: () => void;
@@ -38,6 +40,8 @@ interface PendingInvite {
 export default function SettingsPage({ onAddMember, onEditMember, workspaces = [], activeWorkspace, onWorkspaceDeleted }: Props) {
   const { state, setState, removeMember, getIndividualMembers, recurringExpenses, updateRecurring, removeRecurring } = useStore();
   const { user } = useAuth();
+  const { checkCustomCategories, checkGoalLimit, requiredPlanFor } = usePlan();
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const customCats = state.customCats || [];
   const customPays = state.customPayments || [];
   const customBanks = state.customBanks || [];
@@ -170,6 +174,8 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   }
 
   function addCat() {
+    const blocked = checkCustomCategories();
+    if (blocked) { setUpgradeMessage(blocked); return; }
     setInputModalConfig({ type: 'cat' });
     setInputModalOpen(true);
   }
@@ -431,6 +437,8 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         }}
         categoryBudgets={state.categoryBudgets}
         onBudgetChange={(cat, value) => {
+          const blocked = checkGoalLimit(Object.keys(state.categoryBudgets || {}).filter(k => (state.categoryBudgets || {})[k] > 0).length);
+          if (blocked && value > 0 && !(state.categoryBudgets || {})[cat]) { setUpgradeMessage(blocked); return; }
           setState(prev => ({
             ...prev,
             categoryBudgets: { ...prev.categoryBudgets, [cat]: value },
@@ -525,6 +533,14 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         onConfirm={() => { confirmModal.onConfirm(); setConfirmModal(prev => ({ ...prev, open: false })); }}
         message={confirmModal.message}
       />
+      {upgradeMessage && (
+        <UpgradeModal
+          message={upgradeMessage}
+          requiredPlan={requiredPlanFor('customCategories')}
+          onClose={() => setUpgradeMessage(null)}
+          onGoToPlans={() => setUpgradeMessage(null)}
+        />
+      )}
     </>
   );
 }

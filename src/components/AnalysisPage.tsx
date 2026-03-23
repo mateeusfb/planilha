@@ -8,6 +8,8 @@ import { useToast } from './Toast';
 import { Tag, CreditCard, Landmark, User, ImageIcon, FileText, Download } from 'lucide-react';
 import { exportToPDF } from '@/lib/export';
 import PeriodFilter from './PeriodFilter';
+import { usePlan } from '@/lib/plans';
+import UpgradeModal from './UpgradeModal';
 
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie, Doughnut } from 'react-chartjs-2';
@@ -25,6 +27,8 @@ export default function AnalysisPage() {
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { checkExportPDF, requiredPlanFor } = usePlan();
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   const tabTitles: Record<ChartTab, string> = {
     cat: 'Categoria', pay: 'Pagamento', bank: 'Instituição', member: 'Membro',
@@ -144,6 +148,10 @@ export default function AnalysisPage() {
   };
 
   function exportAs(format: 'png' | 'pdf') {
+    if (format === 'pdf') {
+      const blocked = checkExportPDF();
+      if (blocked) { setUpgradeMessage(blocked); return; }
+    }
     setExporting(true);
     try {
       const chartCanvas = exportRef.current?.querySelector('canvas');
@@ -314,6 +322,14 @@ export default function AnalysisPage() {
           </div>
         </div>
       </div>
+      {upgradeMessage && (
+        <UpgradeModal
+          message={upgradeMessage}
+          requiredPlan={requiredPlanFor('exportPDF')}
+          onClose={() => setUpgradeMessage(null)}
+          onGoToPlans={() => setUpgradeMessage(null)}
+        />
+      )}
     </>
   );
 }

@@ -7,15 +7,19 @@ import { useToast } from './Toast';
 import InputModal from './InputModal';
 import { Plus, X } from 'lucide-react';
 import { useExpenseForm } from '@/hooks/useExpenseForm';
+import { usePlan } from '@/lib/plans';
+import UpgradeModal from './UpgradeModal';
 
 export default function QuickExpense() {
-  const { state, setState, getIndividualMembers } = useStore();
+  const { state, setState, getIndividualMembers, getExpensesForMonth, recurringExpenses } = useStore();
   const { members } = state;
   const { toast } = useToast();
+  const { checkExpenseLimit, checkRecurringLimit, checkCustomCategories, requiredPlanFor } = usePlan();
 
   const [open, setOpen] = useState(false);
   const form = useExpenseForm();
   const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay' | 'bank' } | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
@@ -33,6 +37,20 @@ export default function QuickExpense() {
     if (!form.desc.trim()) return toast('Digite a descrição.', 'warning');
     const val = parseFloat(form.value);
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
+
+    // Plan enforcement: expense limit
+    if (!form.editingId) {
+      const monthExpenses = getExpensesForMonth(state.activeMonth, 'all');
+      const blocked = checkExpenseLimit(monthExpenses.length);
+      if (blocked) { setUpgradeMessage(blocked); return; }
+    }
+
+    // Plan enforcement: recurring limit
+    if (form.isRecurring && !form.editingId) {
+      const activeRecurring = recurringExpenses.filter(r => r.active).length;
+      const blocked = checkRecurringLimit(activeRecurring);
+      if (blocked) { setUpgradeMessage(blocked); return; }
+    }
 
     form.handleSave({
       onSuccess: () => {
@@ -88,8 +106,11 @@ export default function QuickExpense() {
                 </div>
                 <div>
                   <select value={form.cat} onChange={e => {
-                    if (e.target.value === '__new__') setInputModal({ type: 'cat' });
-                    else form.setCat(e.target.value);
+                    if (e.target.value === '__new__') {
+                      const blocked = checkCustomCategories();
+                      if (blocked) { setUpgradeMessage(blocked); return; }
+                      setInputModal({ type: 'cat' });
+                    } else form.setCat(e.target.value);
                   }} className={inputClass}>
                     {catOptions.map(c => <option key={c} value={c}>{c}</option>)}
                     <option value="__new__">+ Nova...</option>
@@ -206,6 +227,14 @@ export default function QuickExpense() {
         title={inputModal?.type === 'cat' ? 'Nova Categoria' : inputModal?.type === 'pay' ? 'Nova Forma de Pagamento' : 'Nova Instituição'}
         placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : inputModal?.type === 'pay' ? 'Nome da forma...' : 'Nome da instituição...'}
       />
+      {upgradeMessage && (
+        <UpgradeModal
+          message={upgradeMessage}
+          requiredPlan={requiredPlanFor('exportCSV')}
+          onClose={() => setUpgradeMessage(null)}
+          onGoToPlans={() => setUpgradeMessage(null)}
+        />
+      )}
     </>
   );
 }

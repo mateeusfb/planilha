@@ -24,6 +24,9 @@ import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/NotificationBell';
 import InvestmentsPage from '@/components/InvestmentsPage';
 import ProfilePage from '@/components/ProfilePage';
+import PlansPage from '@/components/PlansPage';
+import { PlanProvider, usePlan } from '@/lib/plans';
+import UpgradeModal from '@/components/UpgradeModal';
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -34,12 +37,14 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
   const { user, signOut } = useAuth();
   const { toggleMode, mode } = useTheme();
   const { state, removeExpense } = useStore();
+  const { checkAnalysis, requiredPlanFor } = usePlan();
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !localStorage.getItem('onboarding_done');
@@ -49,6 +54,11 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
 
   function handlePageChange(page: PageId) {
     if (page === activePage) return;
+    // Gate analysis page for free users
+    if (page === 'analysis') {
+      const blocked = checkAnalysis();
+      if (blocked) { setUpgradeMessage(blocked); return; }
+    }
     setTransitioning(true);
     setTimeout(() => {
       setActivePage(page);
@@ -67,6 +77,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     analysis: 'Análise de Gastos',
     investments: 'Investimentos',
     summary: 'Resumo Mensal',
+    plans: 'Planos',
     profile: 'Meu Perfil',
     settings: 'Configurações',
   };
@@ -123,6 +134,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
               {activePage === 'analysis' && <AnalysisPage />}
               {activePage === 'investments' && <InvestmentsPage />}
               {activePage === 'summary' && <SummaryPage />}
+              {activePage === 'plans' && <PlansPage />}
               {activePage === 'profile' && <ProfilePage />}
               {activePage === 'settings' && (
                 <SettingsPage
@@ -151,6 +163,14 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
         onConfirm={() => { if (deleteId) removeExpense(deleteId); setDeleteId(null); setDeleteModalOpen(false); }}
       />
       <QuickExpense />
+      {upgradeMessage && (
+        <UpgradeModal
+          message={upgradeMessage}
+          requiredPlan={requiredPlanFor('analysis')}
+          onClose={() => setUpgradeMessage(null)}
+          onGoToPlans={() => { setUpgradeMessage(null); handlePageChange('plans'); }}
+        />
+      )}
     </div>
   );
 }
@@ -239,6 +259,17 @@ function AuthGate() {
 
   async function createWorkspace(name: string, icon: string) {
     if (!user) return;
+    // workspace count = own workspaces (not counting personal)
+    const ownCount = workspaces.filter(w => w.id !== 'personal').length;
+    // +1 for personal = total, check against limit
+    const { data: sub } = await supabase.from('user_subscriptions').select('plan').eq('user_id', user.id).single();
+    const plan = (sub?.plan || 'free') as 'free' | 'pro' | 'business';
+    const maxWs = { free: 1, pro: 3, business: 10 }[plan];
+    if (ownCount + 1 >= maxWs) {
+      alert(`Seu plano ${plan === 'free' ? 'Grátis' : plan === 'pro' ? 'Pro' : 'Business'} permite até ${maxWs} workspace${maxWs > 1 ? 's' : ''}. Faça upgrade para criar mais.`);
+      setShowCreateWs(false);
+      return;
+    }
     await supabase.from('workspaces').insert({ owner_id: user.id, name, icon });
     setShowCreateWs(false);
     await loadWorkspaces();
@@ -269,14 +300,16 @@ function AuthGate() {
 
   return (
     <>
-      <StoreProvider key={activeWorkspace.id} userId={activeWorkspace.userId} workspaceId={activeWorkspace.workspaceId}>
-        <AppContent
-          workspaces={workspaces}
-          activeWorkspace={activeWorkspace}
-          onSwitchWorkspace={setActiveWorkspace}
-          onCreateWorkspace={() => setShowCreateWs(true)}
-        />
-      </StoreProvider>
+      <PlanProvider>
+        <StoreProvider key={activeWorkspace.id} userId={activeWorkspace.userId} workspaceId={activeWorkspace.workspaceId}>
+          <AppContent
+            workspaces={workspaces}
+            activeWorkspace={activeWorkspace}
+            onSwitchWorkspace={setActiveWorkspace}
+            onCreateWorkspace={() => setShowCreateWs(true)}
+          />
+        </StoreProvider>
+      </PlanProvider>
       <CreateWorkspaceModal
         isOpen={showCreateWs}
         onClose={() => setShowCreateWs(false)}

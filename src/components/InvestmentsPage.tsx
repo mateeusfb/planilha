@@ -10,6 +10,8 @@ import { Doughnut } from 'react-chartjs-2';
 import InvestmentModal from './InvestmentModal';
 import InvestmentGoalModal from './InvestmentGoalModal';
 import { useToast } from './Toast';
+import { usePlan } from '@/lib/plans';
+import UpgradeModal from './UpgradeModal';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -31,11 +33,13 @@ export default function InvestmentsPage() {
   } = useStore();
 
   const { toast } = useToast();
+  const { checkGoalLimit, requiredPlanFor } = usePlan();
   const [invModalOpen, setInvModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [editingInv, setEditingInv] = useState<Investment | null>(null);
   const [editingGoal, setEditingGoal] = useState<InvestmentGoal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'inv' | 'goal'; id: string } | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   const data = useMemo(() => {
     const totalInvested = investments.reduce((s, i) => s + i.amountInvested, 0);
@@ -165,7 +169,11 @@ export default function InvestmentsPage() {
         <div className="glass-card rounded-xl p-5 animate-fade-in-up stagger-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold t-text flex items-center gap-2"><Target size={16} /> Metas</h3>
-            <button onClick={() => { setEditingGoal(null); setGoalModalOpen(true); }}
+            <button onClick={() => {
+              const blocked = checkGoalLimit(investmentGoals.length);
+              if (blocked) { setUpgradeMessage(blocked); return; }
+              setEditingGoal(null); setGoalModalOpen(true);
+            }}
               className="text-xs t-accent hover:opacity-70 cursor-pointer flex items-center gap-1 font-semibold">
               <Plus size={14} /> Nova Meta
             </button>
@@ -315,6 +323,14 @@ export default function InvestmentsPage() {
             </div>
           </div>
         </div>
+      )}
+      {upgradeMessage && (
+        <UpgradeModal
+          message={upgradeMessage}
+          requiredPlan={requiredPlanFor('goals')}
+          onClose={() => setUpgradeMessage(null)}
+          onGoToPlans={() => setUpgradeMessage(null)}
+        />
       )}
     </>
   );
