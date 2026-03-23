@@ -65,7 +65,7 @@ export interface RecurringExpense {
   active: boolean;
 }
 
-export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'summary' | 'profile' | 'settings';
+export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'summary' | 'plans' | 'profile' | 'settings';
 
 export type InvestmentType = 'renda_fixa' | 'renda_variavel' | 'crypto' | 'previdencia' | 'poupanca' | 'outros';
 
