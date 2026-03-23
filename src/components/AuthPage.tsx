@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { Wallet, BarChart3, Users, Brain, Eye, EyeOff, Shield, Zap, PiggyBank, ArrowRight } from 'lucide-react';
+import { Wallet, BarChart3, Users, Brain, Eye, EyeOff, Shield, Zap, PiggyBank, ArrowRight, Check, X as XIcon, Star, Building2 } from 'lucide-react';
 
 export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
   const { signIn, signUp, clearRecovery } = useAuth();
@@ -89,6 +89,9 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
     setError('');
     setSuccess('');
     setShowPassword(false);
+    setTimeout(() => {
+      document.getElementById('auth-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   }
 
   const titles = {
@@ -174,7 +177,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                   <Users size={16} className="text-blue-400" />
                 </div>
-                <span className="text-sm text-slate-300">Controle familiar</span>
+                <span className="text-sm text-slate-300">Múltiplos workspaces</span>
               </div>
               <div className="flex items-center gap-2.5 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 animate-fade-in-up stagger-3">
                 <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
@@ -204,7 +207,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
 
           {/* Right: Auth form card */}
           <div className="w-full max-w-md mx-auto lg:mx-0 animate-fade-in-up stagger-2">
-            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/20">
+            <div id="auth-form" className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/20">
               <h2 className="text-xl font-bold text-white mb-6 text-center">{titles[mode]}</h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -326,9 +329,127 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
             </div>
 
             <p className="text-center text-slate-700 text-xs mt-5">
-              100% gratuito — seus dados ficam seguros na nuvem
+              Comece grátis — seus dados ficam seguros na nuvem
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Pricing section */}
+      <div className="relative z-10 px-4 py-16 md:py-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Planos que cabem no seu bolso</h2>
+            <p className="text-slate-400 text-sm md:text-base">Comece grátis e evolua quando precisar</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {/* Free */}
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center text-white shadow-md">
+                  <Zap size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-white">Grátis</h3>
+              </div>
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-white">R$ 0</span>
+                <span className="text-sm text-slate-400 ml-1">para sempre</span>
+              </div>
+              <ul className="space-y-3 flex-1 mb-6">
+                {[
+                  { label: '1 workspace', ok: true },
+                  { label: 'Até 50 lançamentos/mês', ok: true },
+                  { label: 'Categorias padrão', ok: true },
+                  { label: 'Análise de gastos', ok: false },
+                  { label: 'Metas/orçamento', ok: false },
+                  { label: 'Despesas recorrentes', ok: false },
+                  { label: 'Export PDF/CSV', ok: false },
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    {f.ok ? <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5" /> : <XIcon size={16} className="text-slate-600 flex-shrink-0 mt-0.5" />}
+                    <span className={f.ok ? 'text-slate-300' : 'text-slate-600'}>{f.label}</span>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => switchMode('signup')} className="w-full py-3 rounded-xl font-semibold text-sm bg-white/[0.06] border border-white/[0.1] text-white hover:bg-white/[0.1] transition-all cursor-pointer">
+                Criar conta grátis
+              </button>
+            </div>
+
+            {/* Pro */}
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-6 flex flex-col relative shadow-lg shadow-indigo-500/10">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-600">Mais popular</span>
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                  <Star size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-white">Pro</h3>
+              </div>
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-white">R$ 9,99</span>
+                <span className="text-sm text-slate-400 ml-1">/mês</span>
+              </div>
+              <ul className="space-y-3 flex-1 mb-6">
+                {[
+                  { label: 'Até 3 workspaces', ok: true },
+                  { label: 'Lançamentos ilimitados', ok: true },
+                  { label: 'Categorias personalizadas', ok: true },
+                  { label: 'Análise completa', ok: true },
+                  { label: 'Até 5 metas/orçamento', ok: true },
+                  { label: 'Até 10 despesas recorrentes', ok: true },
+                  { label: 'Export CSV', ok: true },
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-300">{f.label}</span>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => switchMode('signup')} className="w-full py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 transition-all cursor-pointer shadow-lg shadow-indigo-500/20">
+                Começar agora
+              </button>
+            </div>
+
+            {/* Business */}
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 flex flex-col relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600">Completo</span>
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md">
+                  <Building2 size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-white">Business</h3>
+              </div>
+              <div className="mb-6">
+                <span className="text-3xl font-extrabold text-white">R$ 19,99</span>
+                <span className="text-sm text-slate-400 ml-1">/mês</span>
+              </div>
+              <ul className="space-y-3 flex-1 mb-6">
+                {[
+                  { label: 'Até 10 workspaces', ok: true },
+                  { label: 'Tudo do Pro', ok: true },
+                  { label: 'Metas/orçamento ilimitadas', ok: true },
+                  { label: 'Despesas recorrentes ilimitadas', ok: true },
+                  { label: 'Export PDF/CSV', ok: true },
+                  { label: 'Planejamento com especialistas (em breve)', ok: true },
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <Check size={16} className="text-green-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-300">{f.label}</span>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => switchMode('signup')} className="w-full py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-400 hover:to-orange-500 transition-all cursor-pointer shadow-lg shadow-amber-500/20">
+                Começar agora
+              </button>
+            </div>
+          </div>
+
+          <p className="text-center text-slate-600 text-xs mt-8">Cancele a qualquer momento. Sem multas ou taxas escondidas.</p>
         </div>
       </div>
     </div>
