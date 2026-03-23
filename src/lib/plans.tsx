@@ -83,21 +83,28 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    let cancelled = false;
 
     async function loadPlan() {
+      if (!user) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from('user_subscriptions')
         .select('plan')
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .single();
 
-      if (data?.plan && ['free', 'pro', 'business'].includes(data.plan)) {
-        setPlan(data.plan as PlanId);
+      if (!cancelled) {
+        if (data?.plan && ['free', 'pro', 'business'].includes(data.plan)) {
+          setPlan(data.plan as PlanId);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadPlan();
+    return () => { cancelled = true; };
   }, [user]);
 
   const limits = PLAN_LIMITS[plan];
