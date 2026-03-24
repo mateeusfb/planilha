@@ -6,7 +6,7 @@ import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, Users, User } from 'lucide-react';
 import PeriodFilter from './PeriodFilter';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -93,9 +93,27 @@ function HiddenValue({ children, hidden, className = '', style }: { children: Re
 }
 
 export default function Dashboard() {
-  const { state, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers } = useStore();
-  const { activeMonth, activeMember } = state;
+  const { state, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers, setActiveMember } = useStore();
+  const { activeMonth, activeMember, members } = state;
   const [valuesHidden, setValuesHidden] = useState(true);
+  const [memberDropOpen, setMemberDropOpen] = useState(false);
+  const memberDropRef = useRef<HTMLDivElement>(null);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (memberDropRef.current && !memberDropRef.current.contains(e.target as Node)) {
+        setMemberDropOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const individualMembers = useMemo(() => getIndividualMembers(), [members, getIndividualMembers]);
+  const activeMemberName = activeMember === 'all'
+    ? 'Família'
+    : members.find(m => m.id === activeMember)?.name || 'Todos';
 
   const data = useMemo(() => {
     const allEntries = getExpensesForMonth(activeMonth, activeMember);
@@ -186,7 +204,48 @@ export default function Dashboard() {
       {/* ── Bento Grid: Resumo Financeiro ── */}
       <div className="mb-4 animate-fade-in-up">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold t-text">Resumo Financeiro</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-bold t-text">Resumo Financeiro</h3>
+            {individualMembers.length > 0 && (
+              <div className="relative" ref={memberDropRef}>
+                <button
+                  onClick={() => setMemberDropOpen(v => !v)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg glass-card text-xs font-medium t-text-muted hover:t-text transition-colors cursor-pointer"
+                >
+                  {activeMember === 'all' ? <Users size={14} /> : <User size={14} />}
+                  <span>{activeMemberName}</span>
+                  <ChevronDown size={12} className={`transition-transform ${memberDropOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {memberDropOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-48 glass-card rounded-xl shadow-lg border border-white/10 py-1.5 z-50 animate-fade-in-up">
+                    <button
+                      onClick={() => { setActiveMember('all'); setMemberDropOpen(false); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/5 transition-colors cursor-pointer ${activeMember === 'all' ? 'font-bold t-text' : 't-text-muted'}`}
+                    >
+                      <Users size={14} />
+                      <span>Família (todos)</span>
+                    </button>
+                    {individualMembers.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => { setActiveMember(m.id); setMemberDropOpen(false); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-white/5 transition-colors cursor-pointer ${activeMember === m.id ? 'font-bold t-text' : 't-text-muted'}`}
+                      >
+                        {m.photo ? (
+                          <img src={m.photo} alt={m.name} className="w-5 h-5 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6rem] text-white font-bold" style={{ backgroundColor: m.color }}>
+                            {m.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span>{m.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <PeriodFilter />
             <button onClick={toggleValues}
