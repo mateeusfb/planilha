@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposta Personalizada</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 210mm;
+      height: 297mm;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      background: #0e1b2e;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: white;
+    }
+
+    /* Header */
+    .header {
+      padding: 22px 40px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .label {
+      font-size: 8.5px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.1;
+      position: relative;
+      display: inline-block;
+    }
+
+    .title::after {
+      content: '';
+      display: block;
+      width: 30px;
+      height: 3px;
+      background: #e63950;
+      border-radius: 2px;
+      margin-top: 7px;
+    }
+
+    /* Body */
+    .body {
+      flex: 1;
+      padding: 18px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      padding-left: 12px;
+      border-left: 3px solid rgba(255,255,255,0.15);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+
+    .section-icon {
+      width: 22px;
+      height: 22px;
+      background: #e63950;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .item {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .item:last-child {
+      border-bottom: none;
+    }
+
+    .check {
+      width: 17px;
+      height: 17px;
+      background: rgba(230,57,80,0.15);
+      border: 1.5px solid rgba(230,57,80,0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .check svg {
+      width: 9px;
+      height: 9px;
+    }
+
+    .item-text {
+      flex: 1;
+      font-size: 10.5px;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .item-text strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    /* Footer / Pricing */
+    .pricing {
+      margin: 14px 40px 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pricing-label {
+      font-size: 8px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      font-weight: 500;
+    }
+
+    .pricing-value {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin: 2px 0;
+    }
+
+    .pricing-currency {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .pricing-amount {
+      font-size: 42px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    .pricing-period {
+      font-size: 10px;
+      color: #e63950;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    /* Footer bottom */
+    .footer {
+      padding: 12px 40px 18px;
+      text-align: center;
+    }
+
+    .footer-name {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 500;
+    }
+
+    .footer-sub {
+      font-size: 9px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div class="label">Proposta Personalizada</div>
+      <div class="title">Plano de Marketing</div>
+    </div>
+
+    <div class="body">
+      <p class="subtitle">
+        Proposta exclusiva desenvolvida para potencializar a presença digital do seu negócio,<br>
+        com estratégia, organização e conteúdo de qualidade para gerar resultados reais.
+      </p>
+
+      <div class="section-title">
+        <div class="section-icon">✦</div>
+        O que está incluso
+      </div>
+
+      <div class="items-list">
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Análise do perfil e de concorrentes</strong> — Diagnóstico completo do posicionamento atual e benchmarking com os principais concorrentes do segmento.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Atualização de BIO, link e destaques</strong> — Otimização do perfil para transmitir profissionalismo e clareza sobre o negócio.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Criação de Identidade Visual</strong> — Desenvolvimento de uma identidade visual exclusiva para uso nas redes sociais.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Cronograma mensal de posts</strong> — Planejamento estratégico com 2 conteúdos por semana, totalizando 8 publicações mensais.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Dicas de gravação de stories</strong> — Orientações práticas para criar stories que engajam e conectam com o público.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Dicas de fotografia</strong> — Direcionamento para produção de fotos com qualidade profissional usando o celular.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Posts de datas sazonais</strong> — Conteúdos especiais para datas comemorativas relevantes ao seu segmento.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Relatório mensal dos resultados</strong> — Acompanhamento de métricas e análise de desempenho com insights para evolução.</div>
+        </div>
+        <div class="item">
+          <div class="check"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#e63950" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="item-text"><strong>Gestão e publicação dos conteúdos</strong> — Cuidamos de todo o processo de agendamento e publicação dos posts.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pricing">
+      <div class="pricing-label">Valor de Investimento</div>
+      <div class="pricing-value">
+        <span class="pricing-currency">R$</span>
+        <span class="pricing-amount">400</span>
+      </div>
+      <div class="pricing-period">por mês</div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-name">Mateus Fernandes — Atendimento Publicitário</div>
+      <div class="footer-sub">Proposta personalizada · 2025</div>
+    </div>
+  </div>
+</body>
+</html>
