@@ -1,104 +1,75 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, X, Star, Zap, Building2 } from 'lucide-react';
+import { Check, Star, Zap, Building2, Clock } from 'lucide-react';
 
 const plans = [
   {
     id: 'free',
     name: 'Grátis',
-    price: 0,
     icon: <Zap size={20} />,
     color: 'from-slate-500 to-slate-600',
     badge: null,
     features: [
-      { label: '1 workspace', included: true },
-      { label: 'Até 50 lançamentos/mês', included: true },
-      { label: 'Categorias padrão', included: true },
-      { label: 'Análise de gastos', included: false },
-      { label: 'Metas/orçamento', included: false },
-      { label: 'Despesas recorrentes', included: false },
-      { label: 'Export PDF/CSV', included: false },
-      { label: 'Planejamento com especialistas', included: false },
+      '1 workspace',
+      'Até 50 lançamentos/mês',
+      'Categorias padrão',
     ],
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: 9.99,
     icon: <Star size={20} />,
     color: 'from-indigo-500 to-purple-600',
     badge: 'Mais popular',
     features: [
-      { label: 'Até 3 workspaces', included: true },
-      { label: 'Lançamentos ilimitados', included: true },
-      { label: 'Categorias personalizadas', included: true },
-      { label: 'Análise completa', included: true },
-      { label: 'Até 5 metas/orçamento', included: true },
-      { label: 'Até 10 despesas recorrentes', included: true },
-      { label: 'Export CSV', included: true },
-      { label: 'Planejamento com especialistas', included: false },
+      'Até 3 workspaces',
+      'Lançamentos ilimitados',
+      'Categorias personalizadas',
+      'Análise completa',
+      'Metas e orçamento',
+      'Despesas recorrentes',
+      'Export CSV',
     ],
   },
   {
     id: 'business',
     name: 'Business',
-    price: 19.99,
     icon: <Building2 size={20} />,
     color: 'from-amber-500 to-orange-600',
     badge: 'Completo',
     features: [
-      { label: 'Até 10 workspaces', included: true },
-      { label: 'Lançamentos ilimitados', included: true },
-      { label: 'Categorias personalizadas', included: true },
-      { label: 'Análise completa', included: true },
-      { label: 'Metas/orçamento ilimitadas', included: true },
-      { label: 'Despesas recorrentes ilimitadas', included: true },
-      { label: 'Export PDF/CSV', included: true },
-      { label: 'Planejamento com especialistas (em breve)', included: true },
+      'Até 10 workspaces',
+      'Tudo do Pro',
+      'Metas ilimitadas',
+      'Despesas recorrentes ilimitadas',
+      'Export PDF/CSV',
+      'Planejamento com especialistas',
     ],
   },
 ];
 
 export default function PlansPage() {
-  const [annual, setAnnual] = useState(false);
-
-  function getPrice(price: number) {
-    if (price === 0) return 'Grátis';
-    const p = annual ? Math.round(price * 12 * 0.83 * 100) / 100 : price;
-    return `R$ ${p.toFixed(2).replace('.', ',')}`;
-  }
-
-  function getPeriod(price: number) {
-    if (price === 0) return 'para sempre';
-    return annual ? '/ano' : '/mês';
-  }
-
   return (
     <div className="max-w-5xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold t-text mb-2">Escolha seu plano</h2>
-        <p className="t-text-muted text-sm">Comece grátis e evolua quando precisar</p>
+        <h2 className="text-2xl font-bold t-text mb-2">Planos</h2>
+        <p className="t-text-muted text-sm">Conheça o que estamos preparando para você</p>
+      </div>
 
-        <div className="inline-flex items-center gap-4 mt-6 px-5 py-2.5 rounded-full t-card border">
-          <span className={`text-sm font-medium ${!annual ? 't-text' : 't-text-muted'}`}>Mensal</span>
-          <button
-            onClick={() => setAnnual(!annual)}
-            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer flex-shrink-0 ${annual ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
-          >
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${annual ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
-          <span className={`text-sm font-medium ${annual ? 't-text' : 't-text-muted'}`}>
-            Anual <span className="text-xs text-green-600 font-semibold ml-1">-17%</span>
-          </span>
+      {/* Banner EM BREVE */}
+      <div className="mb-8 p-4 rounded-2xl border-2 border-dashed border-indigo-400/50 bg-indigo-500/5 flex items-center justify-center gap-3">
+        <Clock size={24} className="text-indigo-500" />
+        <div>
+          <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">EM BREVE</p>
+          <p className="text-sm t-text-muted">Estamos finalizando os planos. Por enquanto, todas as funcionalidades estão liberadas!</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`t-card rounded-2xl border p-6 flex flex-col relative transition-shadow hover:shadow-lg ${
+            className={`t-card rounded-2xl border p-6 flex flex-col relative transition-shadow hover:shadow-lg opacity-75 ${
               plan.id === 'pro' ? 'border-indigo-500/50 shadow-md shadow-indigo-500/10' : ''
             }`}
           >
@@ -118,33 +89,23 @@ export default function PlansPage() {
             </div>
 
             <div className="mb-6">
-              <span className="text-3xl font-extrabold t-text">{getPrice(plan.price)}</span>
-              <span className="text-sm t-text-muted ml-1">{getPeriod(plan.price)}</span>
+              <span className="text-xl font-semibold t-text-muted">Em breve</span>
             </div>
 
             <ul className="space-y-3 flex-1 mb-6">
               {plan.features.map((f, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm">
-                  {f.included ? (
-                    <Check size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <X size={16} className="text-slate-300 dark:text-slate-600 flex-shrink-0 mt-0.5" />
-                  )}
-                  <span className={f.included ? 't-text' : 't-text-muted'}>{f.label}</span>
+                  <Check size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="t-text">{f}</span>
                 </li>
               ))}
             </ul>
 
             <button
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
-                plan.id === 'pro'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-500/20'
-                  : plan.id === 'business'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-400 hover:to-orange-500 shadow-lg shadow-amber-500/20'
-                  : 't-card border t-border t-text hover:opacity-80'
-              }`}
+              disabled
+              className="w-full py-3 rounded-xl font-semibold text-sm t-card border t-border t-text-muted cursor-not-allowed opacity-60"
             >
-              {plan.price === 0 ? 'Plano atual' : 'Assinar agora'}
+              Em breve
             </button>
           </div>
         ))}
@@ -152,7 +113,7 @@ export default function PlansPage() {
 
       <div className="text-center mt-6">
         <p className="text-xs t-text-muted">
-          Cancele a qualquer momento. Sem multas ou taxas escondidas.
+          Enquanto os planos não são lançados, aproveite todas as funcionalidades gratuitamente.
         </p>
       </div>
     </div>

@@ -109,67 +109,38 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   const limits = PLAN_LIMITS[plan];
 
-  const checkWorkspaceLimit = useCallback((currentCount: number): string | null => {
-    if (currentCount >= limits.maxWorkspaces) {
-      return `Seu plano ${PLAN_NAMES[plan]} permite até ${limits.maxWorkspaces} workspace${limits.maxWorkspaces > 1 ? 's' : ''}. Faça upgrade para criar mais.`;
-    }
+  // ── Planos desativados: tudo liberado até o lançamento ──
+  const checkWorkspaceLimit = useCallback((_currentCount: number): string | null => {
     return null;
-  }, [plan, limits]);
+  }, []);
 
-  const checkExpenseLimit = useCallback((currentMonthCount: number): string | null => {
-    if (limits.maxExpensesPerMonth !== Infinity && currentMonthCount >= limits.maxExpensesPerMonth) {
-      return `Seu plano ${PLAN_NAMES[plan]} permite até ${limits.maxExpensesPerMonth} lançamentos por mês. Faça upgrade para lançamentos ilimitados.`;
-    }
+  const checkExpenseLimit = useCallback((_currentMonthCount: number): string | null => {
     return null;
-  }, [plan, limits]);
+  }, []);
 
-  const checkGoalLimit = useCallback((currentCount: number): string | null => {
-    if (limits.maxGoals === 0) {
-      return `Metas e orçamentos não estão disponíveis no plano ${PLAN_NAMES[plan]}. Faça upgrade para o Pro.`;
-    }
-    if (limits.maxGoals !== Infinity && currentCount >= limits.maxGoals) {
-      return `Seu plano ${PLAN_NAMES[plan]} permite até ${limits.maxGoals} metas. Faça upgrade para o Business para metas ilimitadas.`;
-    }
+  const checkGoalLimit = useCallback((_currentCount: number): string | null => {
     return null;
-  }, [plan, limits]);
+  }, []);
 
-  const checkRecurringLimit = useCallback((currentCount: number): string | null => {
-    if (limits.maxRecurring === 0) {
-      return `Despesas recorrentes não estão disponíveis no plano ${PLAN_NAMES[plan]}. Faça upgrade para o Pro.`;
-    }
-    if (limits.maxRecurring !== Infinity && currentCount >= limits.maxRecurring) {
-      return `Seu plano ${PLAN_NAMES[plan]} permite até ${limits.maxRecurring} despesas recorrentes. Faça upgrade para o Business para ilimitadas.`;
-    }
+  const checkRecurringLimit = useCallback((_currentCount: number): string | null => {
     return null;
-  }, [plan, limits]);
+  }, []);
 
   const checkExportCSV = useCallback((): string | null => {
-    if (!limits.canExportCSV) {
-      return `Export CSV não está disponível no plano ${PLAN_NAMES[plan]}. Faça upgrade para o Pro.`;
-    }
     return null;
-  }, [plan, limits]);
+  }, []);
 
   const checkExportPDF = useCallback((): string | null => {
-    if (!limits.canExportPDF) {
-      return `Export PDF não está disponível no plano ${PLAN_NAMES[plan]}. Faça upgrade para o Business.`;
-    }
     return null;
-  }, [plan, limits]);
+  }, []);
 
   const checkAnalysis = useCallback((): string | null => {
-    if (!limits.canUseAnalysis) {
-      return `Análise de gastos não está disponível no plano ${PLAN_NAMES[plan]}. Faça upgrade para o Pro.`;
-    }
     return null;
-  }, [plan, limits]);
+  }, []);
 
   const checkCustomCategories = useCallback((): string | null => {
-    if (!limits.canCustomCategories) {
-      return `Categorias personalizadas não estão disponíveis no plano ${PLAN_NAMES[plan]}. Faça upgrade para o Pro.`;
-    }
     return null;
-  }, [plan, limits]);
+  }, []);
 
   const requiredPlanFor = useCallback((feature: string): PlanId => {
     const featureMap: Record<string, PlanId> = {
