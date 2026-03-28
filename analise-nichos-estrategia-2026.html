@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Nichos e Estratégia de Conteúdo — TikTok & Instagram 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --primary: #6C3CE1;
+            --primary-light: #8B5CF6;
+            --primary-dark: #4C1D95;
+            --accent: #06D6A0;
+            --accent-dark: #05B384;
+            --dark: #1A1A2E;
+            --gray-900: #111827;
+            --gray-700: #374151;
+            --gray-500: #6B7280;
+            --gray-300: #D1D5DB;
+            --gray-100: #F3F4F6;
+            --white: #FFFFFF;
+            --instagram: #E1306C;
+            --warning: #F59E0B;
+            --success: #10B981;
+            --info: #3B82F6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--gray-900);
+            line-height: 1.6;
+            background: var(--white);
+        }
+
+        @media print {
+            body { background: white; }
+            .page-break { page-break-before: always; }
+            .no-print { display: none; }
+            .cover { min-height: 100vh; }
+            section { page-break-inside: avoid; }
+            table { page-break-inside: avoid; }
+        }
+
+        /* Cover */
+        .cover {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(6,214,160,0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(139,92,246,0.2) 0%, transparent 50%);
+        }
+
+        .cover-badge {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover h1 {
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+        }
+
+        .cover h1 span {
+            background: linear-gradient(90deg, var(--accent), #34D399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .cover-subtitle {
+            font-size: 20px;
+            font-weight: 300;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-bottom: 50px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-meta {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 30px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Content */
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--gray-100);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 60px;
+        }
+
+        .toc h2 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .toc-list {
+            list-style: none;
+            counter-reset: toc;
+        }
+
+        .toc-list li {
+            counter-increment: toc;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--gray-300);
+            font-size: 15px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toc-list li:last-child { border-bottom: none; }
+
+        .toc-list li::before {
+            content: counter(toc, decimal-leading-zero);
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 18px;
+            min-width: 30px;
+        }
+
+        /* Section Headers */
+        .section-header {
+            margin-bottom: 40px;
+            padding-bottom: 16px;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .section-number {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .section-header h2 {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--dark);
+            line-height: 1.2;
+        }
+
+        .section-header p {
+            font-size: 16px;
+            color: var(--gray-500);
+            margin-top: 8px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border: 1px solid var(--gray-300);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card-highlight {
+            border-left: 4px solid var(--primary);
+            background: linear-gradient(135deg, rgba(108,60,225,0.03), rgba(139,92,246,0.06));
+        }
+
+        .card-accent {
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(135deg, rgba(6,214,160,0.03), rgba(52,211,153,0.06));
+        }
+
+        .card-warning {
+            border-left: 4px solid var(--warning);
+            background: linear-gradient(135deg, rgba(245,158,11,0.03), rgba(245,158,11,0.06));
+        }
+
+        .card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .card h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .card p, .card li {
+            font-size: 14px;
+            color: var(--gray-700);
+            line-height: 1.7;
+        }
+
+        .card ul { list-style: none; padding: 0; }
+
+        .card ul li {
+            padding: 4px 0 4px 20px;
+            position: relative;
+        }
+
+        .card ul li::before {
+            content: '\2192';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--gray-100);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .stat-value.accent { color: var(--accent-dark); }
+        .stat-value.info { color: var(--info); }
+        .stat-value.warning { color: var(--warning); }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-detail {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        thead th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        thead th:first-child { border-radius: 8px 0 0 0; }
+        thead th:last-child { border-radius: 0 8px 0 0; }
+
+        tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-300);
+            color: var(--gray-700);
+        }
+
+        tbody tr:nth-child(even) { background: var(--gray-100); }
+
+        /* Ranking */
+        .ranking-item {
+            display: flex;
+            gap: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            background: var(--white);
+            border: 1px solid var(--gray-300);
+            border-radius: 12px;
+        }
+
+        .ranking-number {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--primary);
+            min-width: 40px;
+            padding-top: 2px;
+        }
+
+        .ranking-content { flex: 1; }
+
+        .ranking-content h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 4px;
+        }
+
+        .platform-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 50px;
+            margin-right: 6px;
+            margin-bottom: 8px;
+        }
+
+        .tag-tiktok { background: #000; color: #fff; }
+        .tag-instagram { background: var(--instagram); color: #fff; }
+        .tag-both { background: linear-gradient(90deg, #000, var(--instagram)); color: #fff; }
+
+        .ranking-content p {
+            font-size: 13px;
+            color: var(--gray-700);
+            line-height: 1.6;
+        }
+
+        .ranking-content .metric {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-dark);
+            margin-top: 6px;
+        }
+
+        /* Funnel */
+        .funnel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .funnel-step {
+            text-align: center;
+            padding: 16px 24px;
+            border-radius: 12px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .funnel-step:nth-child(1) { background: #000; color: #fff; }
+        .funnel-step:nth-child(2) { background: var(--instagram); color: #fff; }
+        .funnel-step:nth-child(3) { background: var(--accent-dark); color: #fff; }
+        .funnel-step:nth-child(4) { background: var(--primary); color: #fff; }
+
+        .funnel-arrow {
+            font-size: 24px;
+            color: var(--gray-500);
+            padding: 0 8px;
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        .step-platform {
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 4px;
+        }
+
+        /* Calendar */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .cal-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            padding: 8px 4px;
+            text-transform: uppercase;
+        }
+
+        .cal-cell {
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 11px;
+            min-height: 70px;
+        }
+
+        .cal-platform {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .cal-tiktok { color: #000; }
+        .cal-instagram { color: var(--instagram); }
+
+        .cal-content {
+            font-size: 10px;
+            color: var(--gray-700);
+            line-height: 1.4;
+        }
+
+        /* Rules Grid */
+        .rule-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .rule-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            background: var(--gray-100);
+            border-radius: 10px;
+        }
+
+        .rule-number {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--primary);
+            min-width: 28px;
+        }
+
+        .rule-text {
+            font-size: 13px;
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        .rule-text strong { color: var(--dark); }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin: 30px 0;
+        }
+
+        .highlight-box h3 {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .highlight-box p {
+            font-size: 15px;
+            opacity: 0.9;
+            line-height: 1.7;
+        }
+
+        .highlight-box ul { list-style: none; padding: 0; }
+
+        .highlight-box ul li {
+            padding: 6px 0 6px 24px;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .highlight-box ul li::before {
+            content: '\2713';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .spacer { height: 40px; }
+        .spacer-lg { height: 60px; }
+
+        /* Footer */
+        .doc-footer {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-500);
+            font-size: 12px;
+            border-top: 1px solid var(--gray-300);
+            margin-top: 60px;
+        }
+
+        /* Print Button */
+        .print-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(108,60,225,0.4);
+            z-index: 100;
+            transition: all 0.2s;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(108,60,225,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn no-print" onclick="window.print()">Salvar como PDF</button>
+
+    <!-- COVER -->
+    <div class="cover">
+        <div class="cover-badge">Relatorio Estrategico 2026</div>
+        <h1>Analise de Nichos &<br><span>Estrategia de Conteudo</span></h1>
+        <p class="cover-subtitle">TikTok & Instagram — O que funciona, quais nichos crescem mais e como posicionar uma solucao de controle financeiro</p>
+        <div class="cover-meta">
+            <span>Marco 2026</span>
+            <span>|</span>
+            <span>Dados atualizados</span>
+            <span>|</span>
+            <span>Plano de acao incluido</span>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+        <!-- TOC -->
+        <div class="toc">
+            <h2>Indice</h2>
+            <ul class="toc-list">
+                <li>Panorama Geral — TikTok vs Instagram em 2026</li>
+                <li>O Novo Algoritmo — Regras que mudaram</li>
+                <li>Nicho de Games no TikTok — O que funciona</li>
+                <li>Nicho de Esportes no TikTok — O que funciona</li>
+                <li>Top 10 Nichos em Maior Crescimento</li>
+                <li>Comparativo TikTok vs Instagram por nicho</li>
+                <li>Estrategia Completa — Solucao de Controle Financeiro</li>
+                <li>Calendario Editorial e Regras de Ouro</li>
+                <li>Monetizacao e Proximos Passos</li>
+            </ul>
+        </div>
+
+        <!-- SECTION 1 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 01</div>
+                <h2>Panorama Geral — TikTok vs Instagram em 2026</h2>
+                <p>Dados comparativos de engajamento, crescimento e performance entre plataformas</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">3,70%</div>
+                    <div class="stat-label">Engajamento TikTok</div>
+                    <div class="stat-detail">+49% ano a ano</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value warning">0,48%</div>
+                    <div class="stat-label">Engajamento Instagram</div>
+                    <div class="stat-detail">Estavel ano a ano</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value accent">7,4%</div>
+                    <div class="stat-label">Engajamento Video TikTok</div>
+                    <div class="stat-detail">vs 4,3% Instagram Reels</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value info">+200%</div>
+                    <div class="stat-label">Crescimento Seguidores TikTok</div>
+                    <div class="stat-detail">vs digito unico no Instagram</div>
+                </div>
+            </div>
+
+            <div class="card card-highlight">
+                <h3>Conclusao principal</h3>
+                <p>O TikTok cresce mais rapido em praticamente todas as metricas. Porem, o Instagram ainda vence em: publicos 25-44 anos, conversao de tickets altos, e-commerce visual e conteudo evergreen. O For You Page do TikTok tem 18% mais retencao que o Explore do Instagram, dando vantagem organica a contas menores.</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metrica</th>
+                        <th>TikTok</th>
+                        <th>Instagram</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Engajamento medio</strong></td><td>3,70% (+49%)</td><td>0,48% (estavel)</td></tr>
+                    <tr><td><strong>Engajamento em video</strong></td><td>7,4%</td><td>4,3% (Reels) / 0,9% (foto)</td></tr>
+                    <tr><td><strong>Crescimento de seguidores</strong></td><td>+200% ano a ano</td><td>Crescimento de digito unico</td></tr>
+                    <tr><td><strong>Retencao novos usuarios (7 dias)</strong></td><td>18% maior</td><td>Base de comparacao</td></tr>
+                    <tr><td><strong>Alcance organico</strong></td><td>Muito superior</td><td>Mais dificil sem base</td></tr>
+                    <tr><td><strong>E-commerce</strong></td><td>TikTok Shop crescendo</td><td>Shopping mais maduro</td></tr>
+                    <tr><td><strong>Publico dominante</strong></td><td>18-24 anos</td><td>25-44 anos</td></tr>
+                    <tr><td><strong>Conteudo evergreen</strong></td><td>Fraco — expira rapido</td><td>Forte — dura meses</td></tr>
+                    <tr><td><strong>Brand deals (valor)</strong></td><td>Menor por post, mais volume</td><td>Maior valor por post</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SECTION 2 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 02</div>
+                <h2>O Novo Algoritmo — Regras que Mudaram</h2>
+                <p>Como o TikTok e Instagram distribuem conteudo em 2026</p>
+            </div>
+
+            <div class="card card-warning">
+                <h3>Mudanca critica: Watch Time e rei</h3>
+                <p>O TikTok em 2026 prioriza <strong>watch time</strong> acima de tudo. Nao basta ter views — o algoritmo rastreia: taxa de conclusao, compartilhamentos e saves, taxa de rewatch, e engajamento na primeira hora.</p>
+            </div>
+
+            <div class="card card-highlight">
+                <h3>Os primeiros 3 segundos decidem tudo</h3>
+                <p>Se perder o viewer no inicio, o algoritmo assume que o conteudo nao e relevante e corta a distribuicao. Comece com a conclusao, o choque ou a pergunta — nunca com introducao.</p>
+            </div>
+
+            <div class="card">
+                <h3>Hashtags: nova estrategia</h3>
+                <ul>
+                    <li>TikTok limitou a <strong>5 tags por post</strong></li>
+                    <li>1-2 tags amplas + 2-3 de nicho especifico</li>
+                    <li>Hashtags genericas como #fyp perderam relevancia</li>
+                    <li>Keyword principal nos <strong>primeiros 30 caracteres</strong> da legenda</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Instagram Reels em 2026</h3>
+                <ul>
+                    <li>Reels representam <strong>35% do tempo de tela</strong> na plataforma</li>
+                    <li>Alcancam mais de <strong>2 bilhoes de usuarios mensais</strong></li>
+                    <li>Geram <strong>2x mais engajamento</strong> que posts normais</li>
+                    <li>As primeiras <strong>24-48 horas</strong> de engajamento sao criticas</li>
+                    <li>Compartilhamentos privados (DM) pesam mais que comentarios publicos</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Conteudo longo em alta</h3>
+                <p>O algoritmo nao recompensa mais apenas clips curtos de alta energia. Videos de <strong>60-180 segundos</strong> com retencao sustentada estao tendo melhor performance. Conteudo educacional lidera com <strong>9,5% de engajamento medio</strong>.</p>
+            </div>
+        </section>
+
+        <!-- SECTION 3 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 03</div>
+                <h2>Nicho de Games no TikTok</h2>
+                <p>Formatos, estrategias e tendencias que funcionam</p>
+            </div>
+
+            <div class="card card-highlight">
+                <h3>Formatos que viralizam</h3>
+                <ul>
+                    <li><strong>Clips de gameplay com reacao autentica</strong> — momentos de tensao, surpresa ou risada</li>
+                    <li><strong>Challenges e duets</strong> — transformam gameplay em experiencia coletiva</li>
+                    <li><strong>Trailers/teasers</strong> condensados em clips rapidos</li>
+                    <li><strong>Colaboracoes com influencers</strong> do nicho</li>
+                    <li><strong>Highlights de eventos in-game</strong> (season launches, updates)</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Diferencial para creators menores</h3>
+                <p>Foque em <strong>nicho especifico + autenticidade pessoal</strong> em vez de producao cara. Viewers no TikTok preferem reacoes espontaneas a videos polidos. Mobile gaming domina o conteudo de games na plataforma.</p>
+            </div>
+
+            <div class="card card-accent">
+                <h3>Estrategia de hashtags para games (max. 5)</h3>
+                <ul>
+                    <li>1-2 tags amplas: #gaming, #gamer</li>
+                    <li>2-3 tags de nicho: #cozygame, #roguelike, #fps, #mobileGame</li>
+                    <li>Keyword principal nos primeiros 30 caracteres da legenda</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Fatores de viralizacao</h3>
+                <ul>
+                    <li>Clips alinhados com <strong>lancamentos de jogos</strong> e eventos pop culture</li>
+                    <li>Gatilhos emocionais: surpresa, risada, tensao</li>
+                    <li>Timing com <strong>atualizacoes e seasons</strong> de jogos populares</li>
+                    <li>Participacao social via challenges e reacoes</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 4 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 04</div>
+                <h2>Nicho de Esportes no TikTok</h2>
+                <p>Dados da comunidade esportiva e oportunidades em 2026</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">60M+</div>
+                    <div class="stat-label">Creators esportivos</div>
+                    <div class="stat-detail">na plataforma</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value accent">11,2M</div>
+                    <div class="stat-label">Videos #Futebol</div>
+                    <div class="stat-detail">publicados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value info">59%</div>
+                    <div class="stat-label">Acham TikTok mais divertido</div>
+                    <div class="stat-detail">que o jogo em si</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value warning">+42%</div>
+                    <div class="stat-label">Chance de assistir ao vivo</div>
+                    <div class="stat-detail">apos conteudo no TikTok</div>
+                </div>
+            </div>
+
+            <div class="card card-highlight">
+                <h3>Formatos que funcionam</h3>
+                <ul>
+                    <li><strong>Bastidores reais</strong> sem edicao excessiva (tendencia "Cha de Realidade")</li>
+                    <li><strong>Melhores momentos/highlights</strong> de jogos e competicoes</li>
+                    <li><strong>Reacoes e comentarios</strong> sobre lances polemicos</li>
+                    <li><strong>Conteudo de torcida</strong> — canticos, atmosfera, dia de jogo</li>
+                    <li><strong>Analises rapidas</strong> com linguagem acessivel</li>
+                </ul>
+            </div>
+
+            <div class="card card-accent">
+                <h3>Oportunidades em 2026</h3>
+                <ul>
+                    <li><strong>FIFA</strong> fez do TikTok a primeira "Preferred Platform" da Copa do Mundo 2026</li>
+                    <li><strong>TNT Sports + TikTok Brasil</strong> — projeto "Criadores em Jogo" com 40 influencers para a Champions</li>
+                    <li><strong>ESPN</strong> — 56M de seguidores, contratou creator full-time (Katie Feeney, 23 anos)</li>
+                    <li><strong>TikTok GamePlan</strong> — ferramenta oficial para organizacoes esportivas</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 5 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 05</div>
+                <h2>Top 10 Nichos em Maior Crescimento</h2>
+                <p>Ranking com dados de engajamento, mercado e plataforma dominante</p>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">01</div>
+                <div class="ranking-content">
+                    <h3>Financas Pessoais / Educacao Financeira</h3>
+                    <span class="platform-tag tag-both">TikTok + Instagram</span>
+                    <p>Millennials e Gen Z obcecados com investimentos, renda extra e planejamento financeiro. CPM de $0,08-$0,20 e brand deals de $5.000-$50.000+ por post.</p>
+                    <div class="metric">Engajamento: 9,5% no TikTok — o maior da plataforma</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">02</div>
+                <div class="ranking-content">
+                    <h3>Saude e Bem-estar / Longevidade</h3>
+                    <span class="platform-tag tag-both">TikTok + Instagram</span>
+                    <p>Biohacking, rotinas de wellness, otimizacao de saude. Mercado global projetado para $9,8 trilhoes ate 2029.</p>
+                    <div class="metric">Score de lucratividade: 90/100</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">03</div>
+                <div class="ranking-content">
+                    <h3>Fitness e Esportes</h3>
+                    <span class="platform-tag tag-instagram">Instagram</span>
+                    <span class="platform-tag tag-tiktok">TikTok</span>
+                    <p>Demanda constante, publico fiel, alta recorrencia de conteudo. Instagram forte no visual, TikTok em treinos rapidos.</p>
+                    <div class="metric">Mercado de vestuario fitness: $221,3 bilhoes ate 2026</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">04</div>
+                <div class="ranking-content">
+                    <h3>Beleza e Skincare</h3>
+                    <span class="platform-tag tag-both">TikTok + Instagram</span>
+                    <p>Crescimento explosivo no TikTok Shop. "Get Ready With Me", reviews de produtos e rotinas de skincare sao conteudos perenes.</p>
+                    <div class="metric">Crescimento constante no TikTok Shop desde 2025</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">05</div>
+                <div class="ranking-content">
+                    <h3>Gastronomia e Alimentacao</h3>
+                    <span class="platform-tag tag-instagram">Instagram</span>
+                    <span class="platform-tag tag-tiktok">TikTok</span>
+                    <p>Posts de comida estao entre os mais populares em ambas plataformas. Instagram para fotos, TikTok para receitas rapidas.</p>
+                    <div class="metric">Engajamento: 6-8% no TikTok</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">06</div>
+                <div class="ranking-content">
+                    <h3>Viagens e Turismo</h3>
+                    <span class="platform-tag tag-instagram">Instagram</span>
+                    <span class="platform-tag tag-tiktok">TikTok</span>
+                    <p>87% dos viajantes usam redes sociais para inspiracao. 60% compartilham fotos. 18,5 milhoes de nomades digitais nos EUA.</p>
+                    <div class="metric">Mercado global: vai ultrapassar $8,9 trilhoes em 2026</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">07</div>
+                <div class="ranking-content">
+                    <h3>Sustentabilidade e Vida Eco-friendly</h3>
+                    <span class="platform-tag tag-instagram">Instagram</span>
+                    <span class="platform-tag tag-tiktok">TikTok</span>
+                    <p>Mudancas climaticas e custo de vida empurram o tema para o mainstream. Creators que tornam a vida sustentavel pratica constroem audiencias leais.</p>
+                    <div class="metric">Nicho emergente com crescimento acelerado</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">08</div>
+                <div class="ranking-content">
+                    <h3>Produtividade e Home Office / Setup</h3>
+                    <span class="platform-tag tag-tiktok">TikTok</span>
+                    <p>Videos de "restocking" e "organization porn" dominam. Trabalho remoto consolidado, cultura de otimizacao pessoal.</p>
+                    <div class="metric">+25% ano a ano em integracao de IA no workspace</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">09</div>
+                <div class="ranking-content">
+                    <h3>Educacao e Conteudo Didatico</h3>
+                    <span class="platform-tag tag-both">TikTok + Instagram</span>
+                    <p>Microaulas virais no TikTok, carrosseis educativos no Instagram. Pessoas buscam aprender de forma rapida e gratuita.</p>
+                    <div class="metric">Maior taxa de engajamento do TikTok: 9,5%</div>
+                </div>
+            </div>
+
+            <div class="ranking-item">
+                <div class="ranking-number">10</div>
+                <div class="ranking-content">
+                    <h3>Moda (Unissex e Sustentavel)</h3>
+                    <span class="platform-tag tag-instagram">Instagram</span>
+                    <span class="platform-tag tag-tiktok">TikTok</span>
+                    <p>Moda unissex em alta + conscious fashion ganhando tracao. Instagram para estetica e lookbooks, TikTok para hauls e trends.</p>
+                    <div class="metric">Nicho consolidado com renovacao constante</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 06</div>
+                <h2>Comparativo: Onde Cada Plataforma Ganha</h2>
+                <p>Guia para decidir onde investir esforco por objetivo</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Objetivo</th>
+                        <th>Melhor Plataforma</th>
+                        <th>Por que</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Crescimento rapido</strong></td><td>TikTok</td><td>Alcance organico absurdo, FYP personalizado</td></tr>
+                    <tr><td><strong>Monetizacao alta</strong></td><td>Instagram</td><td>Brand deals maiores, conversao de tickets altos</td></tr>
+                    <tr><td><strong>Estabilidade</strong></td><td>Instagram</td><td>Conteudo evergreen, comunidade fiel</td></tr>
+                    <tr><td><strong>Publico jovem (18-24)</strong></td><td>TikTok</td><td>40,6% da base nessa faixa</td></tr>
+                    <tr><td><strong>Publico 25-44</strong></td><td>Instagram</td><td>Maior segmento ativo</td></tr>
+                    <tr><td><strong>E-commerce direto</strong></td><td>Ambos</td><td>TikTok Shop cresce, Instagram Shopping e maduro</td></tr>
+                    <tr><td><strong>Prova social</strong></td><td>Instagram</td><td>Usuario vai ao IG para "investigar" antes de comprar</td></tr>
+                    <tr><td><strong>Educacao/tutoriais</strong></td><td>TikTok</td><td>9,5% de engajamento — maior da plataforma</td></tr>
+                </tbody>
+            </table>
+
+            <div class="highlight-box">
+                <h3>Estrategia ideal: use as duas</h3>
+                <ul>
+                    <li><strong>TikTok para atrair</strong> — alcance organico absurdo para audiencia nova</li>
+                    <li><strong>Instagram para reter e converter</strong> — conteudo evergreen, comunidade fiel, brand deals maiores</li>
+                    <li>O usuario <strong>descobre no TikTok</strong> mas vai <strong>investigar no Instagram</strong> antes de comprar</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 7 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 07</div>
+                <h2>Estrategia Completa — Solucao de Controle Financeiro</h2>
+                <p>Plano de conteudo para gerar valor, construir audiencia e vender o produto</p>
+            </div>
+
+            <h3 style="margin-bottom: 16px; font-size: 20px;">O Funil de Conversao</h3>
+
+            <div class="funnel">
+                <div class="funnel-step">
+                    <div class="step-label">Alcance</div>
+                    <div class="step-platform">TikTok</div>
+                </div>
+                <div class="funnel-arrow">&rarr;</div>
+                <div class="funnel-step">
+                    <div class="step-label">Autoridade</div>
+                    <div class="step-platform">Instagram</div>
+                </div>
+                <div class="funnel-arrow">&rarr;</div>
+                <div class="funnel-step">
+                    <div class="step-label">Conversao</div>
+                    <div class="step-platform">Lista / WhatsApp</div>
+                </div>
+                <div class="funnel-arrow">&rarr;</div>
+                <div class="funnel-step">
+                    <div class="step-label">Venda</div>
+                    <div class="step-platform">Produto</div>
+                </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <!-- FASE 1 -->
+            <div class="card card-highlight">
+                <h3>FASE 1 — Construir Audiencia (Meses 1-3)</h3>
+                <p>Gerar valor gratuito, ganhar seguidores e ser reconhecido como referencia em organizacao financeira.</p>
+            </div>
+
+            <h4 style="margin: 20px 0 12px; font-size: 17px; font-weight: 700;">No TikTok (3-5 videos por semana)</h4>
+
+            <div class="card">
+                <h4>Pilar 1: "Choque financeiro" — hooks fortes nos 3 primeiros segundos</h4>
+                <ul>
+                    <li>"Voce gasta R$X por ano em cafe e nem percebe"</li>
+                    <li>"67% dos brasileiros nao sabem quanto gastam por mes"</li>
+                    <li>"Eu fiz essa conta e quase desisti"</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Pilar 2: Dicas rapidas e praticas (15-60s)</h4>
+                <ul>
+                    <li>"3 gastos invisiveis que estao te deixando pobre"</li>
+                    <li>"Como eu organizei as financas da minha familia em 15 minutos"</li>
+                    <li>"A regra dos 50/30/20 explicada em 30 segundos"</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Pilar 3: Bastidores do desenvolvimento</h4>
+                <ul>
+                    <li>Mostrar a tela da planilha/app sendo construida</li>
+                    <li>"Estou criando a ferramenta que eu queria ter tido antes"</li>
+                    <li>Erros que voce cometeu com dinheiro e como sua solucao resolve</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Pilar 4: Storytelling pessoal</h4>
+                <ul>
+                    <li>Sua historia com financas — por que criou a solucao</li>
+                    <li>Historias de caos financeiro que viraram organizacao</li>
+                    <li>"Antes vs depois" de usar controle financeiro</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Pilar 5: Trends adaptados ao nicho</h4>
+                <ul>
+                    <li>Pegar audios e trends virais e adaptar para o tema financeiro</li>
+                    <li>Humor + financas funciona muito bem</li>
+                </ul>
+            </div>
+
+            <h4 style="margin: 20px 0 12px; font-size: 17px; font-weight: 700;">No Instagram (3-4 posts por semana + Stories diarios)</h4>
+
+            <div class="card">
+                <h4>Carrosseis educativos (evergreen, alto save/share)</h4>
+                <ul>
+                    <li>"7 passos para organizar sua vida financeira"</li>
+                    <li>"Planilha pessoal vs familiar vs empresarial — qual usar?"</li>
+                    <li>"Como planejar uma viagem sem se endividar"</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Reels (repurpose do TikTok + conteudo exclusivo)</h4>
+                <ul>
+                    <li>Mesmos videos do TikTok adaptados (sem marca d'agua)</li>
+                    <li>Tutoriais mostrando a planilha em uso</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Stories diarios (conexao e engajamento)</h4>
+                <ul>
+                    <li>Enquetes: "Voce sabe quanto gastou esse mes? Sim/Nao"</li>
+                    <li>Caixinha de perguntas sobre financas</li>
+                    <li>Bastidores do dia a dia + desenvolvimento do produto</li>
+                </ul>
+            </div>
+
+            <div class="spacer"></div>
+
+            <!-- FASE 2 -->
+            <div class="card card-accent">
+                <h3>FASE 2 — Monetizar a Audiencia (Meses 3-6)</h3>
+                <p>Antes de vender o produto, monetize com conteudo gratuito de alto valor e capture contatos.</p>
+            </div>
+
+            <div class="card">
+                <h4>Lead Magnets (iscas para capturar contatos)</h4>
+                <ul>
+                    <li><strong>Planilha gratuita simplificada</strong> — versao basica da sua solucao</li>
+                    <li><strong>E-book:</strong> "O guia de 7 dias para sair do vermelho"</li>
+                    <li><strong>Checklist:</strong> "10 gastos para cortar hoje e economizar R$500/mes"</li>
+                    <li><strong>Quiz:</strong> "Qual e o seu perfil financeiro?" (leva para lista)</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>CTA semanal (1x por semana, nao mais)</h4>
+                <ul>
+                    <li>"Link na bio para baixar a planilha gratuita"</li>
+                    <li>Nos Stories: swipe up / link para o lead magnet</li>
+                    <li>Bio do Instagram com link direto</li>
+                    <li>Redes sociais = topo do funil. <strong>A lista e onde a venda acontece.</strong></li>
+                </ul>
+            </div>
+
+            <div class="spacer"></div>
+
+            <!-- FASE 3 -->
+            <div class="card card-warning">
+                <h3>FASE 3 — Lancar e Vender o Produto (Mes 6+)</h3>
+                <p>Estrategia de pre-lancamento e lancamento do produto de controle financeiro.</p>
+            </div>
+
+            <div class="card">
+                <h4>Pre-lancamento</h4>
+                <ul>
+                    <li><strong>Mostrar o produto sendo construido</strong> — cria antecipacao</li>
+                    <li><strong>Lista de espera:</strong> "Quer ser o primeiro a testar? Link na bio"</li>
+                    <li><strong>Beta testers:</strong> convide seguidores engajados para testar gratis em troca de feedback</li>
+                    <li><strong>Contagem regressiva</strong> nos Stories</li>
+                </ul>
+            </div>
+
+            <h4 style="margin: 20px 0 12px; font-size: 17px; font-weight: 700;">Angulos de venda por workspace</h4>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Workspace</th>
+                        <th>Publico-alvo</th>
+                        <th>Tipo de conteudo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Pessoal</strong></td><td>Jovens 18-30, solteiros</td><td>"Pare de gastar no impulso", controle basico</td></tr>
+                    <tr><td><strong>Familiar</strong></td><td>Casais, pais 25-45</td><td>"Como dividir contas sem brigar", rateio familiar</td></tr>
+                    <tr><td><strong>Empresarial</strong></td><td>MEIs, pequenos empresarios</td><td>"Separe financas pessoais das do negocio"</td></tr>
+                    <tr><td><strong>Planejamento (futuro)</strong></td><td>Todos</td><td>"Como planejar uma viagem de R$10K em 12 meses"</td></tr>
+                </tbody>
+            </table>
+
+            <div class="card">
+                <h4>Semana de lancamento</h4>
+                <ul>
+                    <li><strong>Semana 1:</strong> Conteudo de dor — "Voce ja perdeu dinheiro por falta de controle?"</li>
+                    <li><strong>Semana 2:</strong> Conteudo de solucao — Mostrar o produto resolvendo o problema</li>
+                    <li><strong>Semana 3:</strong> Prova social — Depoimentos dos beta testers</li>
+                    <li><strong>Semana 4:</strong> Oferta — Preco de lancamento com escassez real</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 8 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 08</div>
+                <h2>Calendario Editorial e Regras de Ouro</h2>
+                <p>Organizacao semanal e principios fundamentais</p>
+            </div>
+
+            <h3 style="margin-bottom: 16px; font-size: 20px;">Calendario Semanal Sugerido</h3>
+
+            <div class="calendar">
+                <div class="cal-header">Seg</div>
+                <div class="cal-header">Ter</div>
+                <div class="cal-header">Qua</div>
+                <div class="cal-header">Qui</div>
+                <div class="cal-header">Sex</div>
+                <div class="cal-header">Sab</div>
+                <div class="cal-header">Dom</div>
+
+                <div class="cal-cell">
+                    <div class="cal-platform cal-tiktok">TikTok</div>
+                    <div class="cal-content">Dica rapida (30s)</div>
+                    <div class="cal-platform cal-instagram" style="margin-top:6px">Instagram</div>
+                    <div class="cal-content">Carrossel educativo</div>
+                </div>
+                <div class="cal-cell">
+                    <div class="cal-platform cal-tiktok">TikTok</div>
+                    <div class="cal-content">Storytelling / bastidor</div>
+                    <div class="cal-platform cal-instagram" style="margin-top:6px">Instagram</div>
+                    <div class="cal-content">Stories: enquete + bastidor</div>
+                </div>
+                <div class="cal-cell">
+                    <div class="cal-platform cal-tiktok">TikTok</div>
+                    <div class="cal-content">Trend adaptado a financas</div>
+                    <div class="cal-platform cal-instagram" style="margin-top:6px">Instagram</div>
+                    <div class="cal-content">Reel (repurpose TikTok)</div>
+                </div>
+                <div class="cal-cell">
+                    <div class="cal-platform cal-tiktok">TikTok</div>
+                    <div class="cal-content">"Choque financeiro" (hook forte)</div>
+                    <div class="cal-platform cal-instagram" style="margin-top:6px">Instagram</div>
+                    <div class="cal-content">Stories: caixinha de perguntas</div>
+                </div>
+                <div class="cal-cell">
+                    <div class="cal-platform cal-tiktok">TikTok</div>
+                    <div class="cal-content">Tutorial / demo do produto</div>
+                    <div class="cal-platform cal-instagram" style="margin-top:6px">Instagram</div>
+                    <div class="cal-content">Post com CTA para lead magnet</div>
+                </div>
+                <div class="cal-cell">
+                    <div class="cal-platform cal-instagram">Instagram</div>
+                    <div class="cal-content">Stories: conteudo leve / pessoal</div>
+                </div>
+                <div class="cal-cell">
+                    <div class="cal-platform cal-tiktok">TikTok</div>
+                    <div class="cal-content">Video longo (60-180s) educativo</div>
+                </div>
+            </div>
+
+            <div class="spacer"></div>
+
+            <h3 style="margin-bottom: 16px; font-size: 20px;">7 Regras de Ouro</h3>
+
+            <div class="rule-grid">
+                <div class="rule-item">
+                    <div class="rule-number">1</div>
+                    <div class="rule-text"><strong>Nao venda nos primeiros 30 dias.</strong> So gere valor. Construa confianca primeiro.</div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-number">2</div>
+                    <div class="rule-text"><strong>80% valor / 20% venda.</strong> A cada 4-5 posts de conteudo, 1 com CTA.</div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-number">3</div>
+                    <div class="rule-text"><strong>Seja a pessoa, nao a empresa.</strong> Creators com rosto geram 3x mais confianca.</div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-number">4</div>
+                    <div class="rule-text"><strong>3 segundos = tudo.</strong> Comece com conclusao, choque ou pergunta. Nunca introducao.</div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-number">5</div>
+                    <div class="rule-text"><strong>Peca compartilhamentos.</strong> Shares pesam mais no algoritmo que likes.</div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-number">6</div>
+                    <div class="rule-text"><strong>Consistencia > perfeicao.</strong> Video "feio" postado vale mais que perfeito nunca publicado.</div>
+                </div>
+                <div class="rule-item">
+                    <div class="rule-number">7</div>
+                    <div class="rule-text"><strong>Responda TODOS os comentarios</strong> nas primeiras 2h — dispara o algoritmo.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 9 -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Secao 09</div>
+                <h2>Monetizacao e Proximos Passos</h2>
+                <p>Fontes de receita e acoes imediatas</p>
+            </div>
+
+            <div class="card card-highlight">
+                <h3>Fontes de monetizacao (alem do produto)</h3>
+                <ul>
+                    <li><strong>Assinatura da planilha premium</strong> — versao basica gratis, avancada paga</li>
+                    <li><strong>Consultoria 1:1</strong> de organizacao financeira</li>
+                    <li><strong>Conteudo patrocinado</strong> por fintechs, bancos digitais, apps de investimento</li>
+                    <li><strong>Afiliado</strong> de ferramentas financeiras (corretoras, apps de cashback)</li>
+                    <li><strong>Stacking de receita:</strong> creators que ativam 3-4 metodos simultaneos geram $55-$220+ por mil views</li>
+                </ul>
+            </div>
+
+            <div class="card card-accent">
+                <h3>Dados de mercado a seu favor</h3>
+                <ul>
+                    <li>Financas pessoais tem o <strong>maior engajamento do TikTok (9,5%)</strong></li>
+                    <li>Brand deals para criadores de financas: <strong>$5.000 a $50.000+</strong> por post</li>
+                    <li>O funil de compra em redes sociais foi <strong>comprimido</strong> — descoberta a compra acontece em minutos</li>
+                    <li>59% dos usuarios do TikTok compraram algo apos ver na plataforma</li>
+                </ul>
+            </div>
+
+            <div class="highlight-box">
+                <h3>Comece hoje — 4 acoes imediatas</h3>
+                <ul>
+                    <li><strong>Criar perfis</strong> no TikTok e Instagram com bio clara: "Te ajudo a organizar suas financas pessoais, familiares e do negocio"</li>
+                    <li><strong>Gravar o primeiro video:</strong> sua historia — por que voce decidiu criar essa solucao</li>
+                    <li><strong>Criar uma planilha gratuita simplificada</strong> como lead magnet</li>
+                    <li><strong>Postar 1 video por dia nos primeiros 30 dias</strong> para o algoritmo te categorizar no nicho</li>
+                </ul>
+            </div>
+
+            <div class="spacer-lg"></div>
+
+            <div style="text-align:center; padding:30px; background:var(--gray-100); border-radius:16px;">
+                <p style="font-size:13px; color:var(--gray-500); margin-bottom:12px;">LEMBRE-SE</p>
+                <p style="font-size:22px; font-weight:800; color:var(--dark); line-height:1.4;">
+                    Use o TikTok para <span style="color:var(--primary);">atrair</span>.<br>
+                    Use o Instagram para <span style="color:var(--instagram);">reter</span>.<br>
+                    Use a lista para <span style="color:var(--accent-dark);">converter</span>.
+                </p>
+            </div>
+        </section>
+
+        <!-- SOURCES -->
+        <div class="page-break"></div>
+        <section>
+            <div class="section-header">
+                <div class="section-number">Fontes</div>
+                <h2>Referencias e Dados Utilizados</h2>
+            </div>
+
+            <div class="card">
+                <h4>Dados de Engajamento e Plataformas</h4>
+                <ul>
+                    <li>The Influencer Marketing Factory — TikTok vs Instagram Engagement Rates 2026</li>
+                    <li>Social Insider — Social Media Benchmarks 2026</li>
+                    <li>Buffer — State of Social Media Engagement 2026 (52M+ posts analisados)</li>
+                    <li>eMarketer — TikTok Engagement Analysis</li>
+                    <li>Emplifi — 2026 Social Media Benchmarks Report</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Tendencias e Nichos</h4>
+                <ul>
+                    <li>TikTok Next 2026 — Relatorio Oficial de Tendencias</li>
+                    <li>Teleprompter.com — 10 Trending Niches for Creators 2026</li>
+                    <li>Endow — 20 Most Profitable Creator Niches 2026</li>
+                    <li>Napolify — TikTok Most Profitable Niches 2026</li>
+                    <li>Printify — Top 9 Instagram Niches 2026</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Estrategia e Commerce</h4>
+                <ul>
+                    <li>JoomPulse — Social Commerce: como o TikTok muda a compra</li>
+                    <li>Studio 4x — Vendas pelo Instagram e Facebook 2026</li>
+                    <li>New Zenler — Social Media Strategy for Creators 2026</li>
+                    <li>Lueur Externe — Social Commerce in 2026</li>
+                    <li>Meio e Mensagem — TikTok tendencias 2026</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4>Games e Esportes</h4>
+                <ul>
+                    <li>Cloutboost — TikTok's Changing Landscape for Game Marketing 2026</li>
+                    <li>TechTimes — Viral Gameplay 2026: Live Gaming Clips</li>
+                    <li>Techloy — How to Stand Out as a Gaming Creator 2026</li>
+                    <li>Social Media Today — TikTok Resources for Sports Organizations</li>
+                    <li>Meio e Mensagem — TNT Sports e TikTok: Criadores em Jogo</li>
+                </ul>
+            </div>
+        </section>
+
+        <div class="doc-footer">
+            <p>Relatorio gerado em Marco de 2026 | Dados sujeitos a atualizacao</p>
+            <p style="margin-top:6px;">Analise de Nichos e Estrategia de Conteudo — TikTok & Instagram</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
