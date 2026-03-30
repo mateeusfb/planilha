@@ -32,6 +32,7 @@ h1, h2, h3, h4, h5, h6,
   --bg: #f1f5f9;
   --bg-card: #ffffff;
   --bg-card-hover: #f8fafc;
+  --bg-popover: #ffffff;
   --bg-input: #ffffff;
   --bg-sidebar: #ffffff;
   --bg-topbar: #ffffff;
@@ -68,6 +69,7 @@ h1, h2, h3, h4, h5, h6,
   --accent-hover: #E95623;
   --accent-light: rgba(233,86,35,0.1);
   --bg-elevated: #1a1a2e;
+  --bg-popover: #1e1e2e;
   --shadow: rgba(0,0,0,0.4);
   --glass-bg: rgba(255,255,255,0.03);
   --glass-border: rgba(255,255,255,0.06);
@@ -111,6 +113,11 @@ body {
   transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.2s;
 }
 .t-card-hover:hover { background: var(--bg-card-hover); }
+.t-popover {
+  background: var(--bg-popover, var(--bg-card));
+  border-color: var(--border);
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
 .t-sidebar { background: var(--bg-sidebar); border-color: var(--border); }
 .t-topbar {
   background: var(--bg-topbar);
