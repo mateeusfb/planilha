@@ -14,7 +14,7 @@ export default function QuickExpense() {
   const { state, setState, getIndividualMembers, getExpensesForMonth, recurringExpenses } = useStore();
   const { members } = state;
   const { toast } = useToast();
-  const { checkExpenseLimit, checkRecurringLimit, checkCustomCategories, requiredPlanFor } = usePlan();
+  const { checkExpenseLimit, checkRecurringLimit, checkCustomCategoryLimit, checkCustomPaymentLimit, checkCustomBankLimit, requiredPlanFor } = usePlan();
 
   const [open, setOpen] = useState(false);
   const form = useExpenseForm();
@@ -107,7 +107,7 @@ export default function QuickExpense() {
                 <div>
                   <select value={form.cat} onChange={e => {
                     if (e.target.value === '__new__') {
-                      const blocked = checkCustomCategories();
+                      const blocked = checkCustomCategoryLimit((state.customCats || []).length);
                       if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'cat' });
                     } else form.setCat(e.target.value);
@@ -134,14 +134,22 @@ export default function QuickExpense() {
               {form.formType === 'expense' && (
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.payment} onChange={e => {
-                    if (e.target.value === '__new_pay__') setInputModal({ type: 'pay' });
+                    if (e.target.value === '__new_pay__') {
+                      const blocked = checkCustomPaymentLimit((state.customPayments || []).length);
+                      if (blocked) { setUpgradeMessage(blocked); return; }
+                      setInputModal({ type: 'pay' });
+                    }
                     else form.setPayment(e.target.value);
                   }} className={inputClass}>
                     {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
                     <option value="__new_pay__">+ Nova...</option>
                   </select>
                   <select value={form.bank} onChange={e => {
-                    if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
+                    if (e.target.value === '__new_bank__') {
+                      const blocked = checkCustomBankLimit((state.customBanks || []).length);
+                      if (blocked) { setUpgradeMessage(blocked); return; }
+                      setInputModal({ type: 'bank' });
+                    }
                     else form.setBank(e.target.value);
                   }} className={inputClass}>
                     <option value="">Instituição (opcional)</option>
@@ -153,7 +161,11 @@ export default function QuickExpense() {
 
               {form.formType === 'income' && (
                 <select value={form.bank} onChange={e => {
-                  if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
+                  if (e.target.value === '__new_bank__') {
+                      const blocked = checkCustomBankLimit((state.customBanks || []).length);
+                      if (blocked) { setUpgradeMessage(blocked); return; }
+                      setInputModal({ type: 'bank' });
+                    }
                   else form.setBank(e.target.value);
                 }} className={inputClass}>
                   <option value="">Instituição (opcional)</option>
