@@ -20,7 +20,7 @@ interface Props {
 
 export default function ExpensesPage({ onDeleteRequest }: Props) {
   const { state, setState, getExpensesForMonth, getIndividualMembers, recurringExpenses } = useStore();
-  const { checkExpenseLimit, checkRecurringLimit, checkExportCSV, checkCustomCategories, requiredPlanFor } = usePlan();
+  const { checkExpenseLimit, checkRecurringLimit, checkExportCSV, checkCustomCategoryLimit, checkCustomPaymentLimit, checkCustomBankLimit, requiredPlanFor } = usePlan();
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const { activeMonth, activeMember, members, expenses } = state;
 
@@ -480,7 +480,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 <div>
                   <select value={form.cat} onChange={e => {
                     if (e.target.value === '__new__') {
-                      const blocked = checkCustomCategories();
+                      const blocked = checkCustomCategoryLimit((state.customCats || []).length);
                       if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'cat' });
                     } else form.setCat(e.target.value);
@@ -503,15 +503,21 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               {form.formType === 'expense' && (
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.payment} onChange={e => {
-                    if (e.target.value === '__new_pay__') setInputModal({ type: 'pay' });
-                    else form.setPayment(e.target.value);
+                    if (e.target.value === '__new_pay__') {
+                      const blocked = checkCustomPaymentLimit((state.customPayments || []).length);
+                      if (blocked) { setUpgradeMessage(blocked); return; }
+                      setInputModal({ type: 'pay' });
+                    } else form.setPayment(e.target.value);
                   }} className={inputClass}>
                     {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
                     <option value="__new_pay__">+ Nova...</option>
                   </select>
                   <select value={form.bank} onChange={e => {
-                    if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                    else form.setBank(e.target.value);
+                    if (e.target.value === '__new_bank__') {
+                      const blocked = checkCustomBankLimit((state.customBanks || []).length);
+                      if (blocked) { setUpgradeMessage(blocked); return; }
+                      setInputModal({ type: 'bank' });
+                    } else form.setBank(e.target.value);
                   }} className={inputClass}>
                     <option value="">Instituição (opcional)</option>
                     {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -522,8 +528,11 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
               {form.formType === 'income' && (
                 <select value={form.bank} onChange={e => {
-                  if (e.target.value === '__new_bank__') setInputModal({ type: 'bank' });
-                  else form.setBank(e.target.value);
+                  if (e.target.value === '__new_bank__') {
+                    const blocked = checkCustomBankLimit((state.customBanks || []).length);
+                    if (blocked) { setUpgradeMessage(blocked); return; }
+                    setInputModal({ type: 'bank' });
+                  } else form.setBank(e.target.value);
                 }} className={inputClass}>
                   <option value="">Instituição (opcional)</option>
                   {allBanks.map(b => <option key={b} value={b}>{b}</option>)}

@@ -32,10 +32,7 @@ export default function SummaryPage() {
     const expenses = getExpensesForMonth(activeMonth, activeMember);
     let outflows = expenses.filter(e => e.type !== 'income');
     const incomes = expenses.filter(e => e.type === 'income');
-    const incomesNormais = incomes.filter(e => e.cat !== 'Investimento');
-    const incomesInvest = incomes.filter(e => e.cat === 'Investimento');
-    const totalIncome = getTotal(incomesNormais);
-    const totalIncomeInvest = getTotal(incomesInvest);
+    const totalIncome = getTotal(incomes);
 
     let familyShare = 0;
     const indivCount = getIndividualMembers().length;
@@ -49,9 +46,7 @@ export default function SummaryPage() {
     }
 
     const total = getTotal(outflows);
-    const investSaida = outflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-    const investTotal = investSaida + totalIncomeInvest;
-    const despesasReais = total - investSaida;
+    const despesasReais = total;
     const saldo = totalIncome - despesasReais;
     const byCat = groupBy(outflows, 'cat');
     const byPay = groupBy(outflows, 'payment');
@@ -60,11 +55,11 @@ export default function SummaryPage() {
     const familyBreakdown: { label: string; value: number }[] = [];
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
-      const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
+      const famTotal = getTotal(famOut);
       if (famTotal > 0) familyBreakdown.push({ label: 'Gastos em conjunto (família)', value: famTotal });
       getIndividualMembers().forEach(mb => {
         const mbOut = outflows.filter(e => e.memberId === mb.id);
-        const mbTotal = getTotal(mbOut) - mbOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
+        const mbTotal = getTotal(mbOut);
         if (mbTotal > 0) familyBreakdown.push({ label: mb.name, value: mbTotal });
       });
     }
@@ -88,7 +83,7 @@ export default function SummaryPage() {
     const sortedCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
     const topCat = sortedCats[0];
     return {
-      totalIncome, despesasReais, saldo, investTotal, investSaida, totalIncomeInvest,
+      totalIncome, despesasReais, saldo,
       familyShare, indivCount, familyBreakdown, byCat, byPay, total, sortedCats, topCat,
       monthHistory, memberName, expenses, outflows,
     };
@@ -106,7 +101,7 @@ export default function SummaryPage() {
             <p className="text-white/80 text-sm">{data.memberName} - Gerado em {new Date().toLocaleDateString('pt-BR')}</p>
             <div className="text-4xl font-bold my-3">{fmt(data.saldo >= 0 ? data.saldo : data.despesasReais)}</div>
             <div className="text-sm text-white/70">
-              {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponível no mês' : 'Total de despesas (sem investimentos)'} | {data.expenses.length} lançamentos
+              {data.saldo >= 0 && data.totalIncome > 0 ? 'Saldo disponível no mês' : 'Total de despesas'} | {data.expenses.length} lançamentos
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

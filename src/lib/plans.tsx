@@ -10,44 +10,60 @@ export type PlanId = 'free' | 'pro' | 'business';
 export interface PlanLimits {
   maxWorkspaces: number;
   maxExpensesPerMonth: number;
+  maxMembers: number;
   maxGoals: number;
   maxRecurring: number;
+  maxInvestments: number;
+  maxCustomCategories: number;
+  maxCustomPayments: number;
+  maxCustomBanks: number;
   canExportCSV: boolean;
   canExportPDF: boolean;
   canUseAnalysis: boolean;
-  canCustomCategories: boolean;
 }
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
   free: {
-    maxWorkspaces: 1,
-    maxExpensesPerMonth: 50,
-    maxGoals: 0,
-    maxRecurring: 0,
+    maxWorkspaces: 2,
+    maxExpensesPerMonth: 100,
+    maxMembers: 5,
+    maxGoals: 10,
+    maxRecurring: 50,
+    maxInvestments: 10,
+    maxCustomCategories: 10,
+    maxCustomPayments: 5,
+    maxCustomBanks: 5,
     canExportCSV: false,
     canExportPDF: false,
     canUseAnalysis: false,
-    canCustomCategories: false,
   },
   pro: {
     maxWorkspaces: 3,
     maxExpensesPerMonth: Infinity,
-    maxGoals: 5,
-    maxRecurring: 10,
+    maxMembers: 15,
+    maxGoals: 30,
+    maxRecurring: 20,
+    maxInvestments: 50,
+    maxCustomCategories: 30,
+    maxCustomPayments: 15,
+    maxCustomBanks: 15,
     canExportCSV: true,
     canExportPDF: false,
     canUseAnalysis: true,
-    canCustomCategories: true,
   },
   business: {
     maxWorkspaces: 10,
     maxExpensesPerMonth: Infinity,
+    maxMembers: Infinity,
     maxGoals: Infinity,
     maxRecurring: Infinity,
+    maxInvestments: Infinity,
+    maxCustomCategories: Infinity,
+    maxCustomPayments: Infinity,
+    maxCustomBanks: Infinity,
     canExportCSV: true,
     canExportPDF: true,
     canUseAnalysis: true,
-    canCustomCategories: true,
   },
 };
 
@@ -65,11 +81,17 @@ interface PlanContextType {
   /** Returns null if allowed, or a message string if blocked */
   checkWorkspaceLimit: (currentCount: number) => string | null;
   checkExpenseLimit: (currentMonthCount: number) => string | null;
+  checkMemberLimit: (currentCount: number) => string | null;
   checkGoalLimit: (currentCount: number) => string | null;
   checkRecurringLimit: (currentCount: number) => string | null;
+  checkInvestmentLimit: (currentCount: number) => string | null;
+  checkCustomCategoryLimit: (currentCount: number) => string | null;
+  checkCustomPaymentLimit: (currentCount: number) => string | null;
+  checkCustomBankLimit: (currentCount: number) => string | null;
   checkExportCSV: () => string | null;
   checkExportPDF: () => string | null;
   checkAnalysis: () => string | null;
+  /** @deprecated Use specific check functions instead */
   checkCustomCategories: () => string | null;
   /** Which plan is needed to unlock a feature */
   requiredPlanFor: (feature: string) => PlanId;
@@ -109,37 +131,93 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   const limits = PLAN_LIMITS[plan];
 
-  // ── Planos desativados: tudo liberado até o lançamento ──
-  const checkWorkspaceLimit = useCallback((_currentCount: number): string | null => {
+  const checkWorkspaceLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxWorkspaces) {
+      return `Você atingiu o limite de ${limits.maxWorkspaces} workspace${limits.maxWorkspaces > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
     return null;
-  }, []);
+  }, [limits, plan]);
 
-  const checkExpenseLimit = useCallback((_currentMonthCount: number): string | null => {
+  const checkExpenseLimit = useCallback((currentMonthCount: number): string | null => {
+    if (currentMonthCount >= limits.maxExpensesPerMonth) {
+      return `Você atingiu o limite de ${limits.maxExpensesPerMonth} lançamentos por mês do plano ${PLAN_NAMES[plan]}.`;
+    }
     return null;
-  }, []);
+  }, [limits, plan]);
 
-  const checkGoalLimit = useCallback((_currentCount: number): string | null => {
+  const checkMemberLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxMembers) {
+      return `Você atingiu o limite de ${limits.maxMembers} membro${limits.maxMembers > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
     return null;
-  }, []);
+  }, [limits, plan]);
 
-  const checkRecurringLimit = useCallback((_currentCount: number): string | null => {
+  const checkGoalLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxGoals) {
+      return `Você atingiu o limite de ${limits.maxGoals} meta${limits.maxGoals > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
     return null;
-  }, []);
+  }, [limits, plan]);
+
+  const checkRecurringLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxRecurring) {
+      return `Você atingiu o limite de ${limits.maxRecurring} despesa${limits.maxRecurring > 1 ? 's' : ''} recorrente${limits.maxRecurring > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
+    return null;
+  }, [limits, plan]);
+
+  const checkInvestmentLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxInvestments) {
+      return `Você atingiu o limite de ${limits.maxInvestments} investimento${limits.maxInvestments > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
+    return null;
+  }, [limits, plan]);
+
+  const checkCustomCategoryLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxCustomCategories) {
+      return `Você atingiu o limite de ${limits.maxCustomCategories} categoria${limits.maxCustomCategories > 1 ? 's' : ''} personalizada${limits.maxCustomCategories > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
+    return null;
+  }, [limits, plan]);
+
+  const checkCustomPaymentLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxCustomPayments) {
+      return `Você atingiu o limite de ${limits.maxCustomPayments} forma${limits.maxCustomPayments > 1 ? 's' : ''} de pagamento do plano ${PLAN_NAMES[plan]}.`;
+    }
+    return null;
+  }, [limits, plan]);
+
+  const checkCustomBankLimit = useCallback((currentCount: number): string | null => {
+    if (currentCount >= limits.maxCustomBanks) {
+      return `Você atingiu o limite de ${limits.maxCustomBanks} instituição${limits.maxCustomBanks > 1 ? 'ões' : ''} bancária${limits.maxCustomBanks > 1 ? 's' : ''} do plano ${PLAN_NAMES[plan]}.`;
+    }
+    return null;
+  }, [limits, plan]);
 
   const checkExportCSV = useCallback((): string | null => {
+    if (!limits.canExportCSV) {
+      return `Exportar CSV está disponível a partir do plano Pro.`;
+    }
     return null;
-  }, []);
+  }, [limits]);
 
   const checkExportPDF = useCallback((): string | null => {
+    if (!limits.canExportPDF) {
+      return `Exportar PDF está disponível a partir do plano Business.`;
+    }
     return null;
-  }, []);
+  }, [limits]);
 
   const checkAnalysis = useCallback((): string | null => {
+    if (!limits.canUseAnalysis) {
+      return `A análise de gastos está disponível a partir do plano Pro.`;
+    }
     return null;
-  }, []);
+  }, [limits]);
 
+  // Legacy: kept for existing components that use boolean check
   const checkCustomCategories = useCallback((): string | null => {
-    return null;
+    return null; // Now handled by specific limit checks
   }, []);
 
   const requiredPlanFor = useCallback((feature: string): PlanId => {
@@ -148,8 +226,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       analysis: 'pro',
       goals: 'pro',
       recurring: 'pro',
+      investments: 'pro',
+      members: 'pro',
       exportCSV: 'pro',
       customCategories: 'pro',
+      customPayments: 'pro',
+      customBanks: 'pro',
       exportPDF: 'business',
     };
     return featureMap[feature] || 'pro';
@@ -158,7 +240,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   return (
     <PlanContext.Provider value={{
       plan, limits, loading,
-      checkWorkspaceLimit, checkExpenseLimit, checkGoalLimit, checkRecurringLimit,
+      checkWorkspaceLimit, checkExpenseLimit, checkMemberLimit,
+      checkGoalLimit, checkRecurringLimit, checkInvestmentLimit,
+      checkCustomCategoryLimit, checkCustomPaymentLimit, checkCustomBankLimit,
       checkExportCSV, checkExportPDF, checkAnalysis, checkCustomCategories,
       requiredPlanFor,
     }}>

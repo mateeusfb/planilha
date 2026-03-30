@@ -88,5 +88,14 @@ export interface InvestmentGoal {
   currentValue: number;
   deadline?: string;
   icon: string;
+  linkedInvestmentIds?: string[];
   active: boolean;
+}
+
+export interface InvestmentSnapshot {
+  id: string;
+  month: string; // YYYY-MM
+  totalInvested: number;
+  totalCurrent: number;
+  createdAt: string;
 }

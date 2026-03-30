@@ -73,6 +73,15 @@ export function useNotifications(): UseNotificationsReturn {
         const allEntries = getExpensesForMonth(currentMonth, 'all');
         if (allEntries.length > 0) {
           const tips = generateTips(allEntries, 'all', getIndividualMembers, 0);
+
+          // Add monthly info tip at the end
+          tips.push({
+            type: 'info',
+            icon: 'i',
+            title: 'Suas dicas são atualizadas 1x por mês',
+            text: 'Essas análises são geradas automaticamente a cada novo mês com base nos seus lançamentos. Quer dicas personalizadas mais frequentes? Entre em contato com o suporte.',
+          });
+
           if (tips.length > 0) {
             const rows = tips.map(tip => ({
               user_id: userId,

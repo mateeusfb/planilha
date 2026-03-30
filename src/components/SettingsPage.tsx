@@ -40,7 +40,7 @@ interface PendingInvite {
 export default function SettingsPage({ onAddMember, onEditMember, workspaces = [], activeWorkspace, onWorkspaceDeleted }: Props) {
   const { state, setState, removeMember, getIndividualMembers, recurringExpenses, updateRecurring, removeRecurring } = useStore();
   const { user } = useAuth();
-  const { checkCustomCategories, checkGoalLimit, requiredPlanFor } = usePlan();
+  const { checkCustomCategoryLimit, checkCustomPaymentLimit, checkCustomBankLimit, checkGoalLimit, requiredPlanFor } = usePlan();
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const customCats = state.customCats || [];
   const customPays = state.customPayments || [];
@@ -174,7 +174,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   }
 
   function addCat() {
-    const blocked = checkCustomCategories();
+    const blocked = checkCustomCategoryLimit(customCats.length);
     if (blocked) { setUpgradeMessage(blocked); return; }
     setInputModalConfig({ type: 'cat' });
     setInputModalOpen(true);
@@ -196,6 +196,8 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
     });
   }
   function addPay() {
+    const blocked = checkCustomPaymentLimit(customPays.length);
+    if (blocked) { setUpgradeMessage(blocked); return; }
     setInputModalConfig({ type: 'pay' });
     setInputModalOpen(true);
   }
@@ -268,6 +270,8 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   }
 
   function addBank() {
+    const blocked = checkCustomBankLimit(customBanks.length);
+    if (blocked) { setUpgradeMessage(blocked); return; }
     setInputModalConfig({ type: 'bank' });
     setInputModalOpen(true);
   }
@@ -437,7 +441,8 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         }}
         categoryBudgets={state.categoryBudgets}
         onBudgetChange={(cat, value) => {
-          const blocked = checkGoalLimit(Object.keys(state.categoryBudgets || {}).filter(k => (state.categoryBudgets || {})[k] > 0).length);
+          const activeBudgets = Object.keys(state.categoryBudgets || {}).filter(k => (state.categoryBudgets || {})[k] > 0).length;
+          const blocked = checkCustomCategoryLimit(activeBudgets);
           if (blocked && value > 0 && !(state.categoryBudgets || {})[cat]) { setUpgradeMessage(blocked); return; }
           setState(prev => ({
             ...prev,

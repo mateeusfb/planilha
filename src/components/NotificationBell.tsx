@@ -31,14 +31,14 @@ const typeIcons: Record<string, React.ReactNode> = {
   ok: <Check size={14} className="text-green-500" />,
   '!': <AlertTriangle size={14} className="text-amber-500" />,
   i: <Info size={14} className="text-blue-500" />,
-  system: <Megaphone size={14} className="text-indigo-500" />,
+  system: <Megaphone size={14} className="text-orange-500" />,
 };
 
 const typeIconsLarge: Record<string, React.ReactNode> = {
   ok: <Check size={22} className="text-green-500" />,
   '!': <AlertTriangle size={22} className="text-amber-500" />,
   i: <Info size={22} className="text-blue-500" />,
-  system: <Megaphone size={22} className="text-indigo-500" />,
+  system: <Megaphone size={22} className="text-orange-500" />,
 };
 
 const ACTION_LABELS: Record<string, { label: string; page: PageId }> = {
@@ -78,7 +78,7 @@ function NotificationModal({ notification, onClose, onNavigate }: {
                 <h3 className="text-sm font-bold t-text">{notification.title}</h3>
                 <div className="flex items-center gap-2 mt-0.5">
                   {isSystem && (
-                    <span className="text-[0.6rem] px-1.5 py-px rounded-full bg-indigo-500/10 text-indigo-500 font-semibold">
+                    <span className="text-[0.6rem] px-1.5 py-px rounded-full bg-orange-500/10 text-orange-500 font-semibold">
                       Folga
                     </span>
                   )}
@@ -156,7 +156,7 @@ function NotificationItem({ notification, onRead, onOpen }: {
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-xs font-semibold t-text truncate">{notification.title}</span>
             {isSystem && (
-              <span className="text-[0.6rem] px-1.5 py-px rounded-full bg-indigo-500/10 text-indigo-500 font-semibold flex-shrink-0">
+              <span className="text-[0.6rem] px-1.5 py-px rounded-full bg-orange-500/10 text-orange-500 font-semibold flex-shrink-0">
                 Folga
               </span>
             )}

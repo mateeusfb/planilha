@@ -120,8 +120,7 @@ export default function Dashboard() {
     const incomes = allEntries.filter(e => e.type === 'income');
     const outflows = allEntries.filter(e => e.type !== 'income');
 
-    const incomesNormais = incomes.filter(e => e.cat !== 'Investimento');
-    const totalIncome = getTotal(incomesNormais);
+    const totalIncome = getTotal(incomes);
     let totalExpense = getTotal(outflows);
 
     let familyShare = 0;
@@ -136,15 +135,14 @@ export default function Dashboard() {
       }
     }
 
-    const investSaida = outflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-    const despesasReais = totalExpense - investSaida;
+    const despesasReais = totalExpense;
     const saldo = totalIncome - despesasReais;
 
     const [y, m] = activeMonth.split('-').map(Number);
     const prevD = new Date(y, m - 2, 1);
     const prevYM = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}`;
     const prevOutflows = getOutflows(prevYM, activeMember);
-    const prevExpense = getTotal(prevOutflows) - prevOutflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
+    const prevExpense = getTotal(prevOutflows);
     const diff = despesasReais - prevExpense;
     const diffPct = prevExpense > 0 ? Math.round((diff / prevExpense) * 100) : 0;
     const diffText = prevExpense > 0 ? `${diff >= 0 ? '+' : ''}${fmt(diff)} vs mês anterior` : 'Sem dados do mês anterior';
@@ -152,11 +150,11 @@ export default function Dashboard() {
     const familyBreakdown: { label: string; value: number }[] = [];
     if (activeMember === 'all') {
       const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
-      const famTotal = getTotal(famOut) - famOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
+      const famTotal = getTotal(famOut);
       if (famTotal > 0) familyBreakdown.push({ label: 'Família (conjunto)', value: famTotal });
       getIndividualMembers().forEach(mb => {
         const mbOut = outflows.filter(e => e.memberId === mb.id);
-        const mbTotal = getTotal(mbOut) - mbOut.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
+        const mbTotal = getTotal(mbOut);
         if (mbTotal > 0) familyBreakdown.push({ label: mb.name, value: mbTotal });
       });
     }
@@ -173,8 +171,8 @@ export default function Dashboard() {
       const all = getExpensesByExactMonth(ym, activeMember);
       monthlyData.push({
         label: fmtMonth(ym),
-        income: getTotal(all.filter(e => e.type === 'income' && e.cat !== 'Investimento')),
-        expense: getTotal(all.filter(e => e.type !== 'income' && e.cat !== 'Investimento')),
+        income: getTotal(all.filter(e => e.type === 'income')),
+        expense: getTotal(all.filter(e => e.type !== 'income')),
       });
     }
 

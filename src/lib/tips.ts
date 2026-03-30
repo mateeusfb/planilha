@@ -18,21 +18,14 @@ export function generateTips(
   const outflows = expenses.filter(e => e.type !== 'income');
   const incomes = expenses.filter(e => e.type === 'income');
 
-  const incomesNormais = incomes.filter(e => e.cat !== 'Investimento');
-  const incomesInvest = incomes.filter(e => e.cat === 'Investimento');
-  const totalIncome = getTotal(incomesNormais);
-  const totalIncomeInvest = getTotal(incomesInvest);
-
-  const investSaida = outflows.filter(e => e.cat === 'Investimento').reduce((s, e) => s + e.value, 0);
-  const despesasReais = getTotal(outflows) - investSaida + familyShare;
-  const saldoInvest = investSaida + totalIncomeInvest;
+  const totalIncome = getTotal(incomes);
+  const despesasReais = getTotal(outflows) + familyShare;
   const saldo = totalIncome - despesasReais;
 
   const base = totalIncome > 0 ? totalIncome : despesasReais;
 
-  const outflowsSemInvest = outflows.filter(e => e.cat !== 'Investimento');
-  const byCat = groupBy(outflowsSemInvest, 'cat');
-  const byPayment = groupBy(outflowsSemInvest, 'payment');
+  const byCat = groupBy(outflows, 'cat');
+  const byPayment = groupBy(outflows, 'payment');
 
   if (!expenses.length) {
     tips.push({ type: 'info', icon: 'i', title: 'Comece registrando seus lançamentos', text: 'Adicione receitas e despesas para receber análises personalizadas sobre sua saúde financeira.' });
@@ -47,7 +40,7 @@ export function generateTips(
   // SALDO DISPONÍVEL
   if (totalIncome > 0) {
     if (saldo < 0) {
-      tips.push({ type: 'bad', icon: '!', title: 'Despesas acima da receita!', text: `Suas despesas reais superam a receita em ${fmt(Math.abs(saldo))}. Investimentos não estão incluídos nessa conta — o problema está nos gastos do dia a dia.` });
+      tips.push({ type: 'bad', icon: '!', title: 'Despesas acima da receita!', text: `Suas despesas superam a receita em ${fmt(Math.abs(saldo))}. Revise os gastos do dia a dia para equilibrar o orçamento.` });
     } else {
       const savePct = Math.round(saldo / totalIncome * 100);
       if (savePct >= 30) {
@@ -60,36 +53,6 @@ export function generateTips(
     }
   } else {
     tips.push({ type: 'warn', icon: '!', title: 'Cadastre suas receitas', text: 'Sem receitas registradas o assistente não consegue calcular percentuais nem avaliar sua saúde financeira. Adicione seu salário e outras entradas.' });
-  }
-
-  // INVESTIMENTOS
-  if (saldoInvest > 0) {
-    const investParts: string[] = [];
-    if (investSaida > 0) investParts.push(`${fmt(investSaida)} em aportes`);
-    if (totalIncomeInvest > 0) investParts.push(`${fmt(totalIncomeInvest)} em rendimentos`);
-    const investDetail = investParts.join(' e ');
-
-    if (totalIncome > 0) {
-      const investPct = Math.round(investSaida / totalIncome * 100);
-      if (investPct >= 20) {
-        tips.push({ type: 'good', icon: 'ok', title: `Investidor de peso: ${investPct}% da receita aportada`, text: `Saldo de investimentos este mês: ${fmt(saldoInvest)} (${investDetail}). Você está construindo patrimônio de forma sólida.` });
-      } else if (investPct >= 10) {
-        tips.push({ type: 'good', icon: 'ok', title: `Bom ritmo de investimento: ${investPct}%`, text: `Saldo de investimentos: ${fmt(saldoInvest)} (${investDetail}). Para acelerar, tente chegar a 20% da receita em aportes.` });
-      } else {
-        tips.push({ type: 'info', icon: 'i', title: `Investimentos: ${investPct}% da receita`, text: `Saldo de investimentos: ${fmt(saldoInvest)} (${investDetail}). A meta ideal é direcionar 10-20% da receita para aportes.` });
-      }
-    } else {
-      tips.push({ type: 'info', icon: 'i', title: 'Movimentação de investimentos', text: `Saldo de investimentos no mês: ${fmt(saldoInvest)} (${investDetail}).` });
-    }
-
-    if (totalIncomeInvest > 0 && investSaida > 0) {
-      const rendPct = Math.round(totalIncomeInvest / investSaida * 100);
-      if (rendPct >= 50) {
-        tips.push({ type: 'good', icon: 'ok', title: 'Seus investimentos estão rendendo bem', text: `Os rendimentos representam ${rendPct}% do que você aportou este mês. O dinheiro está trabalhando por você.` });
-      }
-    }
-  } else if (totalIncome > 0) {
-    tips.push({ type: 'bad', icon: '!', title: 'Nenhum investimento este mês', text: 'Você não registrou aportes nem rendimentos de investimentos. Separe ao menos 10% da receita para construir patrimônio — seu "eu do futuro" agradece.' });
   }
 
   // MORADIA
@@ -153,7 +116,7 @@ export function generateTips(
   }
 
   // PARCELAMENTOS
-  const parcelados = outflowsSemInvest.filter(e => e.installment > 0);
+  const parcelados = outflows.filter(e => e.installment > 0);
   if (parcelados.length > 0) {
     const totalParc = getTotal(parcelados);
     const parcPct = base > 0 ? Math.round(totalParc / base * 100) : 0;
@@ -192,7 +155,7 @@ export function generateTips(
     const individuals = getIndividualMembers();
     if (individuals.length >= 2) {
       const memberTotals = individuals.map(mb => {
-        const mbOut = outflows.filter(e => e.memberId === mb.id && e.cat !== 'Investimento');
+        const mbOut = outflows.filter(e => e.memberId === mb.id);
         return { name: mb.name, total: getTotal(mbOut) };
       }).filter(m => m.total > 0);
 
@@ -204,7 +167,7 @@ export function generateTips(
         }
       }
 
-      const famOut = outflows.filter(e => (!e.memberId || e.memberId === 'all') && e.cat !== 'Investimento');
+      const famOut = outflows.filter(e => !e.memberId || e.memberId === 'all');
       const famTotal = getTotal(famOut);
       if (famTotal > 0 && despesasReais > 0) {
         const famPct = Math.round(famTotal / despesasReais * 100);
@@ -221,21 +184,21 @@ export function generateTips(
     const desejos = (byCat['Lazer'] || 0) + (byCat['Vestuario'] || 0) + (byCat['Assinaturas'] || 0);
     const essePct = Math.round(essenciais / totalIncome * 100);
     const desPct = Math.round(desejos / totalIncome * 100);
-    const investPctRule = Math.round(investSaida / totalIncome * 100);
+    const savingsPct = Math.max(0, Math.round(saldo / totalIncome * 100));
 
     if (essePct > 0 || desPct > 0) {
       let ruleType: Tip['type'] = 'info';
-      const ruleTitle = `Regra 50-30-20: ${essePct}%-${desPct}%-${investPctRule}%`;
-      let ruleText = `Essenciais: ${essePct}% (meta 50%) | Desejos: ${desPct}% (meta 30%) | Investimentos: ${investPctRule}% (meta 20%). `;
-      if (essePct <= 55 && desPct <= 35 && investPctRule >= 15) {
+      const ruleTitle = `Regra 50-30-20: ${essePct}%-${desPct}%-${savingsPct}%`;
+      let ruleText = `Essenciais: ${essePct}% (meta 50%) | Desejos: ${desPct}% (meta 30%) | Poupança/Invest.: ${savingsPct}% (meta 20%). `;
+      if (essePct <= 55 && desPct <= 35 && savingsPct >= 15) {
         ruleType = 'good';
         ruleText += 'Você está dentro de um padrão saudável!';
       } else if (essePct > 60) {
         ruleText += 'Seus custos essenciais estão altos — busque renegociar contratos ou encontrar alternativas mais baratas.';
       } else if (desPct > 35) {
         ruleText += 'Gastos com desejos acima do ideal. Pequenos cortes aqui liberam dinheiro para investir.';
-      } else if (investPctRule < 10) {
-        ruleText += 'Seus investimentos estão abaixo do ideal. Redirecione parte do saldo disponível para aportes.';
+      } else if (savingsPct < 10) {
+        ruleText += 'Saldo disponível abaixo do ideal. Redirecione parte para investimentos ou reserva de emergência.';
       } else {
         ruleText += 'Alguns ajustes podem equilibrar melhor seu orçamento.';
       }

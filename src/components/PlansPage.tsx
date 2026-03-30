@@ -19,7 +19,7 @@ const plans = [
     id: 'pro',
     name: 'Pro',
     icon: <Star size={20} />,
-    color: 'from-indigo-500 to-purple-600',
+    color: 'from-orange-500 to-orange-600',
     badge: 'Mais popular',
     features: [
       'Até 3 workspaces',
@@ -57,10 +57,10 @@ export default function PlansPage() {
       </div>
 
       {/* Banner EM BREVE */}
-      <div className="mb-8 p-4 rounded-2xl border-2 border-dashed border-indigo-400/50 bg-indigo-500/5 flex items-center justify-center gap-3">
-        <Clock size={24} className="text-indigo-500" />
+      <div className="mb-8 p-4 rounded-2xl border-2 border-dashed border-orange-400/50 bg-orange-500/5 flex items-center justify-center gap-3">
+        <Clock size={24} className="text-orange-500" />
         <div>
-          <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">EM BREVE</p>
+          <p className="text-lg font-bold text-orange-600 dark:text-orange-400">EM BREVE</p>
           <p className="text-sm t-text-muted">Estamos finalizando os planos. Por enquanto, todas as funcionalidades estão liberadas!</p>
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function PlansPage() {
           <div
             key={plan.id}
             className={`t-card rounded-2xl border p-6 flex flex-col relative transition-shadow hover:shadow-lg opacity-75 ${
-              plan.id === 'pro' ? 'border-indigo-500/50 shadow-md shadow-indigo-500/10' : ''
+              plan.id === 'pro' ? 'border-orange-500/50 shadow-md shadow-orange-500/10' : ''
             }`}
           >
             {plan.badge && (
