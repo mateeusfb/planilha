@@ -358,6 +358,11 @@ body {
   animation: slideUp 0.3s ease-out;
 }
 
+/* ── Logo dark mode ── */
+[data-theme="dark"] .logo-dark-invert {
+  filter: brightness(0) invert(1);
+}
+
 /* ── Print styles ── */
 @media print {
   body { background: white !important; color: black !important; }

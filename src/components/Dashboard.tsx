@@ -190,7 +190,7 @@ export default function Dashboard() {
 
     return {
       totalIncome, despesasReais, saldo,
-      diffText, diffPct, familyShare, familyBreakdown, incomesNormais,
+      diffText, diffPct, familyShare, familyBreakdown, incomesNormais: incomes,
       catLabels, catData, catColors, monthlyData, budgetItems, savingsRate,
     };
   }, [activeMonth, activeMember, state.expenses, state.members, state.categoryBudgets, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);

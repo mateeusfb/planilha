@@ -123,10 +123,8 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
       {/* Top nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-            <DollarSign size={18} className="text-white" />
-          </div>
-          <span className="text-lg font-bold text-white">Folga</span>
+          <img src="/Ícone.svg" alt="Folga ícone" className="w-10 h-10 rounded-xl" />
+          <img src="/Folga.svg" alt="Folga" className="h-7 object-contain brightness-0 invert" />
         </div>
         <div className="flex items-center gap-3">
           {mode !== 'login' && (
