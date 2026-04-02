@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { AppState, Member, Expense, RecurringExpense, Investment, InvestmentGoal, InvestmentSnapshot } from './types';
+import type { AppState, Member, Expense, RecurringExpense, Investment, InvestmentGoal, InvestmentSnapshot, InvestmentWithdrawal } from './types';
 import { COLORS } from './constants';
 import { getCurrentMonth } from './helpers';
 import { SkeletonDashboard } from '@/components/Skeleton';
@@ -90,6 +90,9 @@ interface StoreContextType {
   updateGoal: (id: string, data: Partial<InvestmentGoal>) => Promise<void>;
   removeGoal: (id: string) => Promise<void>;
   upsertSnapshot: (totalInvested: number, totalCurrent: number) => Promise<void>;
+  withdrawals: InvestmentWithdrawal[];
+  addWithdrawal: (w: Omit<InvestmentWithdrawal, 'id' | 'createdAt'>) => Promise<void>;
+  removeWithdrawal: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -101,6 +104,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [investmentGoals, setInvestmentGoals] = useState<InvestmentGoal[]>([]);
   const [investmentSnapshots, setInvestmentSnapshots] = useState<InvestmentSnapshot[]>([]);
+  const [withdrawals, setWithdrawals] = useState<InvestmentWithdrawal[]>([]);
 
   // ── Load from Supabase ──
   useEffect(() => {
@@ -285,6 +289,22 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         linkedInvestmentIds: (r.linked_investment_ids as string[]) || [],
         icon: (r.icon as string) || '🎯', active: r.active as boolean,
       })));
+
+      // ── Load investment withdrawals ──
+      try {
+        let wQuery = supabase.from('investment_withdrawals').select('*').eq('user_id', userId);
+        if (workspaceId) wQuery = wQuery.eq('workspace_id', workspaceId);
+        else wQuery = wQuery.is('workspace_id', null);
+        const { data: dbWithdrawals } = await wQuery.order('date', { ascending: false });
+        if (dbWithdrawals) setWithdrawals(dbWithdrawals.map((r: Record<string, unknown>) => ({
+          id: r.id as string,
+          investmentId: r.investment_id as string,
+          amount: Number(r.amount),
+          date: r.date as string,
+          reason: r.reason as string | undefined,
+          createdAt: Number(r.created_at) || 0,
+        })));
+      } catch { /* tabela não existe ainda */ }
 
       setLoaded(true);
     }
@@ -584,6 +604,42 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     } catch { /* ignore */ }
   }, [userId, workspaceId, investmentSnapshots]);
 
+  // ── Withdrawal CRUD ──
+  const addWithdrawal = useCallback(async (w: Omit<InvestmentWithdrawal, 'id' | 'createdAt'>) => {
+    const row = {
+      investment_id: w.investmentId, user_id: userId, workspace_id: workspaceId || null,
+      amount: w.amount, date: w.date, reason: w.reason || null,
+    };
+    const { data, error } = await supabase.from('investment_withdrawals').insert(row).select().single();
+    if (error) throw new Error(error.message);
+    setWithdrawals(prev => [{
+      id: data.id, investmentId: data.investment_id, amount: Number(data.amount),
+      date: data.date, reason: data.reason, createdAt: Number(data.created_at) || 0,
+    }, ...prev]);
+    // Subtrair do currentValue do investimento
+    const inv = investments.find(i => i.id === w.investmentId);
+    if (inv) {
+      const newValue = Math.max(0, inv.currentValue - w.amount);
+      await supabase.from('investments').update({ current_value: newValue }).eq('id', inv.id);
+      setInvestments(prev => prev.map(i => i.id === inv.id ? { ...i, currentValue: newValue } : i));
+    }
+  }, [userId, workspaceId, investments]);
+
+  const removeWithdrawal = useCallback(async (id: string) => {
+    const w = withdrawals.find(x => x.id === id);
+    if (!w) return;
+    const { error } = await supabase.from('investment_withdrawals').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    setWithdrawals(prev => prev.filter(x => x.id !== id));
+    // Restaurar valor no investimento
+    const inv = investments.find(i => i.id === w.investmentId);
+    if (inv) {
+      const newValue = inv.currentValue + w.amount;
+      await supabase.from('investments').update({ current_value: newValue }).eq('id', inv.id);
+      setInvestments(prev => prev.map(i => i.id === inv.id ? { ...i, currentValue: newValue } : i));
+    }
+  }, [investments, withdrawals]);
+
   if (!loaded) {
     return (
       <div className="flex min-h-screen">
@@ -606,6 +662,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       investments, investmentGoals, investmentSnapshots,
       addInvestment, updateInvestment, removeInvestment,
       addGoal, updateGoal, removeGoal, upsertSnapshot,
+      withdrawals, addWithdrawal, removeWithdrawal,
     }}>
       {children}
     </StoreContext.Provider>

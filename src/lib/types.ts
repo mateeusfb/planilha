@@ -93,6 +93,15 @@ export interface InvestmentGoal {
   active: boolean;
 }
 
+export interface InvestmentWithdrawal {
+  id: string;
+  investmentId: string;
+  amount: number;
+  date: string;
+  reason?: string;
+  createdAt?: number;
+}
+
 export interface InvestmentSnapshot {
   id: string;
   month: string; // YYYY-MM

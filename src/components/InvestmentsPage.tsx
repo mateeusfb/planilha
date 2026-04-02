@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth } from '@/lib/helpers';
 import type { Investment, InvestmentGoal, InvestmentType } from '@/lib/types';
-import { Plus, TrendingUp, TrendingDown, Wallet, Target, PiggyBank, Pencil, Trash2, RefreshCw, Check, X as XIcon, AlertTriangle, ArrowUpDown, Download, Clock } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Target, PiggyBank, Pencil, Trash2, RefreshCw, Check, X as XIcon, AlertTriangle, ArrowUpDown, Download, Clock, ArrowDownToLine } from 'lucide-react';
 import {
   Chart as ChartJS, ArcElement, Tooltip, Legend,
   CategoryScale, LinearScale, PointElement, LineElement, Filler,
@@ -12,6 +12,7 @@ import {
 import { Doughnut, Line } from 'react-chartjs-2';
 import InvestmentModal from './InvestmentModal';
 import InvestmentGoalModal from './InvestmentGoalModal';
+import WithdrawalModal from './WithdrawalModal';
 import { useToast } from './Toast';
 import { usePlan } from '@/lib/plans';
 import UpgradeModal from './UpgradeModal';
@@ -32,6 +33,7 @@ export default function InvestmentsPage() {
     investments, investmentGoals, investmentSnapshots,
     addInvestment, updateInvestment, removeInvestment,
     addGoal, updateGoal, removeGoal, upsertSnapshot,
+    withdrawals, addWithdrawal, removeWithdrawal,
   } = useStore();
 
   const { toast } = useToast();
@@ -42,6 +44,7 @@ export default function InvestmentsPage() {
   const [editingGoal, setEditingGoal] = useState<InvestmentGoal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'inv' | 'goal'; id: string } | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+  const [withdrawalInv, setWithdrawalInv] = useState<Investment | null>(null);
 
   // Batch update state
   const [batchEditing, setBatchEditing] = useState(false);
@@ -82,8 +85,10 @@ export default function InvestmentsPage() {
       .filter(t => t.pct > 70)
       .map(t => ({ label: TYPE_CONFIG[t.type]?.label || t.type, pct: t.pct }));
 
-    return { totalInvested, totalCurrent, totalReturn, returnPct, byType, typeLabels, typeData, typeColors, byTypeSummary, concentrationWarnings };
-  }, [investments]);
+    const totalWithdrawn = withdrawals.reduce((s, w) => s + w.amount, 0);
+
+    return { totalInvested, totalCurrent, totalReturn, returnPct, byType, typeLabels, typeData, typeColors, byTypeSummary, concentrationWarnings, totalWithdrawn };
+  }, [investments, withdrawals]);
 
   // Dados do gráfico de evolução
   const evolutionChart = useMemo(() => {
@@ -234,7 +239,7 @@ export default function InvestmentsPage() {
       {/* ── Resumo da Carteira ── */}
       <div className="mb-4 animate-fade-in-up">
         <h3 className="text-sm font-bold t-text mb-3">Carteira de Investimentos</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-1">
             <div className="flex items-center justify-between mb-3">
               <div className="text-xs t-text-muted font-semibold uppercase tracking-wide">Investido</div>
@@ -276,7 +281,7 @@ export default function InvestmentsPage() {
             </div>
           </div>
 
-          <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-4 col-span-2 lg:col-span-1">
+          <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up stagger-4">
             <div className="flex items-center justify-between mb-3">
               <div className="text-xs t-text-muted font-semibold uppercase tracking-wide">Patrimônio</div>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)' }}>
@@ -285,6 +290,17 @@ export default function InvestmentsPage() {
             </div>
             <div className="text-lg md:text-2xl font-bold" style={{ color: 'var(--accent)' }}>{fmt(data.totalCurrent)}</div>
             <div className="text-xs t-text-dim mt-1">Valor total da carteira</div>
+          </div>
+
+          <div className="glass-card rounded-xl p-4 md:p-5 animate-fade-in-up col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs t-text-muted font-semibold uppercase tracking-wide">Resgatado</div>
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <ArrowDownToLine size={16} className="text-orange-500" />
+              </div>
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-orange-500">{fmt(data.totalWithdrawn)}</div>
+            <div className="text-xs t-text-dim mt-1">{withdrawals.length} resgate{withdrawals.length !== 1 ? 's' : ''}</div>
           </div>
         </div>
       </div>
@@ -614,6 +630,10 @@ export default function InvestmentsPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        {inv.currentValue > 0 && (
+                          <button onClick={() => setWithdrawalInv(inv)} title="Resgatar"
+                            className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer text-orange-400 hover:text-orange-500"><ArrowDownToLine size={13} /></button>
+                        )}
                         <button onClick={() => { setEditingInv(inv); setInvModalOpen(true); }}
                           className="w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer t-text-dim hover:t-text"><Pencil size={13} /></button>
                         <button onClick={() => setConfirmDelete({ type: 'inv', id: inv.id })}
@@ -634,7 +654,67 @@ export default function InvestmentsPage() {
         )}
       </div>
 
+      {/* ── Histórico de Retiradas ── */}
+      {withdrawals.length > 0 && (
+        <div className="t-card rounded-xl border overflow-hidden mb-4 animate-fade-in-up">
+          <div className="px-5 py-3.5 border-b t-border flex items-center justify-between">
+            <h4 className="text-sm font-bold t-text flex items-center gap-2">
+              <ArrowDownToLine size={15} className="text-orange-500" /> Histórico de Resgates
+            </h4>
+            <span className="text-xs t-text-dim">{withdrawals.length} resgate{withdrawals.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="divide-y t-border-light">
+            {withdrawals.slice(0, 20).map(w => {
+              const inv = investments.find(i => i.id === w.investmentId);
+              return (
+                <div key={w.id} className="flex items-center justify-between px-5 py-3 hover:bg-white/5 transition-colors group">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold t-text">{inv?.name || 'Investimento removido'}</span>
+                      {w.reason && <span className="text-[0.6rem] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 t-text-dim">{w.reason}</span>}
+                    </div>
+                    <span className="text-xs t-text-dim">{w.date.split('-').reverse().join('/')}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-sm font-bold text-orange-500">-{fmt(w.amount)}</span>
+                    <button onClick={async () => {
+                      try {
+                        await removeWithdrawal(w.id);
+                        toast('Resgate desfeito. Valor restaurado.', 'success');
+                      } catch { toast('Erro ao desfazer resgate.', 'error'); }
+                    }}
+                      className="w-6 h-6 rounded flex items-center justify-center cursor-pointer text-red-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Desfazer resgate">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="px-5 py-3 border-t t-border flex justify-between">
+            <span className="text-xs font-bold t-text">Total resgatado</span>
+            <span className="text-sm font-bold text-orange-500">{fmt(data.totalWithdrawn)}</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Modais ── */}
+      <WithdrawalModal
+        isOpen={!!withdrawalInv}
+        onClose={() => setWithdrawalInv(null)}
+        investment={withdrawalInv}
+        onSave={async (d) => {
+          try {
+            await addWithdrawal(d);
+            toast(`${fmt(d.amount)} resgatado de ${withdrawalInv?.name}`, 'success');
+          } catch {
+            toast('Erro ao registrar resgate.', 'error');
+          }
+          setWithdrawalInv(null);
+        }}
+      />
+
       <InvestmentModal
         isOpen={invModalOpen}
         onClose={() => { setInvModalOpen(false); setEditingInv(null); }}
