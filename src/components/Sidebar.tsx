@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import type { PageId, Member } from '@/lib/types';
-import { Home, CreditCard, BarChart3, FileText, TrendingUp, Menu, ChevronLeft, Star } from 'lucide-react';
+import { Home, CreditCard, BarChart3, TrendingUp, Menu, ChevronLeft, Star, Target } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface SidebarProps {
@@ -15,8 +15,8 @@ const navLinks: { id: PageId; icon: ReactNode; label: string }[] = [
   { id: 'dashboard', icon: <Home size={18} />, label: 'Início' },
   { id: 'expenses', icon: <CreditCard size={18} />, label: 'Lançamentos' },
   { id: 'analysis', icon: <BarChart3 size={18} />, label: 'Análise' },
+  { id: 'budget', icon: <Target size={18} />, label: 'Orçamento' },
   { id: 'investments', icon: <TrendingUp size={18} />, label: 'Investimentos' },
-  { id: 'summary', icon: <FileText size={18} />, label: 'Resumo Mensal' },
   { id: 'plans', icon: <Star size={18} />, label: 'Planos' },
 ];
 
@@ -64,9 +64,9 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
       {/* Logo + toggle */}
       <div className="px-3 py-4 border-b t-border flex items-center justify-between">
         {!collapsed && (
-          <div className="min-w-0 flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5">
             <img src="/Ícone.svg" alt="Folga ícone" className="w-9 h-9 rounded-lg flex-shrink-0" />
-            <img src="/Folga.svg" alt="Folga" className="h-6 object-contain logo-dark-invert" />
+            <img src="/Folga.svg" alt="Folga" className="h-6 object-contain flex-shrink-0 logo-dark-invert" style={{ overflow: 'visible' }} />
           </div>
         )}
         {/* Desktop: toggle collapse. Mobile: close */}

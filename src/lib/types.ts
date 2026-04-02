@@ -41,6 +41,7 @@ export interface AppState {
   customBanks: string[];
   tableColumns?: string[];
   categoryBudgets: Record<string, number>;
+  monthlyBudgets: Record<string, Record<string, number>>;
 }
 
 export interface Workspace {
@@ -65,7 +66,7 @@ export interface RecurringExpense {
   active: boolean;
 }
 
-export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'summary' | 'plans' | 'profile' | 'settings';
+export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'budget' | 'plans' | 'profile' | 'settings';
 
 export type InvestmentType = 'renda_fixa' | 'renda_variavel' | 'crypto' | 'previdencia' | 'poupanca' | 'outros';
 

@@ -11,7 +11,6 @@ import { Moon, Sun } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import ExpensesPage from '@/components/ExpensesPage';
 import AnalysisPage from '@/components/AnalysisPage';
-import SummaryPage from '@/components/SummaryPage';
 import SettingsPage from '@/components/SettingsPage';
 import MemberModal from '@/components/MemberModal';
 import DeleteModal from '@/components/DeleteModal';
@@ -25,6 +24,7 @@ import NotificationBell from '@/components/NotificationBell';
 import InvestmentsPage from '@/components/InvestmentsPage';
 import ProfilePage from '@/components/ProfilePage';
 import PlansPage from '@/components/PlansPage';
+import BudgetPage from '@/components/BudgetPage';
 import { PlanProvider, usePlan } from '@/lib/plans';
 import UpgradeModal from '@/components/UpgradeModal';
 
@@ -76,7 +76,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     expenses: 'Lançamentos',
     analysis: 'Análise de Gastos',
     investments: 'Investimentos',
-    summary: 'Resumo Mensal',
+    budget: 'Orçamento',
     plans: 'Planos',
     profile: 'Meu Perfil',
     settings: 'Configurações',
@@ -133,7 +133,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
               )}
               {activePage === 'analysis' && <AnalysisPage />}
               {activePage === 'investments' && <InvestmentsPage />}
-              {activePage === 'summary' && <SummaryPage />}
+              {activePage === 'budget' && <BudgetPage />}
               {activePage === 'plans' && <PlansPage />}
               {activePage === 'profile' && <ProfilePage />}
               {activePage === 'settings' && (
@@ -256,6 +256,13 @@ function AuthGate() {
   }, [user]);
 
   useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
+
+  // Salvar workspace ativo no localStorage para a rota /resumo
+  useEffect(() => {
+    if (activeWorkspace) {
+      localStorage.setItem('active_workspace_id', activeWorkspace.workspaceId || 'personal');
+    }
+  }, [activeWorkspace]);
 
   async function createWorkspace(name: string, icon: string) {
     if (!user) return;

@@ -262,6 +262,13 @@ export default function AnalysisPage() {
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <PeriodFilter />
+            <button
+              onClick={() => window.open('/resumo', '_blank')}
+              className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer flex items-center gap-1"
+              title="Abrir resumo mensal em nova aba"
+            >
+              <FileText size={14} /> Resumo
+            </button>
             <button onClick={() => exportAs('png')} disabled={exporting}
               className="px-2.5 py-1.5 border t-border rounded-lg text-[0.7rem] font-semibold t-text-muted hover:opacity-80 cursor-pointer disabled:opacity-50 flex items-center gap-1">
               <ImageIcon size={14} /> PNG

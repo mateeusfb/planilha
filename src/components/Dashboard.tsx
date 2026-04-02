@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useStore } from '@/lib/store';
-import { fmt, fmtMonth, getTotal, groupBy } from '@/lib/helpers';
+import { fmt, fmtMonth, getTotal, groupBy, getBudgetForMonth } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
@@ -176,13 +176,14 @@ export default function Dashboard() {
       });
     }
 
-    const budgets = state.categoryBudgets || {};
+    const budgets = getBudgetForMonth(activeMonth, state.monthlyBudgets || {}, state.categoryBudgets || {});
     const budgetItems = Object.entries(budgets)
       .filter(([, limit]) => limit > 0)
       .map(([cat, limit]) => {
         const spent = outflows.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0);
         const pct = limit > 0 ? (spent / limit) * 100 : 0;
-        return { cat, limit, spent, pct };
+        const deviation = spent - limit;
+        return { cat, limit, spent, pct, deviation };
       })
       .sort((a, b) => b.pct - a.pct);
 
@@ -193,7 +194,7 @@ export default function Dashboard() {
       diffText, diffPct, familyShare, familyBreakdown, incomesNormais: incomes,
       catLabels, catData, catColors, monthlyData, budgetItems, savingsRate,
     };
-  }, [activeMonth, activeMember, state.expenses, state.members, state.categoryBudgets, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
+  }, [activeMonth, activeMember, state.expenses, state.members, state.categoryBudgets, state.monthlyBudgets, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
 
   const toggleValues = () => setValuesHidden(v => !v);
 
@@ -381,51 +382,55 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Orçamentos por categoria */}
-      {data.budgetItems.length > 0 && (
-        <Section title="Orçamento por Categoria" icon={<Target size={18} />} defaultOpen>
-          <div className="space-y-3">
-            {data.budgetItems.map(b => {
-              const color = b.pct >= 100 ? '#ef4444' : b.pct >= 80 ? '#f59e0b' : '#10b981';
-              const bgColor = b.pct >= 100 ? 'bg-red-50' : b.pct >= 80 ? 'bg-amber-50' : 'bg-green-50';
-              const catColor = CAT_COLORS[b.cat] || '#94a3b8';
-              return (
-                <div key={b.cat}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: catColor }} />
-                      <span className="text-sm font-medium t-text">{b.cat}</span>
+      {/* Orçamento - Resumo compacto */}
+      {data.budgetItems.length > 0 && (() => {
+        const totalPrevisto = data.budgetItems.reduce((s, b) => s + b.limit, 0);
+        const totalRealizado = data.budgetItems.reduce((s, b) => s + b.spent, 0);
+        const totalPct = totalPrevisto > 0 ? Math.round((totalRealizado / totalPrevisto) * 100) : 0;
+        const totalColor = totalPct >= 100 ? '#ef4444' : totalPct >= 80 ? '#f59e0b' : '#10b981';
+        const top3 = data.budgetItems.slice(0, 3);
+        return (
+          <Section title="Orçamento" icon={<Target size={18} />} defaultOpen>
+            {/* Barra geral */}
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs t-text-dim">Utilização geral</span>
+              <span className="text-xs font-bold" style={{ color: totalColor }}>{totalPct}%</span>
+            </div>
+            <div className="w-full h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden mb-4">
+              <div className="h-full rounded-full transition-all animate-progress" style={{ width: `${Math.min(totalPct, 100)}%`, background: totalColor }} />
+            </div>
+            {/* Top categorias */}
+            <div className="space-y-2.5">
+              {top3.map(b => {
+                const color = b.pct >= 100 ? '#ef4444' : b.pct >= 80 ? '#f59e0b' : '#10b981';
+                const catColor = CAT_COLORS[b.cat] || '#94a3b8';
+                return (
+                  <div key={b.cat}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full" style={{ background: catColor }} />
+                        <span className="text-xs font-medium t-text">{b.cat}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <HiddenValue hidden={valuesHidden} className="t-text-dim">{fmt(b.spent)}</HiddenValue>
+                        <span className="t-text-dim">/</span>
+                        <HiddenValue hidden={valuesHidden} className="t-text-dim">{fmt(b.limit)}</HiddenValue>
+                        <span className="font-bold min-w-[30px] text-right" style={{ color }}>{Math.round(b.pct)}%</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <HiddenValue hidden={valuesHidden} className="font-semibold" style={{ color }}>
-                        {fmt(b.spent)}
-                      </HiddenValue>
-                      <span className="t-text-dim">/</span>
-                      <HiddenValue hidden={valuesHidden} className="t-text-muted">
-                        {fmt(b.limit)}
-                      </HiddenValue>
-                      <span className={`px-1.5 py-0.5 rounded-full text-[0.65rem] font-bold ${bgColor}`} style={{ color }}>
-                        {Math.round(b.pct)}%
-                      </span>
+                    <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(b.pct, 100)}%`, background: color }} />
                     </div>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full animate-progress"
-                      style={{ width: `${Math.min(b.pct, 100)}%`, background: color }}
-                    />
-                  </div>
-                  {b.pct >= 100 && (
-                    <div className="text-[0.7rem] text-red-500 mt-0.5 font-medium">
-                      Limite ultrapassado em {fmt(b.spent - b.limit)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-      )}
+                );
+              })}
+            </div>
+            {data.budgetItems.length > 3 && (
+              <p className="text-[0.65rem] t-text-dim mt-2 text-center">+{data.budgetItems.length - 3} categorias na aba Orçamento</p>
+            )}
+          </Section>
+        );
+      })()}
 
     </>
   );

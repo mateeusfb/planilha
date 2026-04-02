@@ -50,6 +50,20 @@ export function formatDate(date: string): string {
   return `${d}/${m}/${y}`;
 }
 
+export function getBudgetForMonth(
+  month: string,
+  monthlyBudgets: Record<string, Record<string, number>>,
+  categoryBudgets: Record<string, number>
+): Record<string, number> {
+  return monthlyBudgets[month] || categoryBudgets || {};
+}
+
+export function getPreviousMonth(ym: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export function getDateRange(preset: string): { start: Date; end: Date } | null {
   const now = new Date();
   now.setHours(23, 59, 59, 999);
