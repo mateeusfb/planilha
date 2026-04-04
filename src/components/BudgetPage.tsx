@@ -47,7 +47,7 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 export default function BudgetPage() {
-  const { state, setState, getOutflows, getExpensesByExactMonth, getIndividualMembers, setActiveMonth } = useStore();
+  const { state, setState, getExpensesByExactMonth, getIndividualMembers, setActiveMonth } = useStore();
   const { activeMonth, activeMember, categoryBudgets, monthlyBudgets, customCats } = state;
   const [valuesHidden, setValuesHidden] = useState(true);
   const [showRealloc, setShowRealloc] = useState(false);
@@ -62,7 +62,7 @@ export default function BudgetPage() {
   const prevBudget = getBudgetForMonth(prevMonth, monthlyBudgets || {}, categoryBudgets || {});
   const hasPrevBudget = Object.values(prevBudget).some(v => v > 0);
 
-  const outflows = getOutflows(activeMonth, activeMember);
+  const outflows = getExpensesByExactMonth(activeMonth, activeMember).filter(e => e.type === 'expense');
   const allCats = [...EXPENSE_CATS, ...customCats].filter(c => c !== 'Investimento');
 
   const budgetItems = allCats.map(cat => {

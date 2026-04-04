@@ -186,12 +186,21 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   function deleteCat(i: number) {
     const catName = customCats[i];
     const inUse = state.expenses.filter(e => e.cat === catName).length;
-    const msg = inUse > 0 ? `"${catName}" está em uso em ${inUse} lançamento(s). Excluir mesmo assim?` : `Excluir "${catName}"?`;
+    const msg = inUse > 0 ? `"${catName}" está em uso em ${inUse} lançamento(s). Serão movidos para "Outros". Excluir mesmo assim?` : `Excluir "${catName}"?`;
     setConfirmModal({
       open: true, message: msg,
-      onConfirm: () => {
-        setState(prev => ({ ...prev, customCats: prev.customCats.filter((_, idx) => idx !== i) }));
-        toast(`Categoria "${catName}" excluída.`, 'success');
+      onConfirm: async () => {
+        const affectedExpenses = state.expenses.filter(e => e.cat === catName);
+        setState(prev => ({
+          ...prev,
+          customCats: prev.customCats.filter((_, idx) => idx !== i),
+          expenses: prev.expenses.map(e => e.cat === catName ? { ...e, cat: 'Outros' } : e),
+        }));
+        if (affectedExpenses.length > 0) {
+          const { error } = await supabase.from('expenses').update({ category: 'Outros' }).eq('category', catName).eq('user_id', user!.id);
+          if (error) console.error('Erro ao reatribuir lançamentos:', error.message);
+        }
+        toast(`Categoria "${catName}" excluída.${inUse > 0 ? ` ${inUse} lançamento(s) movido(s) para "Outros".` : ''}`, 'success');
       },
     });
   }
