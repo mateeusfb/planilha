@@ -220,7 +220,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           tableColumns: settings?.table_columns || undefined,
           categoryBudgets: settings?.category_budgets || {},
           monthlyBudgets: settings?.monthly_budgets || {},
-          activeMonth: settings?.active_month || getCurrentMonth(),
+          activeMonth: getCurrentMonth(),
         }));
       } catch {
         // Fallback localStorage
@@ -231,7 +231,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
             setStateRaw(prev => ({
               ...prev, ...parsed,
               members: parsed.members?.length ? parsed.members.filter((m: Member) => m.id !== 'all') : [],
-              activeMonth: parsed.activeMonth || getCurrentMonth(),
+              activeMonth: getCurrentMonth(),
             }));
           }
         } catch { /* ignore */ }
