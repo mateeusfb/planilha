@@ -3,7 +3,7 @@
 import { useState, useMemo, Fragment } from 'react';
 import { useStore } from '@/lib/store';
 import { EXPENSE_CATS, CAT_COLORS } from '@/lib/constants';
-import { fmt, fmtMonth, getBudgetForMonth, getPreviousMonth, getTotal } from '@/lib/helpers';
+import { fmt, fmtMonth, getBudgetForMonth, getCurrentMonth, getPreviousMonth, getTotal } from '@/lib/helpers';
 import { Eye, EyeOff, Copy, Target, AlertTriangle, CheckCircle, TrendingDown, ArrowRightLeft, Award, BarChart3, Lightbulb, Zap, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from './Toast';
 import { usePlan } from '@/lib/plans';
@@ -47,8 +47,9 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 export default function BudgetPage() {
-  const { state, setState, getExpensesByExactMonth, getIndividualMembers, setActiveMonth } = useStore();
-  const { activeMonth, activeMember, categoryBudgets, monthlyBudgets, customCats } = state;
+  const { state, setState, getExpensesByExactMonth, getIndividualMembers } = useStore();
+  const { activeMember, categoryBudgets, monthlyBudgets, customCats } = state;
+  const [budgetMonth, setBudgetMonth] = useState(getCurrentMonth);
   const [valuesHidden, setValuesHidden] = useState(true);
   const [showRealloc, setShowRealloc] = useState(false);
   const [reallocFrom, setReallocFrom] = useState('');
@@ -57,12 +58,12 @@ export default function BudgetPage() {
   const { toast } = useToast();
   const { checkCustomCategoryLimit } = usePlan();
 
-  const resolvedBudget = getBudgetForMonth(activeMonth, monthlyBudgets || {}, categoryBudgets || {});
-  const prevMonth = getPreviousMonth(activeMonth);
+  const resolvedBudget = getBudgetForMonth(budgetMonth, monthlyBudgets || {}, categoryBudgets || {});
+  const prevMonth = getPreviousMonth(budgetMonth);
   const prevBudget = getBudgetForMonth(prevMonth, monthlyBudgets || {}, categoryBudgets || {});
   const hasPrevBudget = Object.values(prevBudget).some(v => v > 0);
 
-  const outflows = getExpensesByExactMonth(activeMonth, activeMember).filter(e => e.type === 'expense');
+  const outflows = getExpensesByExactMonth(budgetMonth, activeMember).filter(e => e.type === 'expense');
   const allCats = [...EXPENSE_CATS, ...customCats].filter(c => c !== 'Investimento');
 
   const budgetItems = allCats.map(cat => {
@@ -82,7 +83,7 @@ export default function BudgetPage() {
   const spendingPace = useMemo(() => {
     if (budgetItemsWithLimit.length === 0 || totalPrevisto === 0) return null;
     const now = new Date();
-    const [y, m] = activeMonth.split('-').map(Number);
+    const [y, m] = budgetMonth.split('-').map(Number);
     const daysInMonth = new Date(y, m, 0).getDate();
     const isCurrentMonth = now.getFullYear() === y && now.getMonth() + 1 === m;
     const dayOfMonth = isCurrentMonth ? now.getDate() : daysInMonth;
@@ -91,7 +92,7 @@ export default function BudgetPage() {
     const projectedTotal = dayOfMonth > 0 ? (totalRealizado / dayOfMonth) * daysInMonth : 0;
     const projectedDeviation = projectedTotal - totalPrevisto;
     return { dayOfMonth, daysInMonth, expectedPct, actualPct, projectedTotal, projectedDeviation, isCurrentMonth };
-  }, [activeMonth, totalPrevisto, totalRealizado, budgetItemsWithLimit.length]);
+  }, [budgetMonth, totalPrevisto, totalRealizado, budgetItemsWithLimit.length]);
 
   // ── Score de Aderência ──
   const adherenceScore = useMemo(() => {
@@ -104,7 +105,7 @@ export default function BudgetPage() {
 
   // ── Dados Históricos (6 meses) ──
   const historicalData = useMemo(() => {
-    const months = [...getNPreviousMonths(activeMonth, 5), activeMonth];
+    const months = [...getNPreviousMonths(budgetMonth, 5), budgetMonth];
     return months.map(ym => {
       const budget = getBudgetForMonth(ym, monthlyBudgets || {}, categoryBudgets || {});
       const expenses = getExpensesByExactMonth(ym, activeMember).filter(e => e.type === 'expense');
@@ -116,11 +117,11 @@ export default function BudgetPage() {
       }
       return { month: ym, label: fmtMonth(ym), catData };
     });
-  }, [activeMonth, activeMember, monthlyBudgets, categoryBudgets, allCats, getExpensesByExactMonth]);
+  }, [budgetMonth, activeMember, monthlyBudgets, categoryBudgets, allCats, getExpensesByExactMonth]);
 
   // ── Sugestões Inteligentes ──
   const smartSuggestions = useMemo(() => {
-    const prev3 = getNPreviousMonths(activeMonth, 3);
+    const prev3 = getNPreviousMonths(budgetMonth, 3);
     const suggestions: { cat: string; avg: number; budget: number }[] = [];
     for (const b of budgetItems) {
       if (b.limit <= 0) continue;
@@ -136,13 +137,13 @@ export default function BudgetPage() {
       if (avg > b.limit * 1.15) suggestions.push({ cat: b.cat, avg, budget: b.limit });
     }
     return suggestions;
-  }, [activeMonth, activeMember, budgetItems, getExpensesByExactMonth]);
+  }, [budgetMonth, activeMember, budgetItems, getExpensesByExactMonth]);
 
   // ── Melhor Mês ──
   const bestMonth = useMemo(() => {
     if (adherenceScore === null) return null;
-    const prev5 = getNPreviousMonths(activeMonth, 5);
-    let best = { month: activeMonth, score: adherenceScore };
+    const prev5 = getNPreviousMonths(budgetMonth, 5);
+    let best = { month: budgetMonth, score: adherenceScore };
     for (const ym of prev5) {
       const budget = getBudgetForMonth(ym, monthlyBudgets || {}, categoryBudgets || {});
       const expenses = getExpensesByExactMonth(ym, activeMember).filter(e => e.type === 'expense');
@@ -156,8 +157,8 @@ export default function BudgetPage() {
       const score = Math.max(0, Math.min(100, Math.round(100 - avgDev)));
       if (score > best.score) best = { month: ym, score };
     }
-    return { ...best, isCurrent: best.month === activeMonth };
-  }, [adherenceScore, activeMonth, activeMember, monthlyBudgets, categoryBudgets, allCats, getExpensesByExactMonth]);
+    return { ...best, isCurrent: best.month === budgetMonth };
+  }, [adherenceScore, budgetMonth, activeMember, monthlyBudgets, categoryBudgets, allCats, getExpensesByExactMonth]);
 
   // ── Breakdown por Membro ──
   const memberBreakdown = useMemo(() => {
@@ -165,7 +166,7 @@ export default function BudgetPage() {
     const members = getIndividualMembers();
     if (members.length === 0) return null;
     return members.map(member => {
-      const memberOutflows = getExpensesByExactMonth(activeMonth, member.id).filter(e => e.type === 'expense');
+      const memberOutflows = getExpensesByExactMonth(budgetMonth, member.id).filter(e => e.type === 'expense');
       const spent = getTotal(memberOutflows);
       const topCats = allCats
         .map(cat => ({ cat, spent: memberOutflows.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0) }))
@@ -174,10 +175,10 @@ export default function BudgetPage() {
         .slice(0, 3);
       return { member, spent, topCats };
     }).filter(m => m.spent > 0);
-  }, [activeMember, activeMonth, getIndividualMembers, getExpensesByExactMonth, allCats]);
+  }, [activeMember, budgetMonth, getIndividualMembers, getExpensesByExactMonth, allCats]);
 
   function handleBudgetChange(cat: string, value: number) {
-    const currentBudget = getBudgetForMonth(activeMonth, monthlyBudgets || {}, categoryBudgets || {});
+    const currentBudget = getBudgetForMonth(budgetMonth, monthlyBudgets || {}, categoryBudgets || {});
     const activeBudgets = Object.keys(currentBudget).filter(k => currentBudget[k] > 0).length;
     const blocked = checkCustomCategoryLimit(activeBudgets);
     if (blocked && value > 0 && !currentBudget[cat]) return;
@@ -185,7 +186,7 @@ export default function BudgetPage() {
       ...prev,
       monthlyBudgets: {
         ...prev.monthlyBudgets,
-        [activeMonth]: { ...getBudgetForMonth(activeMonth, prev.monthlyBudgets || {}, prev.categoryBudgets || {}), [cat]: value },
+        [budgetMonth]: { ...getBudgetForMonth(budgetMonth, prev.monthlyBudgets || {}, prev.categoryBudgets || {}), [cat]: value },
       },
     }));
   }
@@ -194,7 +195,7 @@ export default function BudgetPage() {
     if (!hasPrevBudget) return;
     setState(prev => ({
       ...prev,
-      monthlyBudgets: { ...prev.monthlyBudgets, [activeMonth]: { ...prevBudget } },
+      monthlyBudgets: { ...prev.monthlyBudgets, [budgetMonth]: { ...prevBudget } },
     }));
     toast(`Orçamento copiado de ${fmtMonth(prevMonth)}!`, 'success');
   }
@@ -213,12 +214,12 @@ export default function BudgetPage() {
   }
 
   function goToPrevMonth() {
-    setActiveMonth(getPreviousMonth(activeMonth));
+    setBudgetMonth(getPreviousMonth(budgetMonth));
   }
   function goToNextMonth() {
-    const [y, m] = activeMonth.split('-').map(Number);
+    const [y, m] = budgetMonth.split('-').map(Number);
     const d = new Date(y, m, 1);
-    setActiveMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    setBudgetMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   }
 
   const blur = valuesHidden ? 'blur-[8px] select-none' : '';
@@ -234,7 +235,7 @@ export default function BudgetPage() {
             <button onClick={goToPrevMonth} className="w-7 h-7 rounded-lg flex items-center justify-center border t-border t-text-dim hover:opacity-80 transition-colors cursor-pointer">
               <ChevronLeft size={15} />
             </button>
-            <h3 className="text-lg font-bold t-text min-w-[120px] text-center">{fmtMonth(activeMonth)}</h3>
+            <h3 className="text-lg font-bold t-text min-w-[120px] text-center">{fmtMonth(budgetMonth)}</h3>
             <button onClick={goToNextMonth} className="w-7 h-7 rounded-lg flex items-center justify-center border t-border t-text-dim hover:opacity-80 transition-colors cursor-pointer">
               <ChevronRight size={15} />
             </button>
@@ -573,7 +574,7 @@ export default function BudgetPage() {
               {/* Header */}
               <div />
               {historicalData.map(h => (
-                <div key={h.month} className={`text-[0.55rem] font-semibold t-text-dim text-center py-1 ${h.month === activeMonth ? 'font-bold t-text' : ''}`}>
+                <div key={h.month} className={`text-[0.55rem] font-semibold t-text-dim text-center py-1 ${h.month === budgetMonth ? 'font-bold t-text' : ''}`}>
                   {h.label}
                 </div>
               ))}

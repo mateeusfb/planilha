@@ -135,11 +135,21 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         const dbExpenses = (expensesRes.data || []).map(rowToExpense);
         let settings = settingsRes.data;
 
-        // Criar settings para o usuário se não existir
+        // Se a query retornou erro, tentar novamente diretamente pelo userId (sem .single() que falha com 0 rows)
         if (!settings) {
-          const newSettings = { user_id: userId, custom_cats: [], custom_payments: [], custom_banks: [], active_month: getCurrentMonth() };
-          await supabase.from('settings').upsert(newSettings, { onConflict: 'user_id' });
-          settings = newSettings;
+          const { data: retryData } = await supabase.from('settings').select('*').eq('user_id', userId).maybeSingle();
+          if (retryData) {
+            settings = retryData;
+          } else {
+            // Realmente não existe — criar settings iniciais
+            const newSettings = {
+              user_id: userId, custom_cats: [] as string[], custom_payments: [] as string[],
+              custom_banks: [] as string[], active_month: getCurrentMonth(),
+              category_budgets: {}, monthly_budgets: {}, table_columns: null,
+            };
+            await supabase.from('settings').insert(newSettings);
+            settings = newSettings;
+          }
         }
 
         // Load recurring expenses
@@ -466,7 +476,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   const setActiveMonth = useCallback((ym: string) => {
     setStateRaw(prev => ({ ...prev, activeMonth: ym }));
-    supabase.from('settings').upsert({ user_id: userId, active_month: ym }, { onConflict: 'user_id' });
+    supabase.from('settings').update({ active_month: ym }).eq('user_id', userId);
   }, [userId]);
 
   const addRecurring = useCallback(async (r: Omit<RecurringExpense, 'id' | 'active'>) => {
