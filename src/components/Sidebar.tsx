@@ -64,9 +64,14 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
       {/* Logo + toggle */}
       <div className="px-3 py-4 border-b t-border flex items-center justify-between">
         {!collapsed && (
-          <div className="flex items-center gap-2.5">
-            <img src="/Ícone.svg" alt="Folga ícone" className="w-9 h-9 rounded-lg flex-shrink-0" />
-            <img src="/Folga.svg" alt="Folga" className="h-6 object-contain flex-shrink-0 logo-dark-invert" style={{ overflow: 'visible' }} />
+          <div className="min-w-0 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0 sidebar-logo-icon">
+              <span className="text-white text-sm font-bold">$</span>
+            </div>
+            <div>
+              <h1 className="text-base font-bold t-accent truncate">Folga</h1>
+              <p className="text-[0.68rem] t-text-dim truncate">Controle financeiro</p>
+            </div>
           </div>
         )}
         {/* Desktop: toggle collapse. Mobile: close */}

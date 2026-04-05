@@ -336,6 +336,14 @@ body {
   & .bg-black\/50 { background-color: rgba(0,0,0,0.7) !important; }
 }
 
+/* ── Sidebar logo ── */
+.sidebar-logo-icon {
+  box-shadow: 0 4px 6px -1px rgba(249,115,22,0.2);
+}
+[data-theme="dark"] .sidebar-logo-icon {
+  box-shadow: 0 0 16px rgba(249,115,22,0.35), 0 0 4px rgba(249,115,22,0.2);
+}
+
 /* ── Toast styles ── */
 .toast-success { background: #f0fdf4; }
 .toast-error { background: #fef2f2; }
