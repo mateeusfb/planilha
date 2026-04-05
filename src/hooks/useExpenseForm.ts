@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
+import { useToast } from '@/components/Toast';
 import { genId, getCurrentMonth } from '@/lib/helpers';
 import { INCOME_CATS, EXPENSE_CATS } from '@/lib/constants';
 import type { Expense } from '@/lib/types';
@@ -50,6 +51,7 @@ export interface ExpenseFormActions {
 
 export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
   const { state, setState, addExpense, updateExpense, getIndividualMembers, addRecurring } = useStore();
+  const { toast } = useToast();
   const { activeMonth, members } = state;
   const individuals = getIndividualMembers();
 
@@ -110,76 +112,78 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
     const selectedMember = members.find(m => m.id === memberId);
     const isConjunta = !opts?.skipConjunta && selectedMember?.isConjunta && formType === 'expense';
 
-    if (isConjunta) {
-      if (individuals.length === 0) return;
-      const splitValue = val / individuals.length;
-      const groupId = editingId || genId();
-      if (editingId) {
-        setState(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.conjuntaGroupId !== groupId) }));
+    try {
+      if (isConjunta) {
+        if (individuals.length === 0) return;
+        const splitValue = val / individuals.length;
+        const groupId = editingId || genId();
+        if (editingId) {
+          setState(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.conjuntaGroupId !== groupId) }));
+        }
+        setSaving(true);
+        await Promise.all(individuals.map(m =>
+          addExpense({
+            id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
+            month, payment, installment: 0, memberId: m.id,
+            note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
+            conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
+            createdAt: Date.now(),
+          })
+        ));
+        setSaving(false);
+        opts?.onSuccess?.();
+        return;
       }
+
+      if (isInstallment && !editingId && formType === 'expense') {
+        const groupId = genId();
+        const [baseY, baseM] = month.split('-').map(Number);
+        setSaving(true);
+        for (let i = installmentCurrent; i <= installmentN; i++) {
+          const d = new Date(baseY, baseM - 1 + (i - installmentCurrent), 1);
+          const entryMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          await addExpense({
+            id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
+            month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
+            installmentGroupId: groupId, memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
+          });
+        }
+        setSaving(false);
+        opts?.onSuccess?.();
+        return;
+      }
+
+      const expense: Expense = {
+        id: editingId || genId(), type: formType, desc: desc.trim(), cat, value: val,
+        month, payment: formType === 'income' ? '-' : payment,
+        installment: isInstallment ? installmentN : 0,
+        installmentCurrent: isInstallment ? installmentCurrent : 0,
+        memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
+      };
+
       setSaving(true);
-      individuals.forEach(m => {
-        addExpense({
-          id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
-          month, payment, installment: 0, memberId: m.id,
-          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
-          conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
-          createdAt: Date.now(),
-        });
-      });
+      if (editingId) {
+        await updateExpense(editingId, expense);
+      } else {
+        await addExpense(expense);
+        if (isRecurring && formType === 'expense') {
+          await addRecurring({
+            description: desc.trim(),
+            category: cat,
+            value: val,
+            payment,
+            bank: bank || undefined,
+            memberId,
+            dayOfMonth: recurringDay,
+          });
+        }
+      }
       setSaving(false);
       opts?.onSuccess?.();
-      return;
+    } catch {
+      setSaving(false);
+      toast('Erro ao salvar lançamento. Tente novamente.', 'error');
     }
-
-    if (isInstallment && !editingId && formType === 'expense') {
-      const groupId = genId();
-      const now = getCurrentMonth();
-      const [baseY, baseM] = month.split('-').map(Number);
-      for (let i = installmentCurrent; i <= installmentN; i++) {
-        const d = new Date(baseY, baseM - 1 + (i - installmentCurrent), 1);
-        const entryMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        // Skip installments that would fall in past months
-        if (entryMonth < now) continue;
-        addExpense({
-          id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
-          month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
-          installmentGroupId: groupId, memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
-        });
-      }
-      opts?.onSuccess?.();
-      return;
-    }
-
-    const expense: Expense = {
-      id: editingId || genId(), type: formType, desc: desc.trim(), cat, value: val,
-      month, payment: formType === 'income' ? '-' : payment,
-      installment: isInstallment ? installmentN : 0,
-      installmentCurrent: isInstallment ? installmentCurrent : 0,
-      memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
-    };
-
-    setSaving(true);
-    if (editingId) {
-      updateExpense(editingId, expense);
-    } else {
-      if (isRecurring && formType === 'expense') {
-        // addRecurring already generates the expense for the current month
-        await addRecurring({
-          description: desc.trim(),
-          category: cat,
-          value: val,
-          payment,
-          bank: bank || undefined,
-          memberId,
-          dayOfMonth: recurringDay,
-        });
-      } else {
-        addExpense(expense);
-      }
-    }
-    setSaving(false);
-    opts?.onSuccess?.();
   }
 
   return {

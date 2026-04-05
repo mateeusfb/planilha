@@ -135,32 +135,32 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
         <h3 className="text-base font-bold mb-5">{editingMemberId ? 'Editar Membro' : 'Adicionar Membro'}</h3>
 
         {/* Photo */}
-        <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:border-blue-500 transition-colors mb-4"
+        <div className="border-2 border-dashed t-border rounded-xl p-4 text-center cursor-pointer hover:border-[var(--accent)] transition-colors mb-4"
           onClick={() => fileRef.current?.click()}>
           <input type="file" ref={fileRef} accept="image/*" onChange={handlePhoto} className="hidden" />
           {photo ? (
             <>
-              <img src={photo} alt="Preview" className="w-[72px] h-[72px] rounded-full object-cover mx-auto mb-2 border-[3px] border-slate-200" />
+              <img src={photo} alt="Preview" className="w-[72px] h-[72px] rounded-full object-cover mx-auto mb-2 border-[3px] t-border" />
               <button onClick={e => { e.stopPropagation(); setPhoto(null); setPhotoFile(null); setPhotoRemoved(true); }} className="text-xs text-red-600 cursor-pointer">Remover foto</button>
             </>
           ) : (
             <>
-              <div className="w-[72px] h-[72px] rounded-full bg-slate-100 mx-auto mb-2 flex items-center justify-center text-3xl border-[3px] border-dashed border-slate-200">👤</div>
-              <div className="text-sm text-slate-400">Clique para adicionar uma <span className="text-blue-600 font-semibold">foto</span></div>
+              <div className="w-[72px] h-[72px] rounded-full bg-slate-100 mx-auto mb-2 flex items-center justify-center text-3xl border-[3px] border-dashed t-border">👤</div>
+              <div className="text-sm t-text-dim">Clique para adicionar uma <span className="t-accent font-semibold">foto</span></div>
             </>
           )}
         </div>
 
         {/* Name */}
         <div className="mb-3.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Nome</label>
+          <label className="text-xs font-semibold t-text-muted uppercase tracking-wide block mb-1">Nome</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Nome do membro"
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            className="w-full px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20" />
         </div>
 
         {/* Tipo */}
         <div className="mb-3.5">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1">Tipo</label>
+          <label className="text-xs font-semibold t-text-muted uppercase tracking-wide block mb-1">Tipo</label>
           <div className="flex items-center gap-2 mt-1">
             <label className="toggle-switch">
               <input type="checkbox" checked={isConjunta} onChange={e => setIsConjunta(e.target.checked)} />
@@ -169,14 +169,14 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
             <span className="text-sm">Conta Conjunta</span>
           </div>
           {isConjunta && (
-            <div className="text-xs text-slate-400 mt-1">Despesas lançadas aqui serão divididas igualmente entre os membros individuais.</div>
+            <div className="text-xs t-text-dim mt-1">Despesas lançadas aqui serão divididas igualmente entre os membros individuais.</div>
           )}
         </div>
 
         {/* Workspace selector */}
         {!editingMemberId && hasMultipleWorkspaces && (
           <div className="mb-3.5">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Espaço de trabalho</label>
+            <label className="text-xs font-semibold t-text-muted uppercase tracking-wide block mb-1.5">Espaço de trabalho</label>
             <div className="space-y-1.5">
               <label
                 className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${
@@ -232,12 +232,12 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
         {/* Color picker */}
         {!photo && (
           <div className="mb-4">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-2">Cor do Avatar</label>
+            <label className="text-xs font-semibold t-text-muted uppercase tracking-wide block mb-2">Cor do Avatar</label>
             <div className="flex gap-2 flex-wrap">
               {COLORS.map(c => (
                 <div key={c} onClick={() => setColor(c)}
                   className="w-7 h-7 rounded-full cursor-pointer transition-all"
-                  style={{ background: c, border: `3px solid ${c === color ? '#1e293b' : 'transparent'}` }} />
+                  style={{ background: c, border: `3px solid ${c === color ? 'var(--text)' : 'transparent'}` }} />
               ))}
             </div>
           </div>
@@ -245,9 +245,9 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
 
         {/* Buttons */}
         <div className="flex gap-2 justify-end mt-5">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2 border t-border rounded-lg text-sm font-semibold t-text hover:opacity-80 cursor-pointer">Cancelar</button>
           <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 cursor-pointer disabled:opacity-60 flex items-center gap-2">
+            className="px-4 py-2 t-accent-bg text-white rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-60 flex items-center gap-2">
             {saving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
             {saving ? 'Salvando...' : 'Salvar'}
           </button>

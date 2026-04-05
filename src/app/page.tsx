@@ -6,7 +6,7 @@ import { ThemeProvider, useTheme } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import type { PageId, Workspace } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
-import { ToastProvider } from '@/components/Toast';
+import { ToastProvider, useToast } from '@/components/Toast';
 import { Moon, Sun } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import ExpensesPage from '@/components/ExpensesPage';
@@ -37,6 +37,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
   const { user, signOut } = useAuth();
   const { toggleMode, mode } = useTheme();
   const { state, removeExpense } = useStore();
+  const { toast } = useToast();
   const { checkAnalysis, requiredPlanFor } = usePlan();
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [memberModalOpen, setMemberModalOpen] = useState(false);
@@ -160,7 +161,14 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
       <DeleteModal
         isOpen={deleteModalOpen}
         onClose={() => { setDeleteModalOpen(false); setDeleteId(null); }}
-        onConfirm={() => { if (deleteId) removeExpense(deleteId); setDeleteId(null); setDeleteModalOpen(false); }}
+        onConfirm={async () => {
+          try {
+            if (deleteId) await removeExpense(deleteId);
+          } catch {
+            toast('Erro ao excluir lançamento. Tente novamente.', 'error');
+          }
+          setDeleteId(null); setDeleteModalOpen(false);
+        }}
       />
       <QuickExpense />
       {upgradeMessage && (

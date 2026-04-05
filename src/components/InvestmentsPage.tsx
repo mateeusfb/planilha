@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth } from '@/lib/helpers';
 import type { Investment, InvestmentGoal, InvestmentType } from '@/lib/types';
-import { Plus, TrendingUp, TrendingDown, Wallet, Target, PiggyBank, Pencil, Trash2, RefreshCw, Check, X as XIcon, AlertTriangle, ArrowUpDown, Download, Clock, ArrowDownToLine } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, Target, PiggyBank, Pencil, Trash2, RefreshCw, Check, X as XIcon, AlertTriangle, ArrowUpDown, Download, Clock, ArrowDownToLine, FileText } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Chart as ChartJS, ArcElement, Tooltip, Legend,
   CategoryScale, LinearScale, PointElement, LineElement, Filler,
@@ -14,6 +16,7 @@ import InvestmentModal from './InvestmentModal';
 import InvestmentGoalModal from './InvestmentGoalModal';
 import WithdrawalModal from './WithdrawalModal';
 import { useToast } from './Toast';
+import { useTheme } from '@/lib/theme';
 import { usePlan } from '@/lib/plans';
 import UpgradeModal from './UpgradeModal';
 
@@ -37,6 +40,8 @@ export default function InvestmentsPage() {
   } = useStore();
 
   const { toast } = useToast();
+  const { mode } = useTheme();
+  const isDark = mode === 'dark';
   const { checkGoalLimit, checkInvestmentLimit, requiredPlanFor } = usePlan();
   const [invModalOpen, setInvModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
@@ -178,6 +183,52 @@ export default function InvestmentsPage() {
     URL.revokeObjectURL(url);
   }
 
+  function exportPDF() {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const dateStr = new Date().toLocaleDateString('pt-BR');
+    doc.setFontSize(16);
+    doc.text('Carteira de Investimentos', 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Gerado em ${dateStr}`, 14, 25);
+
+    // Summary
+    doc.setFontSize(11);
+    doc.text(`Patrimônio: ${fmt(data.totalCurrent)}`, 14, 34);
+    doc.text(`Investido: ${fmt(data.totalInvested)}`, 100, 34);
+    const totalRet = data.totalCurrent - data.totalInvested;
+    const totalRetPct = data.totalInvested > 0 ? (totalRet / data.totalInvested) * 100 : 0;
+    doc.text(`Retorno: ${fmt(totalRet)} (${totalRetPct.toFixed(2)}%)`, 186, 34);
+
+    const headers = ['Nome', 'Tipo', 'Investido (R$)', 'Atual (R$)', 'Retorno (R$)', 'Retorno (%)', '% Carteira', 'Compra', 'Vencimento'];
+    const rows = investments.map(inv => {
+      const ret = inv.currentValue - inv.amountInvested;
+      const retPct = inv.amountInvested > 0 ? (ret / inv.amountInvested) * 100 : 0;
+      const pctCarteira = data.totalCurrent > 0 ? (inv.currentValue / data.totalCurrent) * 100 : 0;
+      return [
+        inv.name,
+        TYPE_CONFIG[inv.type].label,
+        inv.amountInvested.toFixed(2).replace('.', ','),
+        inv.currentValue.toFixed(2).replace('.', ','),
+        ret.toFixed(2).replace('.', ','),
+        retPct.toFixed(2).replace('.', ',') + '%',
+        pctCarteira.toFixed(1).replace('.', ',') + '%',
+        inv.purchaseDate || '-',
+        inv.maturityDate || '-',
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 40,
+      head: [headers],
+      body: rows,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [13, 24, 70], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 250] },
+    });
+
+    doc.save(`carteira-${new Date().toISOString().slice(0, 7)}.pdf`);
+  }
+
   function getDaysLabel(deadline: string): { label: string; color: string } {
     const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
     if (daysLeft < 0) return { label: `Venceu há ${Math.abs(daysLeft)}d`, color: 'text-red-500' };
@@ -309,7 +360,7 @@ export default function InvestmentsPage() {
       {data.concentrationWarnings.length > 0 && (
         <div className="mb-4 animate-fade-in-up">
           {data.concentrationWarnings.map(w => (
-            <div key={w.label} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-700 dark:text-amber-400 text-xs font-medium">
+            <div key={w.label} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-700 text-xs font-medium">
               <AlertTriangle size={14} className="flex-shrink-0" />
               <span><strong>{w.label}</strong> representa <strong>{w.pct.toFixed(0)}%</strong> da sua carteira. Considere diversificar para reduzir riscos.</span>
             </div>
@@ -362,10 +413,10 @@ export default function InvestmentsPage() {
                   },
                 },
                 scales: {
-                  x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                  x: { grid: { display: false }, ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : undefined } },
                   y: {
-                    grid: { color: 'rgba(100,116,139,0.1)' },
-                    ticks: { font: { size: 11 }, callback: v => fmt(Number(v)) },
+                    grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(100,116,139,0.1)' },
+                    ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : undefined, callback: v => fmt(Number(v)) },
                   },
                 },
               }}
@@ -492,7 +543,11 @@ export default function InvestmentsPage() {
               <>
                 <button onClick={exportCSV}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border t-border t-text cursor-pointer hover:opacity-80 flex items-center gap-1.5">
-                  <Download size={13} /> Exportar CSV
+                  <Download size={13} /> CSV
+                </button>
+                <button onClick={exportPDF}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border t-border t-text cursor-pointer hover:opacity-80 flex items-center gap-1.5">
+                  <FileText size={13} /> PDF
                 </button>
                 <button onClick={startBatchEdit}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg border t-border t-text cursor-pointer hover:opacity-80 flex items-center gap-1.5">

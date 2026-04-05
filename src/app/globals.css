@@ -301,7 +301,52 @@ body {
 
   /* Skeleton shimmer dark */
   & .bg-slate-200 { background-color: rgba(255,255,255,0.08) !important; }
+
+  /* Focus rings — visible in dark */
+  & .focus\:ring-blue-100:focus { --tw-ring-color: rgba(255,255,255,0.1) !important; }
+  & .focus\:ring-blue-200:focus { --tw-ring-color: rgba(255,255,255,0.15) !important; }
+  & .focus\:border-blue-500:focus { border-color: var(--accent) !important; }
+  & .focus\:border-red-500:focus { border-color: #f87171 !important; }
+
+  /* Toggle button borders (Despesa/Receita) */
+  & .border-red-300 { border-color: rgba(248,113,113,0.4) !important; }
+  & .border-green-300 { border-color: rgba(74,222,128,0.4) !important; }
+
+  /* Badge text — lighten for dark bg */
+  & .text-green-700 { color: #4ade80 !important; }
+  & .text-red-700 { color: #f87171 !important; }
+  & .text-amber-700 { color: #fbbf24 !important; }
+
+  /* Value colors — slightly lighter for contrast */
+  & .text-green-600 { color: #34d399 !important; }
+  & .text-red-600 { color: #f87171 !important; }
+  & .text-orange-600 { color: #fb923c !important; }
+  & .text-amber-600 { color: #fbbf24 !important; }
+  & .text-blue-600 { color: #60a5fa !important; }
+
+  /* Photo upload area */
+  & .border-dashed.border-slate-200 { border-color: var(--border) !important; }
+  & .hover\:border-blue-500:hover { border-color: var(--accent) !important; }
+  & .bg-slate-100 { background-color: rgba(255,255,255,0.06) !important; }
+
+  /* Cancel buttons */
+  & .hover\:bg-slate-50:hover { background-color: var(--bg-card-hover) !important; }
+
+  /* Modal overlay */
+  & .bg-black\/50 { background-color: rgba(0,0,0,0.7) !important; }
 }
+
+/* ── Toast styles ── */
+.toast-success { background: #f0fdf4; }
+.toast-error { background: #fef2f2; }
+.toast-info { background: #eff6ff; }
+.toast-warning { background: #fffbeb; }
+
+[data-theme="dark"] .toast-success { background: rgba(16,185,129,0.12); }
+[data-theme="dark"] .toast-error { background: rgba(239,68,68,0.12); }
+[data-theme="dark"] .toast-info { background: rgba(59,130,246,0.12); }
+[data-theme="dark"] .toast-warning { background: rgba(245,158,11,0.12); }
+[data-theme="dark"] .toast-text { color: var(--text) !important; }
 
 /* Toggle switch */
 .toggle-switch {

@@ -233,9 +233,13 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
     const msg = inUse > 0 ? `Excluir "${member.name}"? ${inUse} lançamento(s) serão excluídos.` : `Excluir "${member.name}"?`;
     setConfirmModal({
       open: true, message: msg,
-      onConfirm: () => {
-        removeMember(id);
-        toast(`Membro "${member.name}" excluído.`, 'success');
+      onConfirm: async () => {
+        try {
+          await removeMember(id);
+          toast(`Membro "${member.name}" excluído.`, 'success');
+        } catch {
+          toast('Erro ao excluir membro. Tente novamente.', 'error');
+        }
       },
     });
   }
@@ -437,14 +441,21 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         addBank={addBank} editBank={editBank} deleteBank={deleteBank}
         members={allMembers} onAddMember={onAddMember} onEditMember={onEditMember} onDeleteMember={handleDeleteMember}
         recurringExpenses={recurringExpenses}
-        onToggleRecurring={(id, active) => updateRecurring(id, { active })}
+        onToggleRecurring={async (id, active) => {
+          try { await updateRecurring(id, { active }); }
+          catch { toast('Erro ao atualizar recorrência. Tente novamente.', 'error'); }
+        }}
         onDeleteRecurring={(id) => {
           setConfirmModal({
             open: true,
             message: 'Excluir esta despesa recorrente?',
-            onConfirm: () => {
-              removeRecurring(id);
-              toast('Recorrência excluída.', 'success');
+            onConfirm: async () => {
+              try {
+                await removeRecurring(id);
+                toast('Recorrência excluída.', 'success');
+              } catch {
+                toast('Erro ao excluir recorrência. Tente novamente.', 'error');
+              }
             },
           });
         }}

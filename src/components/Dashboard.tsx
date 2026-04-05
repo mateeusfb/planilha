@@ -8,6 +8,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearSca
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, Users, User } from 'lucide-react';
 import PeriodFilter from './PeriodFilter';
+import { useTheme } from '@/lib/theme';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 /* ── Animated Counter ── */
@@ -94,6 +95,8 @@ function HiddenValue({ children, hidden, className = '', style }: { children: Re
 
 export default function Dashboard() {
   const { state, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers, setActiveMember } = useStore();
+  const { mode } = useTheme();
+  const isDark = mode === 'dark';
   const { activeMonth, activeMember, members } = state;
   const [valuesHidden, setValuesHidden] = useState(true);
   const [memberDropOpen, setMemberDropOpen] = useState(false);
@@ -371,8 +374,8 @@ export default function Dashboard() {
                     animation: { duration: 1200, easing: 'easeOutQuart' },
                     plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } } },
                     scales: {
-                      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { font: { size: 10 } } },
-                      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                      y: { beginAtZero: true, grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.1)' }, ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : undefined } },
+                      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : undefined } },
                     },
                   }}
                 />

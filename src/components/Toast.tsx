@@ -57,11 +57,11 @@ function ToastItem({ item, onRemove }: { item: ToastItem; onRemove: (id: string)
     return () => clearTimeout(timer);
   }, [item, onRemove]);
 
-  const styles: Record<string, { bg: string; border: string; icon: React.ReactNode }> = {
-    success: { bg: 'bg-green-50', border: 'border-green-400', icon: <Check size={18} className="text-green-600" /> },
-    error: { bg: 'bg-red-50', border: 'border-red-400', icon: <X size={18} className="text-red-600" /> },
-    info: { bg: 'bg-blue-50', border: 'border-blue-400', icon: <Info size={18} className="text-blue-600" /> },
-    warning: { bg: 'bg-amber-50', border: 'border-amber-400', icon: <AlertTriangle size={18} className="text-amber-600" /> },
+  const styles: Record<string, { bg: string; border: string; text: string; icon: React.ReactNode }> = {
+    success: { bg: 'toast-success', border: 'border-green-400/60', text: 'text-green-700 toast-text', icon: <Check size={18} className="text-green-500" /> },
+    error: { bg: 'toast-error', border: 'border-red-400/60', text: 'text-red-700 toast-text', icon: <X size={18} className="text-red-500" /> },
+    info: { bg: 'toast-info', border: 'border-blue-400/60', text: 'text-blue-700 toast-text', icon: <Info size={18} className="text-blue-500" /> },
+    warning: { bg: 'toast-warning', border: 'border-amber-400/60', text: 'text-amber-700 toast-text', icon: <AlertTriangle size={18} className="text-amber-500" /> },
   };
 
   const s = styles[item.type];
@@ -73,10 +73,10 @@ function ToastItem({ item, onRemove }: { item: ToastItem; onRemove: (id: string)
       }`}
     >
       <span className="flex-shrink-0">{s.icon}</span>
-      <span className="text-sm font-medium text-slate-700 flex-1">{item.message}</span>
+      <span className={`text-sm font-medium flex-1 ${s.text}`}>{item.message}</span>
       <button
         onClick={() => { setExiting(true); setTimeout(() => onRemove(item.id), 300); }}
-        className="text-slate-400 hover:text-slate-600 cursor-pointer flex-shrink-0 w-6 h-6 flex items-center justify-center"
+        className="t-text-dim hover:opacity-80 cursor-pointer flex-shrink-0 w-6 h-6 flex items-center justify-center"
       >
         <X size={14} />
       </button>

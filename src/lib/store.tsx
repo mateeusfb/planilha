@@ -68,12 +68,12 @@ interface StoreContextType {
   getOutflows: (ym: string, memberId: string) => Expense[];
   getIncomes: (ym: string, memberId: string) => Expense[];
   getIndividualMembers: () => Member[];
-  addExpense: (expense: Expense) => void;
-  updateExpense: (id: string, expense: Expense) => void;
-  removeExpense: (id: string) => void;
-  addMember: (member: Member, targetWorkspaceId?: string | null) => void;
-  updateMember: (id: string, member: Partial<Member>) => void;
-  removeMember: (id: string) => void;
+  addExpense: (expense: Expense) => Promise<void>;
+  updateExpense: (id: string, expense: Expense) => Promise<void>;
+  removeExpense: (id: string) => Promise<void>;
+  addMember: (member: Member, targetWorkspaceId?: string | null) => Promise<void>;
+  updateMember: (id: string, member: Partial<Member>) => Promise<void>;
+  removeMember: (id: string) => Promise<void>;
   setActiveMember: (id: string) => void;
   setActiveMonth: (ym: string) => void;
   recurringExpenses: RecurringExpense[];
@@ -420,52 +420,83 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   const addExpense = useCallback(async (expense: Expense) => {
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
     const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
-    if (error) console.error('Erro ao salvar lançamento:', error.message);
+    if (error) {
+      setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== expense.id) }));
+      throw new Error(error.message);
+    }
   }, [userId]);
 
   const updateExpense = useCallback(async (id: string, expense: Expense) => {
-    setStateRaw(prev => ({
-      ...prev,
-      expenses: prev.expenses.map(e => e.id === id ? { ...expense, createdAt: e.createdAt } : e),
-    }));
+    let original: Expense | undefined;
+    setStateRaw(prev => {
+      original = prev.expenses.find(e => e.id === id);
+      return { ...prev, expenses: prev.expenses.map(e => e.id === id ? { ...expense, createdAt: e.createdAt } : e) };
+    });
     const { error } = await supabase.from('expenses').update(expenseToRow(expense, userId, workspaceId)).eq('id', id);
-    if (error) console.error('Erro ao atualizar lançamento:', error.message);
+    if (error) {
+      if (original) setStateRaw(prev => ({ ...prev, expenses: prev.expenses.map(e => e.id === id ? original! : e) }));
+      throw new Error(error.message);
+    }
   }, [userId]);
 
   const removeExpense = useCallback(async (id: string) => {
-    setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }));
+    let original: Expense | undefined;
+    setStateRaw(prev => {
+      original = prev.expenses.find(e => e.id === id);
+      return { ...prev, expenses: prev.expenses.filter(e => e.id !== id) };
+    });
     const { error } = await supabase.from('expenses').delete().eq('id', id);
-    if (error) console.error('Erro ao excluir lançamento:', error.message);
+    if (error) {
+      if (original) setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, original!] }));
+      throw new Error(error.message);
+    }
   }, []);
 
   const addMember = useCallback(async (member: Member, targetWorkspaceId?: string | null) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
     const wsId = targetWorkspaceId !== undefined ? targetWorkspaceId : workspaceId;
     const { error } = await supabase.from('members').insert(memberToRow(member, userId, wsId || undefined));
-    if (error) console.error('Erro ao salvar membro:', error.message);
+    if (error) {
+      setStateRaw(prev => ({ ...prev, members: prev.members.filter(m => m.id !== member.id) }));
+      throw new Error(error.message);
+    }
   }, [userId, workspaceId]);
 
   const updateMember = useCallback(async (id: string, data: Partial<Member>) => {
-    setStateRaw(prev => ({
-      ...prev,
-      members: prev.members.map(m => m.id === id ? { ...m, ...data } : m),
-    }));
-    const member = state.members.find(m => m.id === id);
-    if (member) {
-      const { error } = await supabase.from('members').update(memberToRow({ ...member, ...data }, userId, workspaceId)).eq('id', id);
-      if (error) console.error('Erro ao atualizar membro:', error.message);
+    let original: Member | undefined;
+    setStateRaw(prev => {
+      original = prev.members.find(m => m.id === id);
+      return { ...prev, members: prev.members.map(m => m.id === id ? { ...m, ...data } : m) };
+    });
+    if (original) {
+      const { error } = await supabase.from('members').update(memberToRow({ ...original, ...data }, userId, workspaceId)).eq('id', id);
+      if (error) {
+        setStateRaw(prev => ({ ...prev, members: prev.members.map(m => m.id === id ? original! : m) }));
+        throw new Error(error.message);
+      }
     }
-  }, [state.members, userId]);
+  }, [userId]);
 
   const removeMember = useCallback(async (id: string) => {
-    setStateRaw(prev => ({
-      ...prev,
-      members: prev.members.filter(m => m.id !== id),
-      expenses: prev.expenses.filter(e => e.memberId !== id),
-      activeMember: prev.activeMember === id ? 'all' : prev.activeMember,
-    }));
+    let originalMembers: Member[] = [];
+    let originalExpenses: Expense[] = [];
+    let originalActiveMember = 'all';
+    setStateRaw(prev => {
+      originalMembers = prev.members;
+      originalExpenses = prev.expenses;
+      originalActiveMember = prev.activeMember;
+      return {
+        ...prev,
+        members: prev.members.filter(m => m.id !== id),
+        expenses: prev.expenses.filter(e => e.memberId !== id),
+        activeMember: prev.activeMember === id ? 'all' : prev.activeMember,
+      };
+    });
     const { error: e1 } = await supabase.from('members').delete().eq('id', id);
-    if (e1) console.error('Erro ao excluir membro:', e1.message);
+    if (e1) {
+      setStateRaw(prev => ({ ...prev, members: originalMembers, expenses: originalExpenses, activeMember: originalActiveMember }));
+      throw new Error(e1.message);
+    }
     const { error: e2 } = await supabase.from('expenses').delete().eq('member_id', id);
     if (e2) console.error('Erro ao excluir lançamentos do membro:', e2.message);
   }, []);
@@ -487,7 +518,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       day_of_month: r.dayOfMonth, active: true,
     };
     const { data, error } = await supabase.from('recurring_expenses').insert(row).select('id').single();
-    if (error) { console.error('Erro ao criar recorrência:', error.message); return; }
+    if (error) throw new Error(error.message);
     const recurringId = data.id;
     setRecurringExpenses(prev => [...prev, { ...r, id: recurringId, active: true }]);
 
@@ -515,12 +546,14 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     if (data.memberId !== undefined) dbData.member_id = data.memberId;
     if (data.dayOfMonth !== undefined) dbData.day_of_month = data.dayOfMonth;
     if (data.active !== undefined) dbData.active = data.active;
-    await supabase.from('recurring_expenses').update(dbData).eq('id', id);
+    const { error } = await supabase.from('recurring_expenses').update(dbData).eq('id', id);
+    if (error) throw new Error(error.message);
     setRecurringExpenses(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
   }, []);
 
   const removeRecurring = useCallback(async (id: string) => {
-    await supabase.from('recurring_expenses').delete().eq('id', id);
+    const { error } = await supabase.from('recurring_expenses').delete().eq('id', id);
+    if (error) throw new Error(error.message);
     setRecurringExpenses(prev => prev.filter(r => r.id !== id));
   }, []);
 
@@ -625,7 +658,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           }]);
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      throw err instanceof Error ? err : new Error('Erro ao salvar snapshot');
+    }
   }, [userId, workspaceId, investmentSnapshots]);
 
   // ── Withdrawal CRUD ──

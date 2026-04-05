@@ -60,7 +60,7 @@ export default function PlansPage() {
       <div className="mb-8 p-4 rounded-2xl border-2 border-dashed border-orange-400/50 bg-orange-500/5 flex items-center justify-center gap-3">
         <Clock size={24} className="text-orange-500" />
         <div>
-          <p className="text-lg font-bold text-orange-600 dark:text-orange-400">EM BREVE</p>
+          <p className="text-lg font-bold text-orange-600">EM BREVE</p>
           <p className="text-sm t-text-muted">Estamos finalizando os planos. Por enquanto, todas as funcionalidades estão liberadas!</p>
         </div>
       </div>

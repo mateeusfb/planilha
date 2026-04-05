@@ -130,12 +130,17 @@ export default function Onboarding({ onComplete, onAddMember }: Props) {
     },
   ];
 
-  function handleQuickAdd() {
+  async function handleQuickAdd() {
     if (!quickName.trim()) return;
+    const name = quickName.trim();
     const colorIndex = members.length % COLORS.length;
-    addMember({ id: genId(), name: quickName.trim(), color: COLORS[colorIndex], photo: null, isConjunta: false });
-    toast(`${quickName.trim()} adicionado!`, 'success');
-    setQuickName('');
+    try {
+      await addMember({ id: genId(), name, color: COLORS[colorIndex], photo: null, isConjunta: false });
+      toast(`${name} adicionado!`, 'success');
+      setQuickName('');
+    } catch {
+      toast('Erro ao adicionar membro. Tente novamente.', 'error');
+    }
   }
 
   function handleNext() {

@@ -23,7 +23,7 @@ export default function CreateWorkspaceModal({ isOpen, onClose, onCreate }: Prop
           <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Nome</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)}
             placeholder="Ex: Empresa, Freelance, Casa..."
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+            className="w-full px-3 py-2 border rounded-lg text-sm t-input focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20" />
         </div>
         <div className="mb-5">
           <label className="block text-xs font-semibold t-text-muted uppercase tracking-wide mb-1.5">Ícone</label>
@@ -31,7 +31,7 @@ export default function CreateWorkspaceModal({ isOpen, onClose, onCreate }: Prop
             {icons.map(ic => (
               <button key={ic} onClick={() => setSelectedIcon(ic)}
                 className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg cursor-pointer border-2 transition-all ${
-                  selectedIcon === ic ? 'border-blue-500 bg-blue-50 scale-110' : 'border-slate-200'
+                  selectedIcon === ic ? 'border-[var(--accent)] t-accent-light scale-110' : 't-border'
                 }`}>
                 {ic}
               </button>
@@ -39,10 +39,10 @@ export default function CreateWorkspaceModal({ isOpen, onClose, onCreate }: Prop
           </div>
         </div>
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 cursor-pointer">Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2 border t-border rounded-lg text-sm font-semibold t-text hover:opacity-80 cursor-pointer">Cancelar</button>
           <button onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedIcon); setName(''); } }}
             disabled={!name.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 cursor-pointer">
+            className="px-4 py-2 t-accent-bg text-white rounded-lg text-sm font-semibold disabled:opacity-50 cursor-pointer">
             Criar
           </button>
         </div>
