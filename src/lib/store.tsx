@@ -173,8 +173,8 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         }));
         setRecurringExpenses(dbRecurring);
 
-        // Auto-generate recurring expenses for current month
-        const currentMonth = settings?.active_month || getCurrentMonth();
+        // Auto-generate recurring expenses for current month (always use real current month to avoid retroactive generation)
+        const currentMonth = getCurrentMonth();
         const activeRecurring = dbRecurring.filter(r => r.active);
         if (activeRecurring.length > 0) {
           const { data: generated } = await supabase
@@ -488,7 +488,21 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     };
     const { data, error } = await supabase.from('recurring_expenses').insert(row).select('id').single();
     if (error) { console.error('Erro ao criar recorrência:', error.message); return; }
-    setRecurringExpenses(prev => [...prev, { ...r, id: data.id, active: true }]);
+    const recurringId = data.id;
+    setRecurringExpenses(prev => [...prev, { ...r, id: recurringId, active: true }]);
+
+    // Immediately generate the expense for the current month so auto-generation on load won't duplicate
+    const curMonth = getCurrentMonth();
+    const expId = crypto.randomUUID();
+    const expense: Expense = {
+      id: expId, type: 'expense', desc: r.description, cat: r.category, value: r.value,
+      month: curMonth, payment: r.payment, installment: 0, memberId: r.memberId,
+      bank: r.bank, purchaseDate: `${curMonth}-${String(r.dayOfMonth).padStart(2, '0')}`,
+      note: 'Recorrente', createdAt: Date.now(),
+    };
+    setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
+    await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
+    await supabase.from('recurring_generated').insert({ recurring_id: recurringId, month: curMonth, expense_id: expId });
   }, [userId, workspaceId]);
 
   const updateRecurring = useCallback(async (id: string, data: Partial<RecurringExpense>) => {

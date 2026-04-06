@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { genId } from '@/lib/helpers';
+import { genId, getCurrentMonth } from '@/lib/helpers';
 import { INCOME_CATS, EXPENSE_CATS } from '@/lib/constants';
 import type { Expense } from '@/lib/types';
 
@@ -134,10 +134,13 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
 
     if (isInstallment && !editingId && formType === 'expense') {
       const groupId = genId();
+      const now = getCurrentMonth();
       const [baseY, baseM] = month.split('-').map(Number);
       for (let i = installmentCurrent; i <= installmentN; i++) {
         const d = new Date(baseY, baseM - 1 + (i - installmentCurrent), 1);
         const entryMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        // Skip installments that would fall in past months
+        if (entryMonth < now) continue;
         addExpense({
           id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
           month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
@@ -160,9 +163,8 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
     if (editingId) {
       updateExpense(editingId, expense);
     } else {
-      addExpense(expense);
-      // Create recurring rule if toggled
       if (isRecurring && formType === 'expense') {
+        // addRecurring already generates the expense for the current month
         await addRecurring({
           description: desc.trim(),
           category: cat,
@@ -172,6 +174,8 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
           memberId,
           dayOfMonth: recurringDay,
         });
+      } else {
+        addExpense(expense);
       }
     }
     setSaving(false);
