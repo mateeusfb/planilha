@@ -7,8 +7,6 @@ import { COLORS } from '@/lib/constants';
 import { genId } from '@/lib/helpers';
 import { uploadAvatar, deleteAvatar } from '@/lib/storage';
 import { useToast } from './Toast';
-import { usePlan } from '@/lib/plans';
-import UpgradeModal from './UpgradeModal';
 import type { Workspace } from '@/lib/types';
 
 interface Props {
@@ -30,10 +28,8 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
   const [isConjunta, setIsConjunta] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>('current');
-  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { checkMemberLimit, requiredPlanFor } = usePlan();
 
   const ownWorkspaces = workspaces.filter(w => w.isOwn);
   const hasMultipleWorkspaces = ownWorkspaces.length > 1;
@@ -90,11 +86,6 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
         onClose();
         return;
       }
-
-      // Check member limit
-      const currentMembers = state.members.filter(m => m.id !== 'all').length;
-      const blocked = checkMemberLimit(currentMembers);
-      if (blocked) { setUpgradeMessage(blocked); setSaving(false); return; }
 
       const memberId = genId();
       let photoUrl: string | null = null;
@@ -254,14 +245,6 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
         </div>
       </div>
     </div>
-    {upgradeMessage && (
-      <UpgradeModal
-        message={upgradeMessage}
-        requiredPlan={requiredPlanFor('members')}
-        onClose={() => setUpgradeMessage(null)}
-        onGoToPlans={() => setUpgradeMessage(null)}
-      />
-    )}
   </>
   );
 }

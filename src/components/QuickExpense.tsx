@@ -7,19 +7,14 @@ import { useToast } from './Toast';
 import InputModal from './InputModal';
 import { Plus, X } from 'lucide-react';
 import { useExpenseForm } from '@/hooks/useExpenseForm';
-import { usePlan } from '@/lib/plans';
-import UpgradeModal from './UpgradeModal';
 
 export default function QuickExpense() {
   const { state, setState, getIndividualMembers, getExpensesForMonth, recurringExpenses } = useStore();
   const { members } = state;
   const { toast } = useToast();
-  const { checkExpenseLimit, checkRecurringLimit, checkCustomCategoryLimit, checkCustomPaymentLimit, checkCustomBankLimit, requiredPlanFor } = usePlan();
-
   const [open, setOpen] = useState(false);
   const form = useExpenseForm();
   const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay' | 'bank' } | null>(null);
-  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
@@ -37,20 +32,6 @@ export default function QuickExpense() {
     if (!form.desc.trim()) return toast('Digite a descrição.', 'warning');
     const val = parseFloat(form.value);
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
-
-    // Plan enforcement: expense limit
-    if (!form.editingId) {
-      const monthExpenses = getExpensesForMonth(state.activeMonth, 'all');
-      const blocked = checkExpenseLimit(monthExpenses.length);
-      if (blocked) { setUpgradeMessage(blocked); return; }
-    }
-
-    // Plan enforcement: recurring limit
-    if (form.isRecurring && !form.editingId) {
-      const activeRecurring = recurringExpenses.filter(r => r.active).length;
-      const blocked = checkRecurringLimit(activeRecurring);
-      if (blocked) { setUpgradeMessage(blocked); return; }
-    }
 
     form.handleSave({
       onSuccess: () => {
@@ -107,8 +88,6 @@ export default function QuickExpense() {
                 <div>
                   <select value={form.cat} onChange={e => {
                     if (e.target.value === '__new__') {
-                      const blocked = checkCustomCategoryLimit((state.customCats || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'cat' });
                     } else form.setCat(e.target.value);
                   }} className={inputClass}>
@@ -135,22 +114,16 @@ export default function QuickExpense() {
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.payment} onChange={e => {
                     if (e.target.value === '__new_pay__') {
-                      const blocked = checkCustomPaymentLimit((state.customPayments || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'pay' });
-                    }
-                    else form.setPayment(e.target.value);
+                    } else form.setPayment(e.target.value);
                   }} className={inputClass}>
                     {allPayments.map(p => <option key={p} value={p}>{p}</option>)}
                     <option value="__new_pay__">+ Nova...</option>
                   </select>
                   <select value={form.bank} onChange={e => {
                     if (e.target.value === '__new_bank__') {
-                      const blocked = checkCustomBankLimit((state.customBanks || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'bank' });
-                    }
-                    else form.setBank(e.target.value);
+                    } else form.setBank(e.target.value);
                   }} className={inputClass}>
                     <option value="">Instituição (opcional)</option>
                     {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -162,11 +135,8 @@ export default function QuickExpense() {
               {form.formType === 'income' && (
                 <select value={form.bank} onChange={e => {
                   if (e.target.value === '__new_bank__') {
-                      const blocked = checkCustomBankLimit((state.customBanks || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
-                      setInputModal({ type: 'bank' });
-                    }
-                  else form.setBank(e.target.value);
+                    setInputModal({ type: 'bank' });
+                  } else form.setBank(e.target.value);
                 }} className={inputClass}>
                   <option value="">Instituição (opcional)</option>
                   {allBanks.map(b => <option key={b} value={b}>{b}</option>)}
@@ -239,14 +209,6 @@ export default function QuickExpense() {
         title={inputModal?.type === 'cat' ? 'Nova Categoria' : inputModal?.type === 'pay' ? 'Nova Forma de Pagamento' : 'Nova Instituição'}
         placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : inputModal?.type === 'pay' ? 'Nome da forma...' : 'Nome da instituição...'}
       />
-      {upgradeMessage && (
-        <UpgradeModal
-          message={upgradeMessage}
-          requiredPlan={requiredPlanFor('exportCSV')}
-          onClose={() => setUpgradeMessage(null)}
-          onGoToPlans={() => setUpgradeMessage(null)}
-        />
-      )}
     </>
   );
 }

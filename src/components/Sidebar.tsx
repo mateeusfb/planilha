@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import type { PageId, Member } from '@/lib/types';
-import { Home, CreditCard, BarChart3, TrendingUp, Menu, ChevronLeft, Star, Target } from 'lucide-react';
+import { Home, CreditCard, BarChart3, TrendingUp, Menu, ChevronLeft, Target } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface SidebarProps {
@@ -17,7 +17,6 @@ const navLinks: { id: PageId; icon: ReactNode; label: string }[] = [
   { id: 'analysis', icon: <BarChart3 size={18} />, label: 'Análise' },
   { id: 'budget', icon: <Target size={18} />, label: 'Orçamento' },
   { id: 'investments', icon: <TrendingUp size={18} />, label: 'Investimentos' },
-  { id: 'plans', icon: <Star size={18} />, label: 'Planos' },
 ];
 
 export function Avatar({ member, size = 26 }: { member: Member; size?: number }) {

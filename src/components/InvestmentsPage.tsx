@@ -17,8 +17,6 @@ import InvestmentGoalModal from './InvestmentGoalModal';
 import WithdrawalModal from './WithdrawalModal';
 import { useToast } from './Toast';
 import { useTheme } from '@/lib/theme';
-import { usePlan } from '@/lib/plans';
-import UpgradeModal from './UpgradeModal';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Filler);
 
@@ -42,13 +40,11 @@ export default function InvestmentsPage() {
   const { toast } = useToast();
   const { mode } = useTheme();
   const isDark = mode === 'dark';
-  const { checkGoalLimit, checkInvestmentLimit, requiredPlanFor } = usePlan();
   const [invModalOpen, setInvModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [editingInv, setEditingInv] = useState<Investment | null>(null);
   const [editingGoal, setEditingGoal] = useState<InvestmentGoal | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'inv' | 'goal'; id: string } | null>(null);
-  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [withdrawalInv, setWithdrawalInv] = useState<Investment | null>(null);
 
   // Batch update state
@@ -472,8 +468,6 @@ export default function InvestmentsPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold t-text flex items-center gap-2"><Target size={16} /> Metas</h3>
             <button onClick={() => {
-              const blocked = checkGoalLimit(investmentGoals.length);
-              if (blocked) { setUpgradeMessage(blocked); return; }
               setEditingGoal(null); setGoalModalOpen(true);
             }}
               className="text-xs t-accent hover:opacity-70 cursor-pointer flex items-center gap-1 font-semibold">
@@ -569,8 +563,6 @@ export default function InvestmentsPage() {
             )}
             {!batchEditing && (
               <button onClick={() => {
-                const blocked = checkInvestmentLimit(investments.length);
-                if (blocked) { setUpgradeMessage(blocked); return; }
                 setEditingInv(null); setInvModalOpen(true);
               }}
                 className="px-3 py-1.5 t-accent-bg text-white text-xs font-semibold rounded-lg cursor-pointer hover:opacity-90 flex items-center gap-1.5">
@@ -824,14 +816,6 @@ export default function InvestmentsPage() {
             </div>
           </div>
         </div>
-      )}
-      {upgradeMessage && (
-        <UpgradeModal
-          message={upgradeMessage}
-          requiredPlan={requiredPlanFor('goals')}
-          onClose={() => setUpgradeMessage(null)}
-          onGoToPlans={() => setUpgradeMessage(null)}
-        />
       )}
     </>
   );

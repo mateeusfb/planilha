@@ -11,8 +11,6 @@ import { useExpenseForm } from '@/hooks/useExpenseForm';
 import { Search, BarChart3, X, SlidersHorizontal, Download } from 'lucide-react';
 import PeriodFilter from './PeriodFilter';
 import { exportToCSV } from '@/lib/export';
-import { usePlan } from '@/lib/plans';
-import UpgradeModal from './UpgradeModal';
 
 interface Props {
   onDeleteRequest: (id: string) => void;
@@ -20,8 +18,6 @@ interface Props {
 
 export default function ExpensesPage({ onDeleteRequest }: Props) {
   const { state, setState, getExpensesForMonth, getIndividualMembers, recurringExpenses } = useStore();
-  const { checkExpenseLimit, checkRecurringLimit, checkExportCSV, checkCustomCategoryLimit, checkCustomPaymentLimit, checkCustomBankLimit, requiredPlanFor } = usePlan();
-  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const { activeMonth, activeMember, members, expenses } = state;
 
   const form = useExpenseForm();
@@ -103,20 +99,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     const val = parseFloat(form.value);
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
     if (!form.month) return toast('Selecione o mês.', 'warning');
-
-    // Plan enforcement: expense limit
-    if (!form.editingId) {
-      const monthExpenses = getExpensesForMonth(form.month, 'all');
-      const blocked = checkExpenseLimit(monthExpenses.length);
-      if (blocked) { setUpgradeMessage(blocked); return; }
-    }
-
-    // Plan enforcement: recurring limit
-    if (form.isRecurring && !form.editingId) {
-      const activeRecurring = recurringExpenses.filter(r => r.active).length;
-      const blocked = checkRecurringLimit(activeRecurring);
-      if (blocked) { setUpgradeMessage(blocked); return; }
-    }
 
     const selectedMember = members.find(m => m.id === form.memberId);
     const isConjunta = selectedMember?.isConjunta && form.formType === 'expense';
@@ -223,8 +205,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             </button>
             {filteredExpenses.length > 0 && (
               <button onClick={() => {
-                const csvBlocked = checkExportCSV();
-                if (csvBlocked) { setUpgradeMessage(csvBlocked); return; }
                 const headers = ['Descrição', 'Tipo', 'Categoria', 'Valor', 'Data', 'Pagamento', 'Instituição', 'Membro', 'Observação'];
                 const rows = filteredExpenses.map(e => {
                   const member = members.find(m => m.id === e.memberId);
@@ -480,8 +460,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 <div>
                   <select value={form.cat} onChange={e => {
                     if (e.target.value === '__new__') {
-                      const blocked = checkCustomCategoryLimit((state.customCats || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'cat' });
                     } else form.setCat(e.target.value);
                   }} className={inputClass}>
@@ -504,8 +482,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.payment} onChange={e => {
                     if (e.target.value === '__new_pay__') {
-                      const blocked = checkCustomPaymentLimit((state.customPayments || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'pay' });
                     } else form.setPayment(e.target.value);
                   }} className={inputClass}>
@@ -514,8 +490,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                   </select>
                   <select value={form.bank} onChange={e => {
                     if (e.target.value === '__new_bank__') {
-                      const blocked = checkCustomBankLimit((state.customBanks || []).length);
-                      if (blocked) { setUpgradeMessage(blocked); return; }
                       setInputModal({ type: 'bank' });
                     } else form.setBank(e.target.value);
                   }} className={inputClass}>
@@ -611,14 +585,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
         title={inputModal?.type === 'cat' ? 'Nova Categoria' : inputModal?.type === 'pay' ? 'Nova Forma de Pagamento' : 'Nova Instituição Financeira'}
         placeholder={inputModal?.type === 'cat' ? 'Nome da categoria...' : inputModal?.type === 'pay' ? 'Nome da forma de pagamento...' : 'Nome da instituição...'}
       />
-      {upgradeMessage && (
-        <UpgradeModal
-          message={upgradeMessage}
-          requiredPlan={requiredPlanFor('exportCSV')}
-          onClose={() => setUpgradeMessage(null)}
-          onGoToPlans={() => { setUpgradeMessage(null); }}
-        />
-      )}
     </>
   );
 }
