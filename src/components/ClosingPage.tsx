@@ -64,13 +64,21 @@ export default function ClosingPage({ onDeleteRequest }: { onDeleteRequest: (id:
   }, [filtered]);
 
   async function handleMarkPaid(e: Expense) {
-    await markExpenseStatus(e.id, 'paid');
-    toast(`"${e.desc}" marcado como pago`, 'success');
+    try {
+      await markExpenseStatus(e.id, 'paid');
+      toast(`"${e.desc}" marcado como pago`, 'success');
+    } catch {
+      toast('Não foi possível salvar. Falta a coluna paid_status no banco.', 'error');
+    }
   }
 
   async function handleMarkPending(e: Expense) {
-    await markExpenseStatus(e.id, 'pending');
-    toast(`"${e.desc}" voltou para pendente`, 'info');
+    try {
+      await markExpenseStatus(e.id, 'pending');
+      toast(`"${e.desc}" voltou para pendente`, 'info');
+    } catch {
+      toast('Não foi possível salvar. Falta a coluna paid_status no banco.', 'error');
+    }
   }
 
   function openPostpone(e: Expense) {
@@ -98,10 +106,14 @@ export default function ClosingPage({ onDeleteRequest }: { onDeleteRequest: (id:
       toast('Não há recorrentes pendentes', 'info');
       return;
     }
-    for (const e of recurringPending) {
-      await markExpenseStatus(e.id, 'paid');
+    try {
+      for (const e of recurringPending) {
+        await markExpenseStatus(e.id, 'paid');
+      }
+      toast(`${recurringPending.length} recorrente(s) marcado(s) como pago`, 'success');
+    } catch {
+      toast('Não foi possível salvar. Falta a coluna paid_status no banco.', 'error');
     }
-    toast(`${recurringPending.length} recorrente(s) marcado(s) como pago`, 'success');
   }
 
   function finishClosing() {

@@ -164,8 +164,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   async function handleTogglePaid(e: Expense) {
     const cur: PaidStatus = e.paidStatus || 'paid';
     const next: PaidStatus = cur === 'paid' ? 'pending' : 'paid';
-    await markExpenseStatus(e.id, next);
-    toast(next === 'paid' ? `"${e.desc}" marcado como pago` : `"${e.desc}" voltou para pendente`, next === 'paid' ? 'success' : 'info');
+    try {
+      await markExpenseStatus(e.id, next);
+      toast(next === 'paid' ? `"${e.desc}" marcado como pago` : `"${e.desc}" voltou para pendente`, next === 'paid' ? 'success' : 'info');
+    } catch {
+      toast('Não foi possível salvar o status. Falta a coluna paid_status no banco.', 'error');
+    }
   }
 
   function toggleSort(col: typeof sortBy) {

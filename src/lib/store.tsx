@@ -465,12 +465,18 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   }, []);
 
   const markExpenseStatus = useCallback(async (id: string, status: PaidStatus) => {
-    setStateRaw(prev => ({
-      ...prev,
-      expenses: prev.expenses.map(e => e.id === id ? { ...e, paidStatus: status } : e),
-    }));
+    let original: PaidStatus | undefined;
+    setStateRaw(prev => {
+      original = prev.expenses.find(e => e.id === id)?.paidStatus;
+      return { ...prev, expenses: prev.expenses.map(e => e.id === id ? { ...e, paidStatus: status } : e) };
+    });
     const { error } = await supabase.from('expenses').update({ paid_status: status }).eq('id', id);
-    if (error) console.error('Erro ao atualizar status de pagamento:', error.message);
+    if (error) {
+      // Reverte o estado otimista e propaga o erro para o caller avisar o usuário
+      setStateRaw(prev => ({ ...prev, expenses: prev.expenses.map(e => e.id === id ? { ...e, paidStatus: original } : e) }));
+      console.error('Erro ao atualizar status de pagamento:', error.message);
+      throw new Error(error.message);
+    }
   }, []);
 
   const postponeExpense = useCallback(async (id: string, scope: 'one' | 'rest' = 'one') => {
