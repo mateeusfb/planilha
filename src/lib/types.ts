@@ -6,6 +6,8 @@ export interface Member {
   isConjunta?: boolean;
 }
 
+export type PaidStatus = 'pending' | 'paid' | 'postponed';
+
 export interface Expense {
   id: string;
   type: 'income' | 'expense';
@@ -24,6 +26,7 @@ export interface Expense {
   conjuntaName?: string;
   bank?: string;
   createdAt?: number;
+  paidStatus?: PaidStatus;
 }
 
 export interface AppState {
@@ -66,7 +69,7 @@ export interface RecurringExpense {
   active: boolean;
 }
 
-export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'budget' | 'profile' | 'settings';
+export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'budget' | 'closing' | 'profile' | 'settings';
 
 export type InvestmentType = 'renda_fixa' | 'renda_variavel' | 'crypto' | 'previdencia' | 'poupanca' | 'outros';
 

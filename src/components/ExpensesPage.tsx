@@ -8,7 +8,8 @@ import { Avatar } from './Sidebar';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import { useExpenseForm } from '@/hooks/useExpenseForm';
-import { Search, BarChart3, X, SlidersHorizontal, Download } from 'lucide-react';
+import { Search, BarChart3, X, SlidersHorizontal, Download, CheckCircle2, Circle, ArrowRightCircle } from 'lucide-react';
+import type { Expense, PaidStatus } from '@/lib/types';
 import PeriodFilter from './PeriodFilter';
 import { exportToCSV } from '@/lib/export';
 
@@ -17,7 +18,7 @@ interface Props {
 }
 
 export default function ExpensesPage({ onDeleteRequest }: Props) {
-  const { state, setState, getExpensesForMonth, getIndividualMembers, recurringExpenses } = useStore();
+  const { state, setState, getExpensesForMonth, getIndividualMembers, markExpenseStatus } = useStore();
   const { activeMonth, activeMember, members, expenses } = state;
 
   const form = useExpenseForm();
@@ -27,19 +28,21 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
   const [filterCat, setFilterCat] = useState('');
   const [filterPay, setFilterPay] = useState('');
   const [filterMember, setFilterMember] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid' | 'postponed'>('all');
   const [inputModal, setInputModal] = useState<{ type: 'cat' | 'pay' | 'bank'; defaultValue?: string } | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'value' | 'desc' | 'cat' | 'member'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [searchAll, setSearchAll] = useState(false);
   const [colsMenuOpen, setColsMenuOpen] = useState(false);
 
-  const DEFAULT_COLUMNS = ['desc', 'cat', 'value', 'date', 'payment', 'bank', 'member', 'actions'];
+  const DEFAULT_COLUMNS = ['desc', 'cat', 'value', 'status', 'date', 'payment', 'bank', 'member', 'actions'];
   const visibleCols = state.tableColumns || DEFAULT_COLUMNS;
 
   const allColumns: { id: string; label: string; sortable?: 'desc' | 'value' | 'cat' | 'date' | 'member' }[] = [
     { id: 'desc', label: 'Descrição', sortable: 'desc' },
     { id: 'cat', label: 'Categoria', sortable: 'cat' },
     { id: 'value', label: 'Valor', sortable: 'value' },
+    { id: 'status', label: 'Status' },
     { id: 'date', label: 'Data', sortable: 'date' },
     { id: 'payment', label: 'Pagamento' },
     { id: 'bank', label: 'Instituição' },
@@ -127,10 +130,23 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     let list = searchAll && search
       ? expenses.filter(e => activeMember === 'all' || e.memberId === activeMember || (!e.memberId || e.memberId === 'all'))
       : getExpensesForMonth(activeMonth, activeMember);
-    if (search) list = list.filter(e => e.desc.toLowerCase().includes(search.toLowerCase()) || e.cat.toLowerCase().includes(search.toLowerCase()));
+    if (search) {
+      const q = search.toLowerCase().trim();
+      const qDigits = q.replace(/\D/g, ''); // dígitos do que foi digitado (busca por valor)
+      list = list.filter(e => {
+        if (e.desc.toLowerCase().includes(q) || e.cat.toLowerCase().includes(q)) return true;
+        // Busca por valor: compara apenas os dígitos (ex.: "150", "150,50" e "150.50" acham R$ 150,50)
+        if (qDigits) {
+          const valDigits = e.value.toFixed(2).replace(/\D/g, '');
+          if (valDigits.includes(qDigits)) return true;
+        }
+        return false;
+      });
+    }
     if (filterCat) list = list.filter(e => e.cat === filterCat);
     if (filterPay) list = list.filter(e => e.payment === filterPay);
     if (filterMember) list = list.filter(e => e.memberId === filterMember);
+    if (filterStatus !== 'all') list = list.filter(e => e.type === 'expense' && (e.paidStatus || 'paid') === filterStatus);
 
     return list.sort((a, b) => {
       let cmp = 0;
@@ -143,7 +159,14 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
       }
       return sortDir === 'desc' ? -cmp : cmp;
     });
-  }, [activeMonth, activeMember, expenses, search, searchAll, filterCat, filterPay, filterMember, sortBy, sortDir, getExpensesForMonth]);
+  }, [activeMonth, activeMember, expenses, search, searchAll, filterCat, filterPay, filterMember, filterStatus, sortBy, sortDir, getExpensesForMonth]);
+
+  async function handleTogglePaid(e: Expense) {
+    const cur: PaidStatus = e.paidStatus || 'paid';
+    const next: PaidStatus = cur === 'paid' ? 'pending' : 'paid';
+    await markExpenseStatus(e.id, next);
+    toast(next === 'paid' ? `"${e.desc}" marcado como pago` : `"${e.desc}" voltou para pendente`, next === 'paid' ? 'success' : 'info');
+  }
 
   function toggleSort(col: typeof sortBy) {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -170,8 +193,8 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
           </h3>
           <div className="flex flex-wrap gap-2">
             <div className="relative">
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
-                className="w-40 px-3 py-1.5 border rounded-lg text-[0.82rem] t-input pr-8" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar nome, categoria ou valor..."
+                className="w-56 px-3 py-1.5 border rounded-lg text-[0.82rem] t-input pr-8" />
               <button
                 onClick={() => setSearchAll(!searchAll)}
                 title={searchAll ? 'Buscar apenas no mês' : 'Buscar em todos os meses'}
@@ -194,6 +217,13 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
               <option value="">Todos membros</option>
               {[...individuals, ...conjuntas].map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}
+              className="px-3 py-1.5 border rounded-lg text-[0.82rem] t-input">
+              <option value="all">Todos status</option>
+              <option value="pending">Pendentes</option>
+              <option value="paid">Pagos</option>
+              <option value="postponed">Adiados</option>
             </select>
             <button onClick={() => openPanel('expense')}
               className="px-4 py-2.5 md:py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors cursor-pointer min-h-[44px] md:min-h-0">
@@ -257,6 +287,16 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                             <span className="inline-block w-2 h-2 rounded-full" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }} />
                             {e.cat}
                           </span>
+                          {!isIncome && (() => {
+                            const st = e.paidStatus || 'paid';
+                            return (
+                              <button onClick={() => handleTogglePaid(e)}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.7rem] font-semibold cursor-pointer ${st === 'paid' ? 'bg-green-100 text-green-700' : st === 'postponed' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
+                                {st === 'paid' ? <CheckCircle2 size={11} /> : st === 'postponed' ? <ArrowRightCircle size={11} /> : <Circle size={11} />}
+                                {st === 'paid' ? 'Pago' : st === 'postponed' ? 'Adiado' : 'Pendente'}
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                       <span className={`font-bold text-sm flex-shrink-0 ml-3 ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
@@ -382,6 +422,29 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                           {e.installment > 0 && <div className="text-[0.7rem] t-text-dim font-normal">Parcela {e.installmentCurrent || 1}/{e.installment}</div>}
                         </td>
                       ),
+                      status: (
+                        <td key="status" className="px-4 py-2.5 border-b t-border-light">
+                          {isIncome ? (
+                            <span className="t-text-dim text-[0.83rem]">-</span>
+                          ) : (() => {
+                            const st: PaidStatus = e.paidStatus || 'paid';
+                            return (
+                              <button onClick={() => handleTogglePaid(e)}
+                                title={st === 'paid' ? 'Pago — clique para voltar a pendente' : st === 'postponed' ? 'Adiado — clique para marcar pago' : 'Marcar como pago'}
+                                className="inline-flex items-center gap-1.5 cursor-pointer group">
+                                {st === 'paid'
+                                  ? <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
+                                  : st === 'postponed'
+                                    ? <ArrowRightCircle size={16} className="text-indigo-500 flex-shrink-0" />
+                                    : <Circle size={16} className="t-text-dim group-hover:text-green-600 flex-shrink-0" />}
+                                <span className={`text-[0.72rem] font-semibold ${st === 'paid' ? 'text-green-600' : st === 'postponed' ? 'text-indigo-500' : 'text-amber-600'}`}>
+                                  {st === 'paid' ? 'Pago' : st === 'postponed' ? 'Adiado' : 'Pendente'}
+                                </span>
+                              </button>
+                            );
+                          })()}
+                        </td>
+                      ),
                       date: (
                         <td key="date" className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
                           {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
@@ -503,8 +566,6 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               {form.formType === 'income' && (
                 <select value={form.bank} onChange={e => {
                   if (e.target.value === '__new_bank__') {
-                    const blocked = checkCustomBankLimit((state.customBanks || []).length);
-                    if (blocked) { setUpgradeMessage(blocked); return; }
                     setInputModal({ type: 'bank' });
                   } else form.setBank(e.target.value);
                 }} className={inputClass}>

@@ -6,7 +6,6 @@ import { EXPENSE_CATS, CAT_COLORS } from '@/lib/constants';
 import { fmt, fmtMonth, getBudgetForMonth, getCurrentMonth, getPreviousMonth, getTotal } from '@/lib/helpers';
 import { Eye, EyeOff, Copy, Target, AlertTriangle, CheckCircle, TrendingDown, ArrowRightLeft, Award, BarChart3, Lightbulb, Zap, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from './Toast';
-import { usePlan } from '@/lib/plans';
 import { Bar } from 'react-chartjs-2';
 
 // ── Helpers locais ──
@@ -56,7 +55,6 @@ export default function BudgetPage() {
   const [reallocTo, setReallocTo] = useState('');
   const [reallocAmount, setReallocAmount] = useState(0);
   const { toast } = useToast();
-  const { checkCustomCategoryLimit } = usePlan();
 
   const resolvedBudget = getBudgetForMonth(budgetMonth, monthlyBudgets || {}, categoryBudgets || {});
   const prevMonth = getPreviousMonth(budgetMonth);
@@ -178,10 +176,6 @@ export default function BudgetPage() {
   }, [activeMember, budgetMonth, getIndividualMembers, getExpensesByExactMonth, allCats]);
 
   function handleBudgetChange(cat: string, value: number) {
-    const currentBudget = getBudgetForMonth(budgetMonth, monthlyBudgets || {}, categoryBudgets || {});
-    const activeBudgets = Object.keys(currentBudget).filter(k => currentBudget[k] > 0).length;
-    const blocked = checkCustomCategoryLimit(activeBudgets);
-    if (blocked && value > 0 && !currentBudget[cat]) return;
     setState(prev => ({
       ...prev,
       monthlyBudgets: {

@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { AppState, Member, Expense, RecurringExpense, Investment, InvestmentGoal, InvestmentSnapshot, InvestmentWithdrawal } from './types';
+import type { AppState, Member, Expense, RecurringExpense, Investment, InvestmentGoal, InvestmentSnapshot, InvestmentWithdrawal, PaidStatus } from './types';
 import { COLORS } from './constants';
 import { getCurrentMonth } from './helpers';
 import { SkeletonDashboard } from '@/components/Skeleton';
@@ -31,6 +31,7 @@ function rowToMember(r: Record<string, unknown>): Member {
   return { id: r.id as string, name: r.name as string, color: r.color as string, photo: r.photo as string | null, isConjunta: !!r.is_conjunta };
 }
 function expenseToRow(e: Expense, userId: string, workspaceId?: string) {
+  const paidStatus = e.type === 'income' ? 'paid' : (e.paidStatus || 'pending');
   return {
     id: e.id, type: e.type, description: e.desc, category: e.cat, value: e.value,
     month: e.month, payment: e.payment, installment: e.installment || 0,
@@ -40,6 +41,7 @@ function expenseToRow(e: Expense, userId: string, workspaceId?: string) {
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
     bank: e.bank || null,
     created_at: e.createdAt || Date.now(), user_id: userId, workspace_id: workspaceId || null,
+    paid_status: paidStatus,
   };
 }
 function rowToExpense(r: Record<string, unknown>): Expense {
@@ -55,6 +57,7 @@ function rowToExpense(r: Record<string, unknown>): Expense {
     conjuntaName: r.conjunta_name as string | undefined,
     bank: r.bank as string | undefined,
     createdAt: Number(r.created_at) || 0,
+    paidStatus: (r.paid_status as 'pending' | 'paid' | 'postponed' | undefined) || 'paid',
   };
 }
 
@@ -71,6 +74,8 @@ interface StoreContextType {
   addExpense: (expense: Expense) => Promise<void>;
   updateExpense: (id: string, expense: Expense) => Promise<void>;
   removeExpense: (id: string) => Promise<void>;
+  markExpenseStatus: (id: string, status: PaidStatus) => Promise<void>;
+  postponeExpense: (id: string, scope?: 'one' | 'rest') => Promise<void>;
   addMember: (member: Member, targetWorkspaceId?: string | null) => Promise<void>;
   updateMember: (id: string, member: Partial<Member>) => Promise<void>;
   removeMember: (id: string) => Promise<void>;
@@ -202,6 +207,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
               purchaseDate: `${currentMonth}-${String(r.dayOfMonth).padStart(2, '0')}`,
               note: 'Recorrente',
               createdAt: Date.now(),
+              paidStatus: 'pending',
             };
             newExpenses.push(expense);
             await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
@@ -428,16 +434,22 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   const updateExpense = useCallback(async (id: string, expense: Expense) => {
     let original: Expense | undefined;
+    let merged: Expense = expense;
     setStateRaw(prev => {
       original = prev.expenses.find(e => e.id === id);
-      return { ...prev, expenses: prev.expenses.map(e => e.id === id ? { ...expense, createdAt: e.createdAt } : e) };
+      merged = {
+        ...expense,
+        createdAt: original?.createdAt ?? expense.createdAt,
+        paidStatus: expense.paidStatus ?? original?.paidStatus,
+      };
+      return { ...prev, expenses: prev.expenses.map(e => e.id === id ? merged : e) };
     });
-    const { error } = await supabase.from('expenses').update(expenseToRow(expense, userId, workspaceId)).eq('id', id);
+    const { error } = await supabase.from('expenses').update(expenseToRow(merged, userId, workspaceId)).eq('id', id);
     if (error) {
       if (original) setStateRaw(prev => ({ ...prev, expenses: prev.expenses.map(e => e.id === id ? original! : e) }));
       throw new Error(error.message);
     }
-  }, [userId]);
+  }, [userId, workspaceId]);
 
   const removeExpense = useCallback(async (id: string) => {
     let original: Expense | undefined;
@@ -451,6 +463,63 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       throw new Error(error.message);
     }
   }, []);
+
+  const markExpenseStatus = useCallback(async (id: string, status: PaidStatus) => {
+    setStateRaw(prev => ({
+      ...prev,
+      expenses: prev.expenses.map(e => e.id === id ? { ...e, paidStatus: status } : e),
+    }));
+    const { error } = await supabase.from('expenses').update({ paid_status: status }).eq('id', id);
+    if (error) console.error('Erro ao atualizar status de pagamento:', error.message);
+  }, []);
+
+  const postponeExpense = useCallback(async (id: string, scope: 'one' | 'rest' = 'one') => {
+    const target = state.expenses.find(e => e.id === id);
+    if (!target) return;
+    const [y, m] = target.month.split('-').map(Number);
+    const next = new Date(y, m - 1 + 1, 1);
+    const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+
+    const ids: string[] = [id];
+    if (scope === 'rest' && target.installmentGroupId) {
+      const rest = state.expenses.filter(e =>
+        e.installmentGroupId === target.installmentGroupId &&
+        (e.installmentCurrent || 0) >= (target.installmentCurrent || 0)
+      );
+      ids.length = 0;
+      ids.push(...rest.map(e => e.id));
+    }
+
+    setStateRaw(prev => ({
+      ...prev,
+      expenses: prev.expenses.map(e => {
+        if (!ids.includes(e.id)) return e;
+        const [ey, em] = e.month.split('-').map(Number);
+        const eNext = new Date(ey, em - 1 + 1, 1);
+        const eNextMonth = `${eNext.getFullYear()}-${String(eNext.getMonth() + 1).padStart(2, '0')}`;
+        return { ...e, month: eNextMonth, paidStatus: 'pending' as PaidStatus };
+      }),
+    }));
+
+    if (ids.length === 1) {
+      const { error } = await supabase.from('expenses')
+        .update({ month: nextMonth, paid_status: 'pending' })
+        .eq('id', id);
+      if (error) console.error('Erro ao adiar lançamento:', error.message);
+    } else {
+      for (const eid of ids) {
+        const exp = state.expenses.find(e => e.id === eid);
+        if (!exp) continue;
+        const [ey, em] = exp.month.split('-').map(Number);
+        const eNext = new Date(ey, em - 1 + 1, 1);
+        const eNextMonth = `${eNext.getFullYear()}-${String(eNext.getMonth() + 1).padStart(2, '0')}`;
+        const { error } = await supabase.from('expenses')
+          .update({ month: eNextMonth, paid_status: 'pending' })
+          .eq('id', eid);
+        if (error) console.error('Erro ao adiar lançamento:', error.message);
+      }
+    }
+  }, [state.expenses]);
 
   const addMember = useCallback(async (member: Member, targetWorkspaceId?: string | null) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
@@ -529,7 +598,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       id: expId, type: 'expense', desc: r.description, cat: r.category, value: r.value,
       month: curMonth, payment: r.payment, installment: 0, memberId: r.memberId,
       bank: r.bank, purchaseDate: `${curMonth}-${String(r.dayOfMonth).padStart(2, '0')}`,
-      note: 'Recorrente', createdAt: Date.now(),
+      note: 'Recorrente', createdAt: Date.now(), paidStatus: 'pending',
     };
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
     await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
@@ -714,7 +783,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       userId, workspaceId,
       state, setState,
       getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIncomes, getIndividualMembers,
-      addExpense, updateExpense, removeExpense,
+      addExpense, updateExpense, removeExpense, markExpenseStatus, postponeExpense,
       addMember, updateMember, removeMember,
       setActiveMember, setActiveMonth,
       recurringExpenses, addRecurring, updateRecurring, removeRecurring,

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider } from '@/lib/store';
 import { ThemeProvider } from '@/lib/theme';
 import { ToastProvider } from '@/components/Toast';
-import { PlanProvider } from '@/lib/plans';
 import { supabase } from '@/lib/supabase';
 import SummaryPage from '@/components/SummaryPage';
 
@@ -53,7 +53,7 @@ function ResumoContent() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-slate-500 mb-2">Sessao expirada.</p>
-          <a href="/" className="text-blue-500 underline">Voltar para o app</a>
+          <Link href="/" className="text-blue-500 underline">Voltar para o app</Link>
         </div>
       </div>
     );
@@ -68,13 +68,11 @@ function ResumoContent() {
   }
 
   return (
-    <PlanProvider>
-      <StoreProvider userId={userId} workspaceId={workspaceId}>
-        <div className="max-w-4xl mx-auto p-4 md:p-8">
-          <SummaryPage />
-        </div>
-      </StoreProvider>
-    </PlanProvider>
+    <StoreProvider userId={userId} workspaceId={workspaceId}>
+      <div className="max-w-4xl mx-auto p-4 md:p-8">
+        <SummaryPage />
+      </div>
+    </StoreProvider>
   );
 }
 

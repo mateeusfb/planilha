@@ -6,7 +6,8 @@ import { fmt, fmtMonth, getTotal, groupBy, getBudgetForMonth } from '@/lib/helpe
 import { CAT_COLORS } from '@/lib/constants';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
-import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, Users, User } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, Users, User, ClipboardCheck, ArrowRight } from 'lucide-react';
+import type { PageId } from '@/lib/types';
 import PeriodFilter from './PeriodFilter';
 import { useTheme } from '@/lib/theme';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -93,7 +94,7 @@ function HiddenValue({ children, hidden, className = '', style }: { children: Re
   return <span className={className} style={style}>{children}</span>;
 }
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }: { onNavigate?: (p: PageId) => void } = {}) {
   const { state, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers, setActiveMember } = useStore();
   const { mode } = useTheme();
   const isDark = mode === 'dark';
@@ -101,6 +102,20 @@ export default function Dashboard() {
   const [valuesHidden, setValuesHidden] = useState(true);
   const [memberDropOpen, setMemberDropOpen] = useState(false);
   const memberDropRef = useRef<HTMLDivElement>(null);
+
+  // Pendentes do mês ativo (para banner de fechamento)
+  const closingInfo = useMemo(() => {
+    const outflows = getOutflows(activeMonth, activeMember);
+    const pending = outflows.filter(e => (e.paidStatus || 'paid') === 'pending');
+    const pendingTotal = pending.reduce((s, e) => s + e.value, 0);
+    const [y, m] = activeMonth.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === y && now.getMonth() + 1 === m;
+    const daysLeft = isCurrentMonth ? daysInMonth - now.getDate() : -1;
+    const nearEnd = isCurrentMonth && daysLeft >= 0 && daysLeft <= 5;
+    return { pendingCount: pending.length, pendingTotal, nearEnd, daysLeft };
+  }, [activeMonth, activeMember, getOutflows]);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -203,6 +218,33 @@ export default function Dashboard() {
 
   return (
     <>
+      {/* ── Banner Fechamento ── */}
+      {(closingInfo.pendingCount > 0 || closingInfo.nearEnd) && onNavigate && (
+        <button
+          onClick={() => onNavigate('closing')}
+          className="w-full glass-card rounded-xl p-3 md:p-4 mb-4 flex items-center justify-between gap-3 hover:opacity-90 transition-opacity cursor-pointer animate-fade-in-up text-left"
+          style={{ borderLeft: `3px solid ${closingInfo.nearEnd ? '#f59e0b' : '#6366f1'}` }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: closingInfo.nearEnd ? 'rgba(245, 158, 11, 0.1)' : 'rgba(99, 102, 241, 0.1)' }}>
+              <ClipboardCheck size={18} style={{ color: closingInfo.nearEnd ? '#f59e0b' : '#6366f1' }} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold truncate">
+                {closingInfo.nearEnd
+                  ? `Fim do mês em ${closingInfo.daysLeft} dia${closingInfo.daysLeft !== 1 ? 's' : ''} — hora do fechamento`
+                  : `${closingInfo.pendingCount} despesa${closingInfo.pendingCount !== 1 ? 's' : ''} pendente${closingInfo.pendingCount !== 1 ? 's' : ''}`}
+              </div>
+              <div className="text-xs t-text-muted truncate">
+                {valuesHidden ? '••••' : `${fmt(closingInfo.pendingTotal)} a revisar`}
+              </div>
+            </div>
+          </div>
+          <ArrowRight size={16} className="t-text-dim flex-shrink-0" />
+        </button>
+      )}
+
       {/* ── Bento Grid: Resumo Financeiro ── */}
       <div className="mb-4 animate-fade-in-up">
         <div className="flex items-center justify-between mb-3">

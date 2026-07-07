@@ -24,6 +24,7 @@ import NotificationBell from '@/components/NotificationBell';
 import InvestmentsPage from '@/components/InvestmentsPage';
 import ProfilePage from '@/components/ProfilePage';
 import BudgetPage from '@/components/BudgetPage';
+import ClosingPage from '@/components/ClosingPage';
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -68,6 +69,7 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
     analysis: 'Análise de Gastos',
     investments: 'Investimentos',
     budget: 'Orçamento',
+    closing: 'Fechamento do Mês',
     profile: 'Meu Perfil',
     settings: 'Configurações',
   };
@@ -117,13 +119,16 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
             />
           ) : (
             <div className={`transition-opacity duration-150 ${transitioning ? 'opacity-0' : 'opacity-100'}`}>
-              {activePage === 'dashboard' && <Dashboard />}
+              {activePage === 'dashboard' && <Dashboard onNavigate={handlePageChange} />}
               {activePage === 'expenses' && (
                 <ExpensesPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
               )}
               {activePage === 'analysis' && <AnalysisPage />}
               {activePage === 'investments' && <InvestmentsPage />}
               {activePage === 'budget' && <BudgetPage />}
+              {activePage === 'closing' && (
+                <ClosingPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
+              )}
               {activePage === 'profile' && <ProfilePage />}
               {activePage === 'settings' && (
                 <SettingsPage

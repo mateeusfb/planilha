@@ -43,3 +43,7 @@ next-env.d.ts
 
 # claude worktrees
 .claude/worktrees/
+.claude/scheduled_tasks.lock
+
+# local dev artifacts
+dev_log.txt
