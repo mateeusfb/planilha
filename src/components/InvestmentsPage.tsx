@@ -5,8 +5,6 @@ import { useStore } from '@/lib/store';
 import { fmt, fmtMonth } from '@/lib/helpers';
 import type { Investment, InvestmentGoal, InvestmentType } from '@/lib/types';
 import { Plus, TrendingUp, TrendingDown, Wallet, Target, PiggyBank, Pencil, Trash2, RefreshCw, Check, X as XIcon, AlertTriangle, ArrowUpDown, Download, Clock, ArrowDownToLine, FileText } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import {
   Chart as ChartJS, ArcElement, Tooltip, Legend,
   CategoryScale, LinearScale, PointElement, LineElement, Filler,
@@ -179,7 +177,12 @@ export default function InvestmentsPage() {
     URL.revokeObjectURL(url);
   }
 
-  function exportPDF() {
+  async function exportPDF() {
+    // Carregado sob demanda: jspdf + autotable somam ~400KB no bundle inicial
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]);
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const dateStr = new Date().toLocaleDateString('pt-BR');
     doc.setFontSize(16);

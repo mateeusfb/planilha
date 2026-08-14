@@ -26,15 +26,19 @@ function AnimatedValue({ value, prefix = 'R$ ', hidden, className, style }: {
     const duration = 600;
     const startTime = performance.now();
 
+    let frame = 0;
     function animate(time: number) {
       const elapsed = time - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
       setDisplay(start + (end - start) * eased);
-      if (progress < 1) requestAnimationFrame(animate);
+      if (progress < 1) frame = requestAnimationFrame(animate);
       else prevRef.current = end;
     }
-    requestAnimationFrame(animate);
+    frame = requestAnimationFrame(animate);
+    // Sem o cancel, trocar de valor no meio da animação deixava o loop antigo rodando
+    // junto com o novo — os loops se acumulavam, cada um disparando ~36 setStates.
+    return () => cancelAnimationFrame(frame);
   }, [value, hidden]);
 
   if (hidden) {

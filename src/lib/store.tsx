@@ -72,9 +72,11 @@ interface StoreContextType {
   getIncomes: (ym: string, memberId: string) => Expense[];
   getIndividualMembers: () => Member[];
   addExpense: (expense: Expense) => Promise<void>;
+  addExpenses: (expenses: Expense[]) => Promise<void>;
   updateExpense: (id: string, expense: Expense) => Promise<void>;
   removeExpense: (id: string) => Promise<void>;
   markExpenseStatus: (id: string, status: PaidStatus) => Promise<void>;
+  markExpensesStatus: (ids: string[], status: PaidStatus) => Promise<void>;
   postponeExpense: (id: string, scope?: 'one' | 'rest') => Promise<void>;
   addMember: (member: Member, targetWorkspaceId?: string | null) => Promise<void>;
   updateMember: (id: string, member: Partial<Member>) => Promise<void>;
@@ -113,12 +115,54 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   // ── Load from Supabase ──
   useEffect(() => {
+    // Banco fora do ar / rede caída: renderiza a partir do último cache local
+    // em vez de deixar o app preso no skeleton.
+    function loadFromCache() {
+      try {
+        const d = localStorage.getItem('fin_data');
+        if (!d) return;
+        const parsed = JSON.parse(d);
+        setStateRaw(prev => ({
+          ...prev, ...parsed,
+          members: parsed.members?.length ? parsed.members.filter((m: Member) => m.id !== 'all') : [],
+          activeMonth: getCurrentMonth(),
+        }));
+      } catch { /* ignore */ }
+    }
+
     async function loadData() {
+      // Onda 1: tudo que não depende de nenhuma outra query sai junto.
+      // Antes eram ~8 round-trips em sequência antes do app sair do skeleton.
+      let recurringQuery = supabase.from('recurring_expenses').select('*').eq('user_id', userId);
+      let invQuery = supabase.from('investments').select('*').eq('user_id', userId).eq('active', true);
+      let goalQuery = supabase.from('investment_goals').select('*').eq('user_id', userId).eq('active', true);
+      let wQuery = supabase.from('investment_withdrawals').select('*').eq('user_id', userId);
+      if (workspaceId) {
+        recurringQuery = recurringQuery.eq('workspace_id', workspaceId);
+        invQuery = invQuery.eq('workspace_id', workspaceId);
+        goalQuery = goalQuery.eq('workspace_id', workspaceId);
+        wQuery = wQuery.eq('workspace_id', workspaceId);
+      } else {
+        recurringQuery = recurringQuery.is('workspace_id', null);
+        invQuery = invQuery.is('workspace_id', null);
+        goalQuery = goalQuery.is('workspace_id', null);
+        wQuery = wQuery.is('workspace_id', null);
+      }
+
+      const [sharesRes, recurringRes, invRes, snapsRes, goalsRes, withdrawalsRes] = await Promise.all([
+        supabase.from('shares').select('owner_id').eq('shared_user_id', userId).eq('accepted', true),
+        recurringQuery,
+        invQuery,
+        supabase.from('investment_snapshots').select('*').eq('user_id', userId).order('month', { ascending: true }).limit(24),
+        goalQuery,
+        wQuery.order('date', { ascending: false }),
+      ]);
+
       try {
         // Get user IDs I have access to (my own + shared with me)
-        const { data: sharedWithMe } = await supabase.from('shares').select('owner_id').eq('shared_user_id', userId).eq('accepted', true);
-        const accessIds = [userId, ...(sharedWithMe || []).map(s => s.owner_id)];
+        const accessIds = [userId, ...(sharesRes.data || []).map(s => s.owner_id)];
 
+        // Onda 2: depende de accessIds.
         // Filtrar por workspace: se tem workspaceId filtra por ele, senão pega os sem workspace (pessoal)
         let membersQuery = supabase.from('members').select('*').in('user_id', accessIds);
         let expensesQuery = supabase.from('expenses').select('*').in('user_id', accessIds);
@@ -133,7 +177,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
           membersQuery,
           expensesQuery,
-          supabase.from('settings').select('*').in('user_id', accessIds).limit(1).single(),
+          supabase.from('settings').select('*').in('user_id', accessIds).limit(1).maybeSingle(),
         ]);
 
         const dbMembers = (membersRes.data || []).map(rowToMember);
@@ -157,15 +201,8 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           }
         }
 
-        // Load recurring expenses
-        let recurringQuery = supabase.from('recurring_expenses').select('*').eq('user_id', userId);
-        if (workspaceId) {
-          recurringQuery = recurringQuery.eq('workspace_id', workspaceId);
-        } else {
-          recurringQuery = recurringQuery.is('workspace_id', null);
-        }
-        const { data: recurringData } = await recurringQuery;
-        const dbRecurring: RecurringExpense[] = (recurringData || []).map((r: Record<string, unknown>) => ({
+        // Recurring expenses (já carregadas na onda 1)
+        const dbRecurring: RecurringExpense[] = (recurringRes.data || []).map((r: Record<string, unknown>) => ({
           id: r.id as string,
           description: r.description as string,
           category: r.category as string,
@@ -190,12 +227,10 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           const alreadyGenerated = new Set((generated || []).map((g: Record<string, unknown>) => g.recurring_id));
 
           const toGenerate = activeRecurring.filter(r => !alreadyGenerated.has(r.id));
-          const newExpenses: Expense[] = [];
-          for (const r of toGenerate) {
-            const expId = crypto.randomUUID();
-            const expense: Expense = {
-              id: expId,
-              type: 'expense',
+          if (toGenerate.length > 0) {
+            const newExpenses: Expense[] = toGenerate.map(r => ({
+              id: crypto.randomUUID(),
+              type: 'expense' as const,
               desc: r.description,
               cat: r.category,
               value: r.value,
@@ -207,13 +242,20 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
               purchaseDate: `${currentMonth}-${String(r.dayOfMonth).padStart(2, '0')}`,
               note: 'Recorrente',
               createdAt: Date.now(),
-              paidStatus: 'pending',
-            };
-            newExpenses.push(expense);
-            await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
-            await supabase.from('recurring_generated').insert({ recurring_id: r.id, month: currentMonth, expense_id: expId });
+              paidStatus: 'pending' as PaidStatus,
+            }));
+
+            // Um insert em lote por tabela, em vez de 2 requisições por recorrente
+            const { error: insErr } = await supabase
+              .from('expenses')
+              .insert(newExpenses.map(e => expenseToRow(e, userId, workspaceId)));
+            if (!insErr) {
+              await supabase.from('recurring_generated').insert(
+                toGenerate.map((r, i) => ({ recurring_id: r.id, month: currentMonth, expense_id: newExpenses[i].id }))
+              );
+              dbExpenses.push(...newExpenses);
+            }
           }
-          dbExpenses.push(...newExpenses);
         }
 
         setStateRaw(prev => ({
@@ -229,24 +271,10 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           activeMonth: getCurrentMonth(),
         }));
       } catch {
-        // Fallback localStorage
-        try {
-          const d = localStorage.getItem('fin_data');
-          if (d) {
-            const parsed = JSON.parse(d);
-            setStateRaw(prev => ({
-              ...prev, ...parsed,
-              members: parsed.members?.length ? parsed.members.filter((m: Member) => m.id !== 'all') : [],
-              activeMonth: getCurrentMonth(),
-            }));
-          }
-        } catch { /* ignore */ }
+        loadFromCache();
       }
-      // ── Load investments ──
-      let invQuery = supabase.from('investments').select('*').eq('user_id', userId).eq('active', true);
-      if (workspaceId) invQuery = invQuery.eq('workspace_id', workspaceId);
-      else invQuery = invQuery.is('workspace_id', null);
-      const { data: dbInv } = await invQuery;
+      // ── Investments (onda 1) ──
+      const dbInv = invRes.data;
       if (dbInv) setInvestments(dbInv.map((r: Record<string, unknown>) => ({
         id: r.id as string, name: r.name as string, type: r.type as Investment['type'],
         amountInvested: Number(r.amount_invested), currentValue: Number(r.current_value),
@@ -254,14 +282,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         notes: r.notes as string | undefined, active: r.active as boolean,
       })));
 
-      // ── Load investment snapshots ──
+      // ── Investment snapshots (onda 1) ──
       try {
-        const { data: dbSnaps } = await supabase
-          .from('investment_snapshots')
-          .select('*')
-          .eq('user_id', userId)
-          .order('month', { ascending: true })
-          .limit(24);
+        const dbSnaps = snapsRes.data;
         if (dbSnaps) {
           setInvestmentSnapshots(dbSnaps.map((r: Record<string, unknown>) => ({
             id: r.id as string,
@@ -294,11 +317,8 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         }
       } catch { /* tabela investment_snapshots não existe ainda */ }
 
-      // ── Load investment goals ──
-      let goalQuery = supabase.from('investment_goals').select('*').eq('user_id', userId).eq('active', true);
-      if (workspaceId) goalQuery = goalQuery.eq('workspace_id', workspaceId);
-      else goalQuery = goalQuery.is('workspace_id', null);
-      const { data: dbGoals } = await goalQuery;
+      // ── Investment goals (onda 1) ──
+      const dbGoals = goalsRes.data;
       if (dbGoals) setInvestmentGoals(dbGoals.map((r: Record<string, unknown>) => ({
         id: r.id as string, name: r.name as string, targetValue: Number(r.target_value),
         currentValue: Number(r.current_value), deadline: r.deadline as string | undefined,
@@ -306,12 +326,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         icon: (r.icon as string) || '🎯', active: r.active as boolean,
       })));
 
-      // ── Load investment withdrawals ──
+      // ── Investment withdrawals (onda 1) ──
       try {
-        let wQuery = supabase.from('investment_withdrawals').select('*').eq('user_id', userId);
-        if (workspaceId) wQuery = wQuery.eq('workspace_id', workspaceId);
-        else wQuery = wQuery.is('workspace_id', null);
-        const { data: dbWithdrawals } = await wQuery.order('date', { ascending: false });
+        const dbWithdrawals = withdrawalsRes.data;
         if (dbWithdrawals) setWithdrawals(dbWithdrawals.map((r: Record<string, unknown>) => ({
           id: r.id as string,
           investmentId: r.investment_id as string,
@@ -321,16 +338,24 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
           createdAt: Number(r.created_at) || 0,
         })));
       } catch { /* tabela não existe ainda */ }
-
-      setLoaded(true);
     }
 
-    loadData();
-  }, [userId]);
+    // O finally garante que o skeleton sempre sai da tela, mesmo se o banco estiver fora.
+    loadData()
+      .catch(() => loadFromCache())
+      .finally(() => setLoaded(true));
+  }, [userId, workspaceId]);
 
-  // Cache in localStorage
+  // Cache in localStorage — com debounce: serializar o estado inteiro a cada
+  // tecla digitada (ex.: campo de orçamento) travava a UI.
   useEffect(() => {
-    if (loaded) localStorage.setItem('fin_data', JSON.stringify(state));
+    if (!loaded) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem('fin_data', JSON.stringify(state));
+      } catch { /* quota excedida */ }
+    }, 500);
+    return () => clearTimeout(t);
   }, [state, loaded]);
 
   const setState = useCallback((updater: (prev: AppState) => AppState) => {
@@ -345,10 +370,12 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     });
   }, [userId]);
 
-  // Date filter helper - checks if expense matches the current filter
+  // Date filter helper - checks if expense matches the current filter.
+  // Depende só de dateFilter/activeMonth (não do state inteiro): com `[state]` os
+  // seletores abaixo eram recriados a cada mudança de qualquer campo, invalidando
+  // a memoização de todos os componentes que consomem o contexto.
+  const dateFilter = state.dateFilter;
   const matchesDateFilter = useCallback((e: Expense): boolean => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dateFilter = (state as any).dateFilter;
     if (!dateFilter || dateFilter.type === 'month') {
       const ym = dateFilter?.month || state.activeMonth;
       return e.month === ym;
@@ -384,7 +411,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     }
 
     return e.month === state.activeMonth;
-  }, [state]);
+  }, [dateFilter, state.activeMonth]);
 
   const getExpensesForMonth = useCallback((ym: string, memberId: string): Expense[] => {
     return state.expenses.filter(e => {
@@ -430,7 +457,20 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== expense.id) }));
       throw new Error(error.message);
     }
-  }, [userId]);
+  }, [userId, workspaceId]);
+
+  // Versão em lote: um único setState e um único INSERT. Usada por parcelamentos e
+  // despesas conjuntas, que antes faziam um round-trip (e um re-render global) por item.
+  const addExpenses = useCallback(async (expenses: Expense[]) => {
+    if (expenses.length === 0) return;
+    setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, ...expenses] }));
+    const { error } = await supabase.from('expenses').insert(expenses.map(e => expenseToRow(e, userId, workspaceId)));
+    if (error) {
+      const ids = new Set(expenses.map(e => e.id));
+      setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => !ids.has(e.id)) }));
+      throw new Error(error.message);
+    }
+  }, [userId, workspaceId]);
 
   const updateExpense = useCallback(async (id: string, expense: Expense) => {
     let original: Expense | undefined;
@@ -474,6 +514,23 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     if (error) {
       // Reverte o estado otimista e propaga o erro para o caller avisar o usuário
       setStateRaw(prev => ({ ...prev, expenses: prev.expenses.map(e => e.id === id ? { ...e, paidStatus: original } : e) }));
+      console.error('Erro ao atualizar status de pagamento:', error.message);
+      throw new Error(error.message);
+    }
+  }, []);
+
+  const markExpensesStatus = useCallback(async (ids: string[], status: PaidStatus) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    let originals: Record<string, PaidStatus | undefined> = {};
+    setStateRaw(prev => {
+      originals = {};
+      for (const e of prev.expenses) if (idSet.has(e.id)) originals[e.id] = e.paidStatus;
+      return { ...prev, expenses: prev.expenses.map(e => idSet.has(e.id) ? { ...e, paidStatus: status } : e) };
+    });
+    const { error } = await supabase.from('expenses').update({ paid_status: status }).in('id', ids);
+    if (error) {
+      setStateRaw(prev => ({ ...prev, expenses: prev.expenses.map(e => idSet.has(e.id) ? { ...e, paidStatus: originals[e.id] } : e) }));
       console.error('Erro ao atualizar status de pagamento:', error.message);
       throw new Error(error.message);
     }
@@ -550,7 +607,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         throw new Error(error.message);
       }
     }
-  }, [userId]);
+  }, [userId, workspaceId]);
 
   const removeMember = useCallback(async (id: string) => {
     let originalMembers: Member[] = [];
@@ -789,7 +846,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       userId, workspaceId,
       state, setState,
       getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIncomes, getIndividualMembers,
-      addExpense, updateExpense, removeExpense, markExpenseStatus, postponeExpense,
+      addExpense, addExpenses, updateExpense, removeExpense, markExpenseStatus, markExpensesStatus, postponeExpense,
       addMember, updateMember, removeMember,
       setActiveMember, setActiveMonth,
       recurringExpenses, addRecurring, updateRecurring, removeRecurring,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { generateTips } from '@/lib/tips';
@@ -28,16 +28,31 @@ interface UseNotificationsReturn {
 }
 
 export function useNotifications(): UseNotificationsReturn {
-  const { userId, workspaceId, state, getExpensesForMonth, getIndividualMembers } = useStore();
+  const { userId, workspaceId, getExpensesForMonth, getIndividualMembers } = useStore();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const currentMonth = getCurrentMonth();
 
+  // Os seletores mudam de identidade a cada render; guardamos a versão mais recente
+  // numa ref para que o efeito abaixo não precise tê-los como dependência.
+  const selectorsRef = useRef({ getExpensesForMonth, getIndividualMembers });
   useEffect(() => {
-    if (!userId || state.expenses === undefined) return;
+    selectorsRef.current = { getExpensesForMonth, getIndividualMembers };
+  });
+
+  // Evita recarregar (e reinserir) as notificações do mesmo escopo mais de uma vez.
+  const loadKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadKey = `${userId}|${workspaceId || 'personal'}|${currentMonth}`;
+    if (loadKeyRef.current === loadKey) return;
+    loadKeyRef.current = loadKey;
 
     let cancelled = false;
+    let completed = false;
 
     async function loadNotifications() {
       setLoading(true);
@@ -70,9 +85,9 @@ export function useNotifications(): UseNotificationsReturn {
         });
       } else {
         // Generate from tips
-        const allEntries = getExpensesForMonth(currentMonth, 'all');
+        const allEntries = selectorsRef.current.getExpensesForMonth(currentMonth, 'all');
         if (allEntries.length > 0) {
-          const tips = generateTips(allEntries, 'all', getIndividualMembers, 0);
+          const tips = generateTips(allEntries, 'all', selectorsRef.current.getIndividualMembers, 0);
 
           // Add monthly info tip at the end
           tips.push({
@@ -186,11 +201,16 @@ export function useNotifications(): UseNotificationsReturn {
 
       setNotifications(all);
       setLoading(false);
+      completed = true;
     }
 
     loadNotifications();
-    return () => { cancelled = true; };
-  }, [userId, workspaceId, currentMonth, state.expenses.length]);
+    return () => {
+      cancelled = true;
+      // Se abortou no meio, libera a chave para que uma nova montagem recarregue.
+      if (!completed) loadKeyRef.current = null;
+    };
+  }, [userId, workspaceId, currentMonth]);
 
   const markAsRead = useCallback(async (id: string, source: 'assistant' | 'system') => {
     setNotifications(prev =>

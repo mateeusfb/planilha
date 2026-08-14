@@ -1,5 +1,9 @@
+// Instanciado uma única vez: criar um Intl.NumberFormat por chamada é caro e
+// fmt() roda milhares de vezes por render (tabelas, heatmaps, ticks de gráfico).
+const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export function fmt(v: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+  return BRL.format(v || 0);
 }
 
 export function fmtMonth(ym: string): string {

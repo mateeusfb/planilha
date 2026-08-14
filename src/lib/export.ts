@@ -1,10 +1,15 @@
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
-
 /**
  * Exporta um elemento HTML como PDF real (download direto).
+ *
+ * html2canvas e jspdf são carregados sob demanda: importados no topo, entravam no
+ * bundle inicial de quem só abre o app (~600KB) mesmo sem nunca exportar nada.
  */
 export async function exportToPDF(element: HTMLElement, filename: string): Promise<void> {
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf'),
+  ]);
+
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,

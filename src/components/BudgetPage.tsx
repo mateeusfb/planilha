@@ -1,12 +1,43 @@
 'use client';
 
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { useStore } from '@/lib/store';
 import { EXPENSE_CATS, CAT_COLORS } from '@/lib/constants';
 import { fmt, fmtMonth, getBudgetForMonth, getCurrentMonth, getPreviousMonth, getTotal } from '@/lib/helpers';
 import { Eye, EyeOff, Copy, Target, AlertTriangle, CheckCircle, TrendingDown, ArrowRightLeft, Award, BarChart3, Lightbulb, Zap, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from './Toast';
 import { Bar } from 'react-chartjs-2';
+
+// Campo de orçamento com estado local: cada tecla digitada disparava um setState
+// global (recalculando a página inteira) e um upsert em `settings` no Supabase.
+// Agora o valor só é gravado ao sair do campo ou apertar Enter.
+function BudgetInput({ value, onCommit }: { value: number; onCommit: (v: number) => void }) {
+  const [draft, setDraft] = useState(value ? String(value) : '');
+  const lastValueRef = useRef(value);
+
+  // Sincroniza quando o valor muda por fora (troca de mês, realocação, copiar anterior)
+  useEffect(() => {
+    if (lastValueRef.current !== value) {
+      lastValueRef.current = value;
+      setDraft(value ? String(value) : '');
+    }
+  }, [value]);
+
+  function commit() {
+    const n = Number(draft) || 0;
+    if (n === value) return;
+    lastValueRef.current = n;
+    onCommit(n);
+  }
+
+  return (
+    <input type="number" min="0" step="50" value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      placeholder="—" className="w-full pl-7 pr-1 py-1.5 border rounded-lg text-xs t-input text-right" />
+  );
+}
 
 // ── Helpers locais ──
 function getNPreviousMonths(ym: string, n: number): string[] {
@@ -56,23 +87,42 @@ export default function BudgetPage() {
   const [reallocAmount, setReallocAmount] = useState(0);
   const { toast } = useToast();
 
-  const resolvedBudget = getBudgetForMonth(budgetMonth, monthlyBudgets || {}, categoryBudgets || {});
+  // Estes valores eram recriados no corpo do render, o que fazia os useMemo abaixo
+  // (que dependem deles) nunca acertarem o cache.
+  const resolvedBudget = useMemo(
+    () => getBudgetForMonth(budgetMonth, monthlyBudgets || {}, categoryBudgets || {}),
+    [budgetMonth, monthlyBudgets, categoryBudgets]
+  );
   const prevMonth = getPreviousMonth(budgetMonth);
-  const prevBudget = getBudgetForMonth(prevMonth, monthlyBudgets || {}, categoryBudgets || {});
+  const prevBudget = useMemo(
+    () => getBudgetForMonth(prevMonth, monthlyBudgets || {}, categoryBudgets || {}),
+    [prevMonth, monthlyBudgets, categoryBudgets]
+  );
   const hasPrevBudget = Object.values(prevBudget).some(v => v > 0);
 
-  const outflows = getExpensesByExactMonth(budgetMonth, activeMember).filter(e => e.type === 'expense');
-  const allCats = [...EXPENSE_CATS, ...customCats].filter(c => c !== 'Investimento');
+  const outflows = useMemo(
+    () => getExpensesByExactMonth(budgetMonth, activeMember).filter(e => e.type === 'expense'),
+    [budgetMonth, activeMember, getExpensesByExactMonth]
+  );
+  const allCats = useMemo(
+    () => [...EXPENSE_CATS, ...customCats].filter(c => c !== 'Investimento'),
+    [customCats]
+  );
 
-  const budgetItems = allCats.map(cat => {
-    const limit = resolvedBudget[cat] || 0;
-    const spent = outflows.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0);
-    const pct = limit > 0 ? (spent / limit) * 100 : 0;
-    const deviation = limit > 0 ? spent - limit : 0;
-    return { cat, limit, spent, pct, deviation };
-  });
+  const budgetItems = useMemo(() => {
+    // Uma passada só para somar por categoria, em vez de um .filter() por categoria
+    const spentByCat = new Map<string, number>();
+    for (const e of outflows) spentByCat.set(e.cat, (spentByCat.get(e.cat) || 0) + e.value);
+    return allCats.map(cat => {
+      const limit = resolvedBudget[cat] || 0;
+      const spent = spentByCat.get(cat) || 0;
+      const pct = limit > 0 ? (spent / limit) * 100 : 0;
+      const deviation = limit > 0 ? spent - limit : 0;
+      return { cat, limit, spent, pct, deviation };
+    });
+  }, [allCats, resolvedBudget, outflows]);
 
-  const budgetItemsWithLimit = budgetItems.filter(b => b.limit > 0);
+  const budgetItemsWithLimit = useMemo(() => budgetItems.filter(b => b.limit > 0), [budgetItems]);
   const totalPrevisto = budgetItemsWithLimit.reduce((s, b) => s + b.limit, 0);
   const totalRealizado = budgetItemsWithLimit.reduce((s, b) => s + b.spent, 0);
   const totalDesvio = totalRealizado - totalPrevisto;
@@ -107,10 +157,12 @@ export default function BudgetPage() {
     return months.map(ym => {
       const budget = getBudgetForMonth(ym, monthlyBudgets || {}, categoryBudgets || {});
       const expenses = getExpensesByExactMonth(ym, activeMember).filter(e => e.type === 'expense');
+      const spentByCat = new Map<string, number>();
+      for (const e of expenses) spentByCat.set(e.cat, (spentByCat.get(e.cat) || 0) + e.value);
       const catData: Record<string, { budget: number; spent: number; variance: number }> = {};
       for (const cat of allCats) {
         const limit = budget[cat] || 0;
-        const spent = expenses.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0);
+        const spent = spentByCat.get(cat) || 0;
         catData[cat] = { budget: limit, spent, variance: limit > 0 ? ((spent - limit) / limit) * 100 : 0 };
       }
       return { month: ym, label: fmtMonth(ym), catData };
@@ -120,14 +172,22 @@ export default function BudgetPage() {
   // ── Sugestões Inteligentes ──
   const smartSuggestions = useMemo(() => {
     const prev3 = getNPreviousMonths(budgetMonth, 3);
+    // Totaliza por categoria uma vez por mês, em vez de varrer os lançamentos
+    // uma vez para cada par (categoria, mês).
+    const totalsByMonth = prev3.map(pm => {
+      const map = new Map<string, number>();
+      for (const e of getExpensesByExactMonth(pm, activeMember)) {
+        if (e.type !== 'expense') continue;
+        map.set(e.cat, (map.get(e.cat) || 0) + e.value);
+      }
+      return map;
+    });
     const suggestions: { cat: string; avg: number; budget: number }[] = [];
     for (const b of budgetItems) {
       if (b.limit <= 0) continue;
       let total = 0, count = 0;
-      for (const pm of prev3) {
-        const spent = getExpensesByExactMonth(pm, activeMember)
-          .filter(e => e.type === 'expense' && e.cat === b.cat)
-          .reduce((s, e) => s + e.value, 0);
+      for (const monthTotals of totalsByMonth) {
+        const spent = monthTotals.get(b.cat) || 0;
         if (spent > 0) { total += spent; count++; }
       }
       if (count === 0) continue;
@@ -145,11 +205,12 @@ export default function BudgetPage() {
     for (const ym of prev5) {
       const budget = getBudgetForMonth(ym, monthlyBudgets || {}, categoryBudgets || {});
       const expenses = getExpensesByExactMonth(ym, activeMember).filter(e => e.type === 'expense');
-      const items = allCats.map(cat => {
-        const limit = budget[cat] || 0;
-        const spent = expenses.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0);
-        return { limit, spent };
-      }).filter(b => b.limit > 0);
+      const spentByCat = new Map<string, number>();
+      for (const e of expenses) spentByCat.set(e.cat, (spentByCat.get(e.cat) || 0) + e.value);
+      const items = allCats.map(cat => ({
+        limit: budget[cat] || 0,
+        spent: spentByCat.get(cat) || 0,
+      })).filter(b => b.limit > 0);
       if (items.length === 0) continue;
       const avgDev = items.reduce((s, b) => s + Math.abs((b.spent - b.limit) / b.limit) * 100, 0) / items.length;
       const score = Math.max(0, Math.min(100, Math.round(100 - avgDev)));
@@ -166,8 +227,10 @@ export default function BudgetPage() {
     return members.map(member => {
       const memberOutflows = getExpensesByExactMonth(budgetMonth, member.id).filter(e => e.type === 'expense');
       const spent = getTotal(memberOutflows);
+      const spentByCat = new Map<string, number>();
+      for (const e of memberOutflows) spentByCat.set(e.cat, (spentByCat.get(e.cat) || 0) + e.value);
       const topCats = allCats
-        .map(cat => ({ cat, spent: memberOutflows.filter(e => e.cat === cat).reduce((s, e) => s + e.value, 0) }))
+        .map(cat => ({ cat, spent: spentByCat.get(cat) || 0 }))
         .filter(c => c.spent > 0)
         .sort((a, b) => b.spent - a.spent)
         .slice(0, 3);
@@ -435,9 +498,7 @@ export default function BudgetPage() {
 
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[0.6rem] t-text-dim">R$</span>
-                    <input type="number" min="0" step="50" value={b.limit || ''}
-                      onChange={e => handleBudgetChange(b.cat, Number(e.target.value) || 0)}
-                      placeholder="—" className="w-full pl-7 pr-1 py-1.5 border rounded-lg text-xs t-input text-right" />
+                    <BudgetInput value={b.limit} onCommit={v => handleBudgetChange(b.cat, v)} />
                   </div>
 
                   <span className={`text-xs text-right font-semibold t-text ${blur}`}>

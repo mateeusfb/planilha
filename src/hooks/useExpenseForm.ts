@@ -50,7 +50,7 @@ export interface ExpenseFormActions {
 }
 
 export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
-  const { state, setState, addExpense, updateExpense, getIndividualMembers, addRecurring } = useStore();
+  const { state, setState, addExpense, addExpenses, updateExpense, getIndividualMembers, addRecurring } = useStore();
   const { toast } = useToast();
   const { activeMonth, members } = state;
   const individuals = getIndividualMembers();
@@ -121,15 +121,13 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
           setState(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.conjuntaGroupId !== groupId) }));
         }
         setSaving(true);
-        await Promise.all(individuals.map(m =>
-          addExpense({
-            id: genId(), type: 'expense', desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
-            month, payment, installment: 0, memberId: m.id,
-            note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
-            conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
-            createdAt: Date.now(),
-          })
-        ));
+        await addExpenses(individuals.map(m => ({
+          id: genId(), type: 'expense' as const, desc: desc.trim(), cat, value: Math.round(splitValue * 100) / 100,
+          month, payment, installment: 0, memberId: m.id,
+          note: `Conjunta${note ? ': ' + note : ''}`, purchaseDate, bank: bank || undefined,
+          conjuntaGroupId: groupId, conjuntaName: selectedMember?.name,
+          createdAt: Date.now(),
+        })));
         setSaving(false);
         opts?.onSuccess?.();
         return;
@@ -139,15 +137,17 @@ export function useExpenseForm(): ExpenseFormState & ExpenseFormActions {
         const groupId = genId();
         const [baseY, baseM] = month.split('-').map(Number);
         setSaving(true);
+        const parcelas: Expense[] = [];
         for (let i = installmentCurrent; i <= installmentN; i++) {
           const d = new Date(baseY, baseM - 1 + (i - installmentCurrent), 1);
           const entryMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          await addExpense({
+          parcelas.push({
             id: genId(), type: 'expense', desc: desc.trim(), cat, value: val,
             month: entryMonth, payment, installment: installmentN, installmentCurrent: i,
             installmentGroupId: groupId, memberId, note, purchaseDate, bank: bank || undefined, createdAt: Date.now(),
           });
         }
+        await addExpenses(parcelas);
         setSaving(false);
         opts?.onSuccess?.();
         return;

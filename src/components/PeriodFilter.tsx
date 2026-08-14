@@ -5,15 +5,9 @@ import { useStore } from '@/lib/store';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { fmtMonth, buildMonthList, formatDate } from '@/lib/helpers';
 
-interface DateFilter {
-  type: 'month' | 'preset' | 'custom';
-  month?: string;
-  preset?: string;
-  startDate?: string;
-  endDate?: string;
-}
+import type { DateFilter } from '@/lib/types';
 
-// Export for use in other components
+// Re-export for use in other components
 export type { DateFilter };
 
 // Get a label for the current filter
@@ -50,24 +44,23 @@ export default function PeriodFilter() {
   const months = buildMonthList();
 
   // Current filter state - stored in state.activeMonth for months, or state.dateFilter for periods
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dateFilter: DateFilter = (state as any).dateFilter || { type: 'month', month: state.activeMonth };
+  const dateFilter: DateFilter = state.dateFilter || { type: 'month', month: state.activeMonth };
 
   function applyMonth(ym: string) {
     setActiveMonth(ym);
-    setState(prev => ({ ...prev, dateFilter: { type: 'month', month: ym } } as typeof prev));
+    setState(prev => ({ ...prev, dateFilter: { type: 'month', month: ym } }));
     setOpen(false);
   }
 
   function applyPreset(preset: string) {
-    setState(prev => ({ ...prev, dateFilter: { type: 'preset', preset } } as typeof prev));
+    setState(prev => ({ ...prev, dateFilter: { type: 'preset', preset } }));
     setOpen(false);
   }
 
   function applyCustom() {
     if (!customStart) return;
     const end = customEnd || customStart;
-    setState(prev => ({ ...prev, dateFilter: { type: 'custom', startDate: customStart, endDate: end } } as typeof prev));
+    setState(prev => ({ ...prev, dateFilter: { type: 'custom', startDate: customStart, endDate: end } }));
     setOpen(false);
   }
 

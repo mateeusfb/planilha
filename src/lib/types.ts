@@ -29,11 +29,20 @@ export interface Expense {
   paidStatus?: PaidStatus;
 }
 
+export interface DateFilter {
+  type: 'month' | 'preset' | 'custom';
+  month?: string;
+  preset?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface AppState {
   members: Member[];
   activeMember: string;
   expenses: Expense[];
   activeMonth: string;
+  dateFilter?: DateFilter;
   editingId: string | null;
   deleteId: string | null;
   editingMemberId: string | null;

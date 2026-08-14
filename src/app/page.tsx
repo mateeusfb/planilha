@@ -8,9 +8,10 @@ import type { PageId, Workspace } from '@/lib/types';
 import { Sidebar } from '@/components/Sidebar';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { Moon, Sun } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { SkeletonDashboard } from '@/components/Skeleton';
 import Dashboard from '@/components/Dashboard';
 import ExpensesPage from '@/components/ExpensesPage';
-import AnalysisPage from '@/components/AnalysisPage';
 import SettingsPage from '@/components/SettingsPage';
 import MemberModal from '@/components/MemberModal';
 import DeleteModal from '@/components/DeleteModal';
@@ -21,10 +22,15 @@ import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
 import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/NotificationBell';
-import InvestmentsPage from '@/components/InvestmentsPage';
 import ProfilePage from '@/components/ProfilePage';
-import BudgetPage from '@/components/BudgetPage';
-import ClosingPage from '@/components/ClosingPage';
+
+// Páginas pesadas (chart.js, tabelas grandes) carregadas sob demanda — só entram
+// no bundle quando o usuário abre a aba correspondente.
+const loading = () => <SkeletonDashboard />;
+const AnalysisPage = dynamic(() => import('@/components/AnalysisPage'), { loading });
+const InvestmentsPage = dynamic(() => import('@/components/InvestmentsPage'), { loading });
+const BudgetPage = dynamic(() => import('@/components/BudgetPage'), { loading });
+const ClosingPage = dynamic(() => import('@/components/ClosingPage'), { loading });
 
 function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
   workspaces: Workspace[];
@@ -168,6 +174,15 @@ function AppContent({ workspaces, activeWorkspace, onSwitchWorkspace, onCreateWo
   );
 }
 
+function sameWorkspace(a: Workspace, b: Workspace): boolean {
+  return a.id === b.id && a.userId === b.userId && a.workspaceId === b.workspaceId
+    && a.label === b.label && a.icon === b.icon && a.isOwn === b.isOwn;
+}
+
+function sameWorkspaceList(a: Workspace[], b: Workspace[]): boolean {
+  return a.length === b.length && a.every((w, i) => sameWorkspace(w, b[i]));
+}
+
 function AuthGate() {
   const { user, loading, isRecovery } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -175,78 +190,84 @@ function AuthGate() {
   const [wsLoaded, setWsLoaded] = useState(false);
   const [showCreateWs, setShowCreateWs] = useState(false);
 
+  // Depende do id, não do objeto `user`: o Supabase emite onAuthStateChange a cada
+  // refresh de token e a cada foco na aba, sempre com um objeto novo. Com [user] o
+  // callback mudava de identidade e o efeito abaixo recarregava os workspaces em loop.
+  const userId = user?.id;
+
   const loadWorkspaces = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
     const personal: Workspace = {
       id: 'personal',
-      userId: user.id,
+      userId,
       label: 'Pessoal',
       icon: '🏠',
       isOwn: true,
     };
 
-    const { data: ownWs } = await supabase
-      .from('workspaces')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('created_at');
+    const [{ data: ownWs }, { data: shared }] = await Promise.all([
+      supabase.from('workspaces').select('*').eq('owner_id', userId).order('created_at'),
+      supabase.from('shares').select('owner_id, workspace_id').eq('shared_user_id', userId).eq('accepted', true),
+    ]);
 
     const ownWorkspaces: Workspace[] = (ownWs || []).map(w => ({
       id: w.id,
-      userId: user.id,
+      userId,
       workspaceId: w.id,
       label: w.name,
       icon: w.icon || '📁',
       isOwn: true,
     }));
 
-    const { data: shared } = await supabase
-      .from('shares')
-      .select('owner_id, workspace_id')
-      .eq('shared_user_id', user.id)
-      .eq('accepted', true);
+    // Busca os workspaces compartilhados numa query só (antes era um SELECT por share)
+    const sharedIds = (shared || []).map(s => s.workspace_id).filter(Boolean);
+    const sharedWsById = new Map<string, { name: string; icon: string | null }>();
+    if (sharedIds.length > 0) {
+      const { data: wsRows } = await supabase.from('workspaces').select('*').in('id', sharedIds);
+      for (const w of wsRows || []) sharedWsById.set(w.id, w);
+    }
 
     const sharedWorkspaces: Workspace[] = [];
-    if (shared) {
-      for (const s of shared) {
-        if (s.workspace_id) {
-          const { data: wsData } = await supabase.from('workspaces').select('*').eq('id', s.workspace_id).single();
-          if (wsData) {
-            sharedWorkspaces.push({
-              id: `shared-${s.workspace_id}`,
-              userId: s.owner_id,
-              workspaceId: s.workspace_id,
-              label: wsData.name,
-              icon: wsData.icon || '📁',
-              isOwn: false,
-              ownerEmail: 'Compartilhado',
-            });
-          }
-        } else {
+    for (const s of shared || []) {
+      if (s.workspace_id) {
+        const wsData = sharedWsById.get(s.workspace_id);
+        if (wsData) {
           sharedWorkspaces.push({
-            id: `shared-${s.owner_id}`,
+            id: `shared-${s.workspace_id}`,
             userId: s.owner_id,
-            label: 'Planilha compartilhada',
-            icon: '👥',
+            workspaceId: s.workspace_id,
+            label: wsData.name,
+            icon: wsData.icon || '📁',
             isOwn: false,
             ownerEmail: 'Compartilhado',
           });
         }
+      } else {
+        sharedWorkspaces.push({
+          id: `shared-${s.owner_id}`,
+          userId: s.owner_id,
+          label: 'Planilha compartilhada',
+          icon: '👥',
+          isOwn: false,
+          ownerEmail: 'Compartilhado',
+        });
       }
     }
 
     const all = [personal, ...ownWorkspaces, ...sharedWorkspaces];
-    setWorkspaces(all);
+
+    // Preserva as referências anteriores quando nada mudou: `all` é sempre um array
+    // novo, e trocar a identidade de workspaces/activeWorkspace re-renderiza o app inteiro.
+    setWorkspaces(prev => (sameWorkspaceList(prev, all) ? prev : all));
     setActiveWorkspace(prev => {
-      if (prev) {
-        const stillExists = all.find(w => w.id === prev.id);
-        if (stillExists) return stillExists;
-      }
-      return personal;
+      if (!prev) return personal;
+      const stillExists = all.find(w => w.id === prev.id);
+      if (!stillExists) return personal;
+      return sameWorkspace(prev, stillExists) ? prev : stillExists;
     });
     setWsLoaded(true);
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
 

@@ -12,7 +12,7 @@ import type { Expense, PaidStatus } from '@/lib/types';
 type FilterTab = 'pending' | 'paid' | 'postponed' | 'all';
 
 export default function ClosingPage({ onDeleteRequest }: { onDeleteRequest: (id: string) => void }) {
-  const { state, getOutflows, markExpenseStatus, postponeExpense } = useStore();
+  const { state, getOutflows, markExpenseStatus, markExpensesStatus, postponeExpense } = useStore();
   const { activeMonth, activeMember, members } = state;
   const { toast } = useToast();
 
@@ -107,9 +107,7 @@ export default function ClosingPage({ onDeleteRequest }: { onDeleteRequest: (id:
       return;
     }
     try {
-      for (const e of recurringPending) {
-        await markExpenseStatus(e.id, 'paid');
-      }
+      await markExpensesStatus(recurringPending.map(e => e.id), 'paid');
       toast(`${recurringPending.length} recorrente(s) marcado(s) como pago`, 'success');
     } catch {
       toast('Não foi possível salvar. Falta a coluna paid_status no banco.', 'error');
