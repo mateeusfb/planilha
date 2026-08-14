@@ -18,6 +18,25 @@ const BANK_COLORS = ['#7c3aed', '#8b5cf6', '#6d28d9', '#059669', '#0891b2', '#d9
 
 type ChartTab = 'cat' | 'pay' | 'bank' | 'member';
 
+const TAB_TITLES: Record<ChartTab, string> = {
+  cat: 'Categoria', pay: 'Pagamento', bank: 'Instituição', member: 'Membro',
+};
+
+const TABS: { id: ChartTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'cat', label: 'Categoria', icon: <Tag size={14} /> },
+  { id: 'pay', label: 'Pagamento', icon: <CreditCard size={14} /> },
+  { id: 'bank', label: 'Instituição', icon: <Landmark size={14} /> },
+  { id: 'member', label: 'Membro', icon: <User size={14} /> },
+];
+
+// Identidade estável: o react-chartjs-2 compara options por referência e reinicia
+// a animação quando recebe um objeto novo.
+const CHART_OPTIONS = {
+  responsive: true, maintainAspectRatio: false,
+  animation: { duration: 600, easing: 'easeOutQuart' as const },
+  plugins: { legend: { position: 'bottom' as const, labels: { font: { size: 11 } } } },
+};
+
 export default function AnalysisPage() {
   const { state, getExpensesForMonth, getIndividualMembers } = useStore();
   const { activeMonth, activeMember } = state;
@@ -25,10 +44,6 @@ export default function AnalysisPage() {
   const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  const tabTitles: Record<ChartTab, string> = {
-    cat: 'Categoria', pay: 'Pagamento', bank: 'Instituição', member: 'Membro',
-  };
 
   const data = useMemo(() => {
     const allEntries = getExpensesForMonth(activeMonth, activeMember);
@@ -77,11 +92,12 @@ export default function AnalysisPage() {
     const sortedBanks = Object.entries(byBank).sort((a, b) => b[1] - a[1]);
 
     // Por membro
+    const membersById = new Map(state.members.map(m => [m.id, m]));
     const byMember: Record<string, number> = {};
     const memberNames: Record<string, string> = {};
     expenses.forEach(e => {
       const mid = e.memberId || 'all';
-      const member = state.members.find(m => m.id === mid);
+      const member = membersById.get(mid);
       const name = member?.name || (mid === 'all' ? 'Família' : 'Outro');
       memberNames[mid] = name;
       byMember[mid] = (byMember[mid] || 0) + e.value;
@@ -89,7 +105,7 @@ export default function AnalysisPage() {
     const memberLabels = Object.keys(byMember).map(id => memberNames[id]);
     const memberData = Object.values(byMember);
     const memberColors = Object.keys(byMember).map((id, i) => {
-      const member = state.members.find(m => m.id === id);
+      const member = membersById.get(id);
       return member?.color || MEMBER_COLORS[i % MEMBER_COLORS.length];
     });
     const sortedMembers = Object.entries(byMember).map(([id, val]) => [memberNames[id], val] as [string, number]).sort((a, b) => b[1] - a[1]);
@@ -104,44 +120,38 @@ export default function AnalysisPage() {
     };
   }, [activeMonth, activeMember, state.expenses, state.members, getExpensesForMonth, getIndividualMembers]);
 
-  const tabs: { id: ChartTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'cat', label: 'Categoria', icon: <Tag size={14} /> },
-    { id: 'pay', label: 'Pagamento', icon: <CreditCard size={14} /> },
-    { id: 'bank', label: 'Instituição', icon: <Landmark size={14} /> },
-    { id: 'member', label: 'Membro', icon: <User size={14} /> },
-  ];
-
   // Dados do gráfico ativo
-  const chartData: Record<ChartTab, { labels: string[]; data: number[]; colors: string[] }> = {
+  const chartData = useMemo<Record<ChartTab, { labels: string[]; data: number[]; colors: string[] }>>(() => ({
     cat: { labels: data.catLabels, data: data.catData, colors: data.catColors },
     pay: { labels: data.payLabels, data: data.payData, colors: data.payColors },
     bank: { labels: data.bankLabels, data: data.bankData, colors: data.bankColors },
     member: { labels: data.memberLabels, data: data.memberData, colors: data.memberColors },
-  };
+  }), [data]);
 
-  const sortedData: Record<ChartTab, [string, number][]> = {
+  const sortedData = useMemo<Record<ChartTab, [string, number][]>>(() => ({
     cat: data.sortedCats,
     pay: data.sortedPays,
     bank: data.sortedBanks,
     member: data.sortedMembers,
-  };
+  }), [data]);
 
-  const colorMap: Record<ChartTab, Record<string, string>> = {
+  const colorMap = useMemo<Record<ChartTab, Record<string, string>>>(() => ({
     cat: CAT_COLORS,
     pay: PAY_COLORS,
     bank: Object.fromEntries(data.bankLabels.map((l, i) => [l, BANK_COLORS[i % BANK_COLORS.length]])),
     member: Object.fromEntries(data.memberLabels.map((l, i) => [l, data.memberColors[i]])),
-  };
+  }), [data]);
 
   const active = chartData[chartTab];
   const sorted = sortedData[chartTab];
   const colors = colorMap[chartTab];
 
-  const chartOptions = {
-    responsive: true, maintainAspectRatio: false,
-    animation: { duration: 600, easing: 'easeOutQuart' as const },
-    plugins: { legend: { position: 'bottom' as const, labels: { font: { size: 11 } } } },
-  };
+  // Sem isto o dataset ganha identidade nova a cada render do pai e o Chart.js
+  // reanima o gráfico inteiro.
+  const chartDataset = useMemo(() => ({
+    labels: active.labels,
+    datasets: [{ data: active.data, backgroundColor: active.colors, borderWidth: 2, borderColor: '#fff' }],
+  }), [active]);
 
   function exportAs(format: 'png' | 'pdf') {
     setExporting(true);
@@ -170,7 +180,7 @@ export default function AnalysisPage() {
       ctx.fillRect(0, 0, w, totalH);
       ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
       ctx.font = 'bold 18px sans-serif';
-      ctx.fillText(`Análise por ${tabTitles[chartTab]}`, pad, pad + 14);
+      ctx.fillText(`Análise por ${TAB_TITLES[chartTab]}`, pad, pad + 14);
 
       const chartX = Math.round((w - chartCanvas.width) / 2);
       const img = new Image();
@@ -179,7 +189,7 @@ export default function AnalysisPage() {
         const detailY = pad + 30 + chartCanvas.height + 20;
         ctx.font = 'bold 11px sans-serif';
         ctx.fillStyle = isDark ? '#94a3b8' : '#64748b';
-        ctx.fillText(`DETALHAMENTO POR ${tabTitles[chartTab].toUpperCase()}`, pad, detailY);
+        ctx.fillText(`DETALHAMENTO POR ${TAB_TITLES[chartTab].toUpperCase()}`, pad, detailY);
 
         rows.forEach((row, i) => {
           const y = detailY + 20 + i * rowH;
@@ -204,7 +214,7 @@ export default function AnalysisPage() {
         const finalData = canvas.toDataURL('image/png', 1.0);
         if (format === 'png') {
           const link = document.createElement('a');
-          link.download = `analise-${tabTitles[chartTab].toLowerCase()}.png`;
+          link.download = `analise-${TAB_TITLES[chartTab].toLowerCase()}.png`;
           link.href = finalData;
           link.click();
           toast('Imagem exportada!', 'success');
@@ -213,7 +223,7 @@ export default function AnalysisPage() {
           const tempDiv = document.createElement('div');
           tempDiv.style.cssText = 'padding:30px;background:white;width:600px;position:absolute;left:-9999px';
           const title = document.createElement('h2');
-          title.textContent = `Análise por ${tabTitles[chartTab]}`;
+          title.textContent = `Análise por ${TAB_TITLES[chartTab]}`;
           title.style.cssText = 'font:bold 18px sans-serif;margin-bottom:16px;color:#1e293b';
           tempDiv.appendChild(title);
           const imgEl = document.createElement('img');
@@ -221,7 +231,7 @@ export default function AnalysisPage() {
           imgEl.style.cssText = 'max-width:100%;height:auto';
           tempDiv.appendChild(imgEl);
           document.body.appendChild(tempDiv);
-          await exportToPDF(tempDiv, `analise-${tabTitles[chartTab].toLowerCase()}`);
+          await exportToPDF(tempDiv, `analise-${TAB_TITLES[chartTab].toLowerCase()}`);
           document.body.removeChild(tempDiv);
           toast('PDF exportado!', 'success');
         }
@@ -242,7 +252,7 @@ export default function AnalysisPage() {
         {/* Tabs + Export */}
         <div className="flex items-center justify-between px-4 pt-4 gap-2">
           <div className="flex gap-1 flex-wrap">
-            {tabs.map(t => (
+            {TABS.map(t => (
               <button key={t.id} onClick={() => setChartTab(t.id)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
                   chartTab === t.id ? 't-accent-bg text-white shadow-sm' : 'bg-slate-100 t-text-muted hover:bg-slate-200'
@@ -279,15 +289,9 @@ export default function AnalysisPage() {
             <div className="h-64">
               {active.labels.length > 0 ? (
                 chartTab === 'cat' ? (
-                  <Pie
-                    data={{ labels: active.labels, datasets: [{ data: active.data, backgroundColor: active.colors, borderWidth: 2, borderColor: '#fff' }] }}
-                    options={chartOptions}
-                  />
+                  <Pie data={chartDataset} options={CHART_OPTIONS} />
                 ) : (
-                  <Doughnut
-                    data={{ labels: active.labels, datasets: [{ data: active.data, backgroundColor: active.colors, borderWidth: 2, borderColor: '#fff' }] }}
-                    options={chartOptions}
-                  />
+                  <Doughnut data={chartDataset} options={CHART_OPTIONS} />
                 )
               ) : <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados</div>}
             </div>

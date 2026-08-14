@@ -8,6 +8,22 @@ import { Eye, EyeOff, Copy, Target, AlertTriangle, CheckCircle, TrendingDown, Ar
 import { useToast } from './Toast';
 import { Bar } from 'react-chartjs-2';
 
+// Fora do componente: options com identidade nova a cada render fazem o
+// react-chartjs-2 reanimar o gráfico (1200ms) sem que nada tenha mudado.
+const BUDGET_CHART_OPTIONS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 1200, easing: 'easeOutQuart' as const },
+  plugins: {
+    legend: { position: 'bottom' as const, labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } },
+    tooltip: { callbacks: { label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? 0)}` } },
+  },
+  scales: {
+    y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { font: { size: 10 } } },
+    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+  },
+};
+
 // Campo de orçamento com estado local: cada tecla digitada disparava um setState
 // global (recalculando a página inteira) e um upsert em `settings` no Supabase.
 // Agora o valor só é gravado ao sair do campo ou apertar Enter.
@@ -150,6 +166,26 @@ export default function BudgetPage() {
     }, 0) / budgetItemsWithLimit.length;
     return Math.max(0, Math.min(100, Math.round(100 - avgDeviation)));
   }, [budgetItemsWithLimit]);
+
+  const budgetChartData = useMemo(() => ({
+    labels: budgetItemsWithLimit.map(b => b.cat),
+    datasets: [
+      {
+        label: 'Previsto',
+        data: budgetItemsWithLimit.map(b => b.limit),
+        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+        borderRadius: 6,
+      },
+      {
+        label: 'Realizado',
+        data: budgetItemsWithLimit.map(b => b.spent),
+        backgroundColor: budgetItemsWithLimit.map(b =>
+          b.spent > b.limit ? 'rgba(239, 68, 68, 0.6)' : 'rgba(16, 185, 129, 0.6)'
+        ),
+        borderRadius: 6,
+      },
+    ],
+  }), [budgetItemsWithLimit]);
 
   // ── Dados Históricos (6 meses) ──
   const historicalData = useMemo(() => {
@@ -549,40 +585,7 @@ export default function BudgetPage() {
             <BarChart3 size={16} /> Previsto vs Realizado
           </h4>
           <div className="h-64">
-            <Bar
-              data={{
-                labels: budgetItemsWithLimit.map(b => b.cat),
-                datasets: [
-                  {
-                    label: 'Previsto',
-                    data: budgetItemsWithLimit.map(b => b.limit),
-                    backgroundColor: 'rgba(99, 102, 241, 0.6)',
-                    borderRadius: 6,
-                  },
-                  {
-                    label: 'Realizado',
-                    data: budgetItemsWithLimit.map(b => b.spent),
-                    backgroundColor: budgetItemsWithLimit.map(b =>
-                      b.spent > b.limit ? 'rgba(239, 68, 68, 0.6)' : 'rgba(16, 185, 129, 0.6)'
-                    ),
-                    borderRadius: 6,
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 1200, easing: 'easeOutQuart' as const },
-                plugins: {
-                  legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } },
-                  tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? 0)}` } },
-                },
-                scales: {
-                  y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { font: { size: 10 } } },
-                  x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
-                },
-              }}
-            />
+            <Bar data={budgetChartData} options={BUDGET_CHART_OPTIONS} />
           </div>
         </div>
       )}

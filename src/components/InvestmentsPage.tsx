@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { fmt, fmtMonth } from '@/lib/helpers';
 import type { Investment, InvestmentGoal, InvestmentType } from '@/lib/types';
@@ -17,6 +17,12 @@ import { useToast } from './Toast';
 import { useTheme } from '@/lib/theme';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Filler);
+
+const ALLOCATION_CHART_OPTIONS = {
+  responsive: true, maintainAspectRatio: false, cutout: '70%',
+  animation: { duration: 1000, easing: 'easeOutQuart' as const },
+  plugins: { legend: { display: false } },
+};
 
 const TYPE_CONFIG: Record<InvestmentType, { label: string; color: string }> = {
   renda_fixa: { label: 'Renda Fixa', color: '#2563eb' },
@@ -49,6 +55,15 @@ export default function InvestmentsPage() {
   const [batchEditing, setBatchEditing] = useState(false);
   const [batchValues, setBatchValues] = useState<Record<string, string>>({});
   const [batchSaving, setBatchSaving] = useState(false);
+
+  // "Agora" congelado por montagem. As funções de prazo abaixo liam Date.now()
+  // durante o render (impuro) e cada chamada enxergava um instante diferente.
+  // Os rótulos têm granularidade de dias, então um tick por hora basta.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 3_600_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Filter & sort state
   const [filterType, setFilterType] = useState<InvestmentType | 'all'>('all');
@@ -99,6 +114,64 @@ export default function InvestmentsPage() {
       current: sorted.map(s => s.totalCurrent),
     };
   }, [investmentSnapshots]);
+
+  // data/options com identidade estável — o react-chartjs-2 compara por referência
+  // e reanima o gráfico inteiro quando recebe objetos novos.
+  const evolutionChartData = useMemo(() => {
+    if (!evolutionChart) return null;
+    return {
+      labels: evolutionChart.labels,
+      datasets: [
+        {
+          label: 'Valor Atual',
+          data: evolutionChart.current,
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#16a34a',
+        },
+        {
+          label: 'Valor Investido',
+          data: evolutionChart.invested,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,0.05)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#2563eb',
+          borderDash: [4, 4],
+        },
+      ],
+    };
+  }, [evolutionChart]);
+
+  const allocationChartData = useMemo(() => ({
+    labels: data.typeLabels,
+    datasets: [{ data: data.typeData, backgroundColor: data.typeColors, borderWidth: 0, borderRadius: 4 }],
+  }), [data.typeLabels, data.typeData, data.typeColors]);
+
+  const evolutionChartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 800 },
+    plugins: {
+      legend: { position: 'bottom' as const, labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } },
+      tooltip: {
+        callbacks: {
+          label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? 0)}`,
+        },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : undefined } },
+      y: {
+        grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(100,116,139,0.1)' },
+        ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : undefined, callback: (v: string | number) => fmt(Number(v)) },
+      },
+    },
+  }), [isDark]);
 
   async function handleDeleteConfirm() {
     if (!confirmDelete) return;
@@ -229,7 +302,7 @@ export default function InvestmentsPage() {
   }
 
   function getDaysLabel(deadline: string): { label: string; color: string } {
-    const daysLeft = Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+    const daysLeft = Math.ceil((new Date(deadline).getTime() - nowMs) / 86400000);
     if (daysLeft < 0) return { label: `Venceu há ${Math.abs(daysLeft)}d`, color: 'text-red-500' };
     if (daysLeft === 0) return { label: 'Vence hoje!', color: 'text-red-500' };
     if (daysLeft <= 30) return { label: `Faltam ${daysLeft}d`, color: 'text-amber-500' };
@@ -241,14 +314,14 @@ export default function InvestmentsPage() {
   function isStale(inv: Investment): boolean {
     if (inv.currentValue !== inv.amountInvested) return false;
     if (!inv.purchaseDate) return false;
-    const diffDays = (Date.now() - new Date(inv.purchaseDate).getTime()) / 86400000;
+    const diffDays = (nowMs - new Date(inv.purchaseDate).getTime()) / 86400000;
     return diffDays > 60;
   }
 
   // Alerta de vencimento
   function getMaturityAlert(inv: Investment): { label: string; color: string } | null {
     if (!inv.maturityDate) return null;
-    const daysLeft = Math.ceil((new Date(inv.maturityDate).getTime() - Date.now()) / 86400000);
+    const daysLeft = Math.ceil((new Date(inv.maturityDate).getTime() - nowMs) / 86400000);
     if (daysLeft < 0) return { label: 'Vencido', color: 'bg-red-500/15 text-red-600' };
     if (daysLeft <= 30) return { label: `Vence em ${daysLeft}d`, color: 'bg-red-500/15 text-red-600' };
     if (daysLeft <= 60) return { label: `Vence em ${daysLeft}d`, color: 'bg-amber-400/15 text-amber-600' };
@@ -258,7 +331,7 @@ export default function InvestmentsPage() {
   // Rentabilidade anualizada % a.a.
   function getAnnualizedReturn(inv: Investment): string | null {
     if (!inv.purchaseDate || inv.amountInvested <= 0) return null;
-    const days = (Date.now() - new Date(inv.purchaseDate).getTime()) / 86400000;
+    const days = (nowMs - new Date(inv.purchaseDate).getTime()) / 86400000;
     if (days < 7) return null;
     const ratio = inv.currentValue / inv.amountInvested;
     const annualized = (Math.pow(ratio, 365 / days) - 1) * 100;
@@ -368,58 +441,11 @@ export default function InvestmentsPage() {
       )}
 
       {/* ── Evolução do Patrimônio ── */}
-      {evolutionChart && (
+      {evolutionChartData && (
         <div className="glass-card rounded-xl p-5 mb-4 animate-fade-in-up">
           <h3 className="text-sm font-bold t-text mb-4">Evolução da Carteira</h3>
           <div className="h-52">
-            <Line
-              data={{
-                labels: evolutionChart.labels,
-                datasets: [
-                  {
-                    label: 'Valor Atual',
-                    data: evolutionChart.current,
-                    borderColor: '#16a34a',
-                    backgroundColor: 'rgba(22,163,74,0.08)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#16a34a',
-                  },
-                  {
-                    label: 'Valor Investido',
-                    data: evolutionChart.invested,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37,99,235,0.05)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#2563eb',
-                    borderDash: [4, 4],
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 800 },
-                plugins: {
-                  legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } },
-                  tooltip: {
-                    callbacks: {
-                      label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? 0)}`,
-                    },
-                  },
-                },
-                scales: {
-                  x: { grid: { display: false }, ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : undefined } },
-                  y: {
-                    grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(100,116,139,0.1)' },
-                    ticks: { font: { size: 11 }, color: isDark ? '#94a3b8' : undefined, callback: v => fmt(Number(v)) },
-                  },
-                },
-              }}
-            />
+            <Line data={evolutionChartData} options={evolutionChartOptions} />
           </div>
         </div>
       )}
@@ -432,17 +458,7 @@ export default function InvestmentsPage() {
           {data.typeLabels.length > 0 ? (
             <>
               <div className="h-48">
-                <Doughnut
-                  data={{
-                    labels: data.typeLabels,
-                    datasets: [{ data: data.typeData, backgroundColor: data.typeColors, borderWidth: 0, borderRadius: 4 }],
-                  }}
-                  options={{
-                    responsive: true, maintainAspectRatio: false, cutout: '70%',
-                    animation: { duration: 1000, easing: 'easeOutQuart' },
-                    plugins: { legend: { display: false } },
-                  }}
-                />
+                <Doughnut data={allocationChartData} options={ALLOCATION_CHART_OPTIONS} />
               </div>
               {/* Tabela resumo por tipo */}
               <div className="mt-4 border-t t-border pt-3 space-y-2">
@@ -577,7 +593,7 @@ export default function InvestmentsPage() {
 
         {batchEditing && (
           <div className="mb-3 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 text-xs font-medium">
-            Edite os valores atuais abaixo e clique em "Salvar tudo" para atualizar todos de uma vez.
+            Edite os valores atuais abaixo e clique em &quot;Salvar tudo&quot; para atualizar todos de uma vez.
           </div>
         )}
 

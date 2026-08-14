@@ -17,6 +17,9 @@ interface Props {
   onDeleteRequest: (id: string) => void;
 }
 
+// Membro exibido quando o lançamento não tem memberId (ou aponta para um membro removido).
+const FALLBACK_MEMBER = { id: 'all', name: 'Família', color: '#2563eb' };
+
 export default function ExpensesPage({ onDeleteRequest }: Props) {
   const { state, setState, getExpensesForMonth, getIndividualMembers, markExpenseStatus } = useStore();
   const { activeMonth, activeMember, members, expenses } = state;
@@ -80,6 +83,9 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
 
   const { toast } = useToast();
 
+  // Lookup por id em vez de members.find() por linha da tabela.
+  const memberMap = useMemo(() => new Map(members.map(m => [m.id, m])), [members]);
+
   const allExpenseCats = [...EXPENSE_CATS, ...(state.customCats || [])];
   const allPayments = [...BASE_PAYMENTS, ...(state.customPayments || [])];
   const allBanks = [...BASE_BANKS, ...(state.customBanks || [])];
@@ -103,7 +109,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     if (!val || val <= 0) return toast('Digite um valor válido.', 'warning');
     if (!form.month) return toast('Selecione o mês.', 'warning');
 
-    const selectedMember = members.find(m => m.id === form.memberId);
+    const selectedMember = memberMap.get(form.memberId);
     const isConjunta = selectedMember?.isConjunta && form.formType === 'expense';
 
     if (isConjunta && individuals.length === 0) {
@@ -182,6 +188,103 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
     return sortDir === 'desc' ? ' ↓' : ' ↑';
   }
 
+  // Monta apenas a célula pedida — antes o objeto de renderers criava o JSX das 9
+  // colunas para cada linha, inclusive as que o usuário tinha escondido.
+  function renderCell(
+    colId: string,
+    e: Expense,
+    member: React.ComponentProps<typeof Avatar>['member'],
+    isIncome: boolean,
+  ): React.ReactNode {
+    switch (colId) {
+      case 'desc':
+        return (
+          <td key="desc" className="px-4 py-2.5 border-b t-border-light">
+            <div className="font-semibold text-[0.83rem]">{e.desc}
+              {e.conjuntaName && <span className="text-[0.72rem] t-text-dim font-normal ml-1">via {e.conjuntaName}</span>}
+            </div>
+            {e.note && <div className="text-[0.74rem] t-text-dim">{e.note}</div>}
+          </td>
+        );
+      case 'cat':
+        return (
+          <td key="cat" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+            <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
+              {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
+            </span>
+            <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>
+            {e.cat}
+          </td>
+        );
+      case 'value':
+        return (
+          <td key="value" className={`px-4 py-2.5 border-b t-border-light ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="font-bold text-[0.83rem]">{isIncome ? '+' : '-'} {fmt(e.value)}</div>
+            {e.installment > 0 && <div className="text-[0.7rem] t-text-dim font-normal">Parcela {e.installmentCurrent || 1}/{e.installment}</div>}
+          </td>
+        );
+      case 'status': {
+        const st: PaidStatus = e.paidStatus || 'paid';
+        return (
+          <td key="status" className="px-4 py-2.5 border-b t-border-light">
+            {isIncome ? (
+              <span className="t-text-dim text-[0.83rem]">-</span>
+            ) : (
+              <button onClick={() => handleTogglePaid(e)}
+                title={st === 'paid' ? 'Pago — clique para voltar a pendente' : st === 'postponed' ? 'Adiado — clique para marcar pago' : 'Marcar como pago'}
+                className="inline-flex items-center gap-1.5 cursor-pointer group">
+                {st === 'paid'
+                  ? <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
+                  : st === 'postponed'
+                    ? <ArrowRightCircle size={16} className="text-indigo-500 flex-shrink-0" />
+                    : <Circle size={16} className="t-text-dim group-hover:text-green-600 flex-shrink-0" />}
+                <span className={`text-[0.72rem] font-semibold ${st === 'paid' ? 'text-green-600' : st === 'postponed' ? 'text-indigo-500' : 'text-amber-600'}`}>
+                  {st === 'paid' ? 'Pago' : st === 'postponed' ? 'Adiado' : 'Pendente'}
+                </span>
+              </button>
+            )}
+          </td>
+        );
+      }
+      case 'date':
+        return (
+          <td key="date" className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
+            {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
+          </td>
+        );
+      case 'payment':
+        return (
+          <td key="payment" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+            {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
+          </td>
+        );
+      case 'bank':
+        return (
+          <td key="bank" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+            {e.bank || <span className="t-text-dim">-</span>}
+          </td>
+        );
+      case 'member':
+        return (
+          <td key="member" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
+            <span className="inline-flex items-center gap-1.5">
+              <Avatar member={member} size={20} />
+              {member.name}
+            </span>
+          </td>
+        );
+      case 'actions':
+        return (
+          <td key="actions" className="px-4 py-2.5 border-b t-border-light">
+            <button onClick={() => handleStartEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
+            <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
+          </td>
+        );
+      default:
+        return null;
+    }
+  }
+
   const catOptions = form.formType === 'income' ? INCOME_CATS : allExpenseCats;
 
   const inputClass = "w-full px-3 py-2.5 border rounded-lg text-sm t-input focus:outline-none focus:ring-2 focus:ring-blue-100";
@@ -241,7 +344,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
               <button onClick={() => {
                 const headers = ['Descrição', 'Tipo', 'Categoria', 'Valor', 'Data', 'Pagamento', 'Instituição', 'Membro', 'Observação'];
                 const rows = filteredExpenses.map(e => {
-                  const member = members.find(m => m.id === e.memberId);
+                  const member = memberMap.get(e.memberId);
                   return [
                     e.desc,
                     e.type === 'income' ? 'Receita' : 'Despesa',
@@ -276,7 +379,7 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
             {/* Mobile: cards */}
             <div className="md:hidden divide-y t-border">
               {filteredExpenses.map(e => {
-                const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Família', color: '#2563eb' };
+                const member = memberMap.get(e.memberId) || FALLBACK_MEMBER;
                 const isIncome = e.type === 'income';
                 return (
                   <div key={e.id} className="p-4">
@@ -399,90 +502,12 @@ export default function ExpensesPage({ onDeleteRequest }: Props) {
                 </thead>
                 <tbody>
                   {filteredExpenses.map(e => {
-                    const member = members.find(m => m.id === e.memberId) || { id: 'all', name: 'Família', color: '#2563eb' };
+                    const member = memberMap.get(e.memberId) || FALLBACK_MEMBER;
                     const isIncome = e.type === 'income';
-
-                    const cellRenderers: Record<string, React.ReactNode> = {
-                      desc: (
-                        <td key="desc" className="px-4 py-2.5 border-b t-border-light">
-                          <div className="font-semibold text-[0.83rem]">{e.desc}
-                            {e.conjuntaName && <span className="text-[0.72rem] t-text-dim font-normal ml-1">via {e.conjuntaName}</span>}
-                          </div>
-                          {e.note && <div className="text-[0.74rem] t-text-dim">{e.note}</div>}
-                        </td>
-                      ),
-                      cat: (
-                        <td key="cat" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-[0.72rem] font-semibold mr-1 ${isIncome ? 'bg-green-100 text-green-700' : e.conjuntaGroupId ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
-                            {isIncome ? 'Receita' : e.conjuntaGroupId ? 'Conjunta' : 'Despesa'}
-                          </span>
-                          <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: CAT_COLORS[e.cat] || '#94a3b8' }}></span>
-                          {e.cat}
-                        </td>
-                      ),
-                      value: (
-                        <td key="value" className={`px-4 py-2.5 border-b t-border-light ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
-                          <div className="font-bold text-[0.83rem]">{isIncome ? '+' : '-'} {fmt(e.value)}</div>
-                          {e.installment > 0 && <div className="text-[0.7rem] t-text-dim font-normal">Parcela {e.installmentCurrent || 1}/{e.installment}</div>}
-                        </td>
-                      ),
-                      status: (
-                        <td key="status" className="px-4 py-2.5 border-b t-border-light">
-                          {isIncome ? (
-                            <span className="t-text-dim text-[0.83rem]">-</span>
-                          ) : (() => {
-                            const st: PaidStatus = e.paidStatus || 'paid';
-                            return (
-                              <button onClick={() => handleTogglePaid(e)}
-                                title={st === 'paid' ? 'Pago — clique para voltar a pendente' : st === 'postponed' ? 'Adiado — clique para marcar pago' : 'Marcar como pago'}
-                                className="inline-flex items-center gap-1.5 cursor-pointer group">
-                                {st === 'paid'
-                                  ? <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
-                                  : st === 'postponed'
-                                    ? <ArrowRightCircle size={16} className="text-indigo-500 flex-shrink-0" />
-                                    : <Circle size={16} className="t-text-dim group-hover:text-green-600 flex-shrink-0" />}
-                                <span className={`text-[0.72rem] font-semibold ${st === 'paid' ? 'text-green-600' : st === 'postponed' ? 'text-indigo-500' : 'text-amber-600'}`}>
-                                  {st === 'paid' ? 'Pago' : st === 'postponed' ? 'Adiado' : 'Pendente'}
-                                </span>
-                              </button>
-                            );
-                          })()}
-                        </td>
-                      ),
-                      date: (
-                        <td key="date" className="px-4 py-2.5 border-b t-border-light text-[0.83rem] t-text-muted">
-                          {e.purchaseDate ? e.purchaseDate.split('-').reverse().join('/') : '-'}
-                        </td>
-                      ),
-                      payment: (
-                        <td key="payment" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          {isIncome ? '-' : <span className="px-2 py-0.5 rounded-full text-[0.72rem] font-semibold bg-slate-100">{e.payment}</span>}
-                        </td>
-                      ),
-                      bank: (
-                        <td key="bank" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          {e.bank || <span className="t-text-dim">-</span>}
-                        </td>
-                      ),
-                      member: (
-                        <td key="member" className="px-4 py-2.5 border-b t-border-light text-[0.83rem]">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Avatar member={member} size={20} />
-                            {member.name}
-                          </span>
-                        </td>
-                      ),
-                      actions: (
-                        <td key="actions" className="px-4 py-2.5 border-b t-border-light">
-                          <button onClick={() => handleStartEdit(e)} className="px-2.5 py-1 border t-border rounded-lg text-[0.78rem] font-semibold t-card-hover mr-1 cursor-pointer">Editar</button>
-                          <button onClick={() => onDeleteRequest(e.id)} className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[0.78rem] font-semibold hover:bg-red-100 cursor-pointer">Excluir</button>
-                        </td>
-                      ),
-                    };
 
                     return (
                       <tr key={e.id} className="t-row">
-                        {visibleCols.map(colId => cellRenderers[colId] || null)}
+                        {visibleCols.map(colId => renderCell(colId, e, member, isIncome))}
                       </tr>
                     );
                   })}

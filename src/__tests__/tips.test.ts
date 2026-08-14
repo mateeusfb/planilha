@@ -74,25 +74,17 @@ describe('generateTips', () => {
   });
 
   // Investimentos
-  it('alerta quando não há investimentos', () => {
-    const expenses = [
-      makeIncome({ value: 5000 }),
-      makeExpense({ value: 3000, cat: 'Moradia' }),
-    ];
-    const tips = generateTips(expenses, 'all', noMembers);
-    const alert = tips.find(t => t.title.includes('Nenhum investimento'));
-    expect(alert).toBeDefined();
-  });
-
-  it('parabeniza investimentos >= 20%', () => {
+  // As dicas "Nenhum investimento" e "Investidor de peso" saíram em b14ec0b7:
+  // a carteira virou uma aba própria com dados reais, então não faz mais sentido
+  // inferir investimento a partir da categoria de um lançamento.
+  it('não gera dicas de carteira a partir da categoria Investimento', () => {
     const expenses = [
       makeIncome({ value: 5000 }),
       makeExpense({ value: 2000, cat: 'Moradia' }),
       makeExpense({ value: 1500, cat: 'Investimento' }),
     ];
     const tips = generateTips(expenses, 'all', noMembers);
-    const good = tips.find(t => t.title.includes('Investidor de peso'));
-    expect(good).toBeDefined();
+    expect(tips.some(t => t.title.includes('investimento') || t.title.includes('Investidor'))).toBe(false);
   });
 
   it('separa receita de investimento do saldo normal', () => {

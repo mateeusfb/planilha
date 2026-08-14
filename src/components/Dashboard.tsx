@@ -12,6 +12,15 @@ import PeriodFilter from './PeriodFilter';
 import { useTheme } from '@/lib/theme';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
+// Fora do componente: o react-chartjs-2 compara data/options por referência e
+// reanima o gráfico inteiro quando recebe objetos novos a cada render.
+const CAT_CHART_OPTIONS = {
+  responsive: true, maintainAspectRatio: false,
+  cutout: '70%',
+  animation: { duration: 1000, easing: 'easeOutQuart' as const },
+  plugins: { legend: { position: 'bottom' as const, labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } } },
+};
+
 /* ── Animated Counter ── */
 function AnimatedValue({ value, prefix = 'R$ ', hidden, className, style }: {
   value: number; prefix?: string; hidden: boolean; className?: string; style?: React.CSSProperties;
@@ -218,6 +227,29 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: PageId) => 
     };
   }, [activeMonth, activeMember, state.expenses, state.members, state.categoryBudgets, state.monthlyBudgets, getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIndividualMembers]);
 
+  const catChartData = useMemo(() => ({
+    labels: data.catLabels,
+    datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 0, borderRadius: 4 }],
+  }), [data.catLabels, data.catData, data.catColors]);
+
+  const monthlyChartData = useMemo(() => ({
+    labels: data.monthlyData.map(d => d.label),
+    datasets: [
+      { label: 'Receitas', data: data.monthlyData.map(d => d.income), backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 6 },
+      { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: 'rgba(239,68,68,0.8)', borderRadius: 6 },
+    ],
+  }), [data.monthlyData]);
+
+  const monthlyChartOptions = useMemo(() => ({
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1200, easing: 'easeOutQuart' as const },
+    plugins: { legend: { position: 'bottom' as const, labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.1)' }, ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : undefined } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : undefined } },
+    },
+  }), [isDark]);
+
   const toggleValues = () => setValuesHidden(v => !v);
 
   return (
@@ -392,39 +424,14 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: PageId) => 
               <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Gastos por Categoria</h4>
               <div className="h-56">
                 {data.catLabels.length > 0 ? (
-                  <Doughnut
-                    data={{ labels: data.catLabels, datasets: [{ data: data.catData, backgroundColor: data.catColors, borderWidth: 0, borderRadius: 4 }] }}
-                    options={{
-                      responsive: true, maintainAspectRatio: false,
-                      cutout: '70%',
-                      animation: { duration: 1000, easing: 'easeOutQuart' },
-                      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } } },
-                    }}
-                  />
+                  <Doughnut data={catChartData} options={CAT_CHART_OPTIONS} />
                 ) : <div className="flex items-center justify-center h-full t-text-dim text-sm">Sem dados</div>}
               </div>
             </div>
             <div>
               <h4 className="text-xs font-semibold t-text-muted uppercase mb-3">Evolução Mensal (6 meses)</h4>
               <div className="h-56">
-                <Bar
-                  data={{
-                    labels: data.monthlyData.map(d => d.label),
-                    datasets: [
-                      { label: 'Receitas', data: data.monthlyData.map(d => d.income), backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 6 },
-                      { label: 'Despesas', data: data.monthlyData.map(d => d.expense), backgroundColor: 'rgba(239,68,68,0.8)', borderRadius: 6 },
-                    ],
-                  }}
-                  options={{
-                    responsive: true, maintainAspectRatio: false,
-                    animation: { duration: 1200, easing: 'easeOutQuart' },
-                    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, usePointStyle: true, pointStyle: 'circle' } } },
-                    scales: {
-                      y: { beginAtZero: true, grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.1)' }, ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : undefined } },
-                      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: isDark ? '#94a3b8' : undefined } },
-                    },
-                  }}
-                />
+                <Bar data={monthlyChartData} options={monthlyChartOptions} />
               </div>
             </div>
           </div>
