@@ -31,7 +31,7 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const ownWorkspaces = workspaces.filter(w => w.isOwn);
+  const ownWorkspaces = workspaces;
   const hasMultipleWorkspaces = ownWorkspaces.length > 1;
 
   useEffect(() => {

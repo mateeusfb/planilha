@@ -42,7 +42,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
     { id: 'banks', label: 'Instituições', icon: <Landmark size={14} /> },
     { id: 'members', label: 'Membros', icon: <Users size={14} /> },
     { id: 'recurring', label: 'Recorrentes', icon: <Repeat size={14} /> },
-    ...(workspaces.filter(w => w.isOwn && w.id !== 'personal').length > 0
+    ...(workspaces.filter(w => w.id !== 'personal').length > 0
       ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: <FolderOpen size={14} /> }]
       : []),
   ];
@@ -167,7 +167,7 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
           {catTab === 'workspaces' && (
             <>
               <div className="flex flex-wrap gap-1.5 mb-3">
-                {workspaces.filter(w => w.isOwn && w.id !== 'personal').map(ws => (
+                {workspaces.filter(w => w.id !== 'personal').map(ws => (
                   <ItemPill
                     key={ws.id}
                     label={`${ws.icon} ${ws.label}${activeWorkspace?.id === ws.id ? ' (ativo)' : ''}`}

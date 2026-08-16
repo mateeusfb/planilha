@@ -62,8 +62,6 @@ export interface Workspace {
   workspaceId?: string;
   label: string;
   icon: string;
-  isOwn: boolean;
-  ownerEmail?: string;
 }
 
 export interface RecurringExpense {

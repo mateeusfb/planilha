@@ -149,8 +149,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         wQuery = wQuery.is('workspace_id', null);
       }
 
-      const [sharesRes, recurringRes, invRes, snapsRes, goalsRes, withdrawalsRes] = await Promise.all([
-        supabase.from('shares').select('owner_id').eq('shared_user_id', userId).eq('accepted', true),
+      const [recurringRes, invRes, snapsRes, goalsRes, withdrawalsRes] = await Promise.all([
         recurringQuery,
         invQuery,
         supabase.from('investment_snapshots').select('*').eq('user_id', userId).order('month', { ascending: true }).limit(24),
@@ -159,13 +158,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       ]);
 
       try {
-        // Get user IDs I have access to (my own + shared with me)
-        const accessIds = [userId, ...(sharesRes.data || []).map(s => s.owner_id)];
-
-        // Onda 2: depende de accessIds.
         // Filtrar por workspace: se tem workspaceId filtra por ele, senão pega os sem workspace (pessoal)
-        let membersQuery = supabase.from('members').select('*').in('user_id', accessIds);
-        let expensesQuery = supabase.from('expenses').select('*').in('user_id', accessIds);
+        let membersQuery = supabase.from('members').select('*').eq('user_id', userId);
+        let expensesQuery = supabase.from('expenses').select('*').eq('user_id', userId);
         if (workspaceId) {
           membersQuery = membersQuery.eq('workspace_id', workspaceId);
           expensesQuery = expensesQuery.eq('workspace_id', workspaceId);
@@ -177,7 +172,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
           membersQuery,
           expensesQuery,
-          supabase.from('settings').select('*').in('user_id', accessIds).limit(1).maybeSingle(),
+          supabase.from('settings').select('*').eq('user_id', userId).limit(1).maybeSingle(),
         ]);
 
         const dbMembers = (membersRes.data || []).map(rowToMember);

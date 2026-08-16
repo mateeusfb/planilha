@@ -204,7 +204,7 @@ function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspac
 
 function sameWorkspace(a: Workspace, b: Workspace): boolean {
   return a.id === b.id && a.userId === b.userId && a.workspaceId === b.workspaceId
-    && a.label === b.label && a.icon === b.icon && a.isOwn === b.isOwn;
+    && a.label === b.label && a.icon === b.icon;
 }
 
 function sameWorkspaceList(a: Workspace[], b: Workspace[]): boolean {
@@ -231,13 +231,10 @@ function AuthGate({ initialPage }: { initialPage: PageId }) {
       userId,
       label: 'Pessoal',
       icon: '🏠',
-      isOwn: true,
     };
 
-    const [{ data: ownWs }, { data: shared }] = await Promise.all([
-      supabase.from('workspaces').select('*').eq('owner_id', userId).order('created_at'),
-      supabase.from('shares').select('owner_id, workspace_id').eq('shared_user_id', userId).eq('accepted', true),
-    ]);
+    const { data: ownWs } = await supabase
+      .from('workspaces').select('*').eq('owner_id', userId).order('created_at');
 
     const ownWorkspaces: Workspace[] = (ownWs || []).map(w => ({
       id: w.id,
@@ -245,45 +242,9 @@ function AuthGate({ initialPage }: { initialPage: PageId }) {
       workspaceId: w.id,
       label: w.name,
       icon: w.icon || '📁',
-      isOwn: true,
     }));
 
-    // Busca os workspaces compartilhados numa query só (antes era um SELECT por share)
-    const sharedIds = (shared || []).map(s => s.workspace_id).filter(Boolean);
-    const sharedWsById = new Map<string, { name: string; icon: string | null }>();
-    if (sharedIds.length > 0) {
-      const { data: wsRows } = await supabase.from('workspaces').select('*').in('id', sharedIds);
-      for (const w of wsRows || []) sharedWsById.set(w.id, w);
-    }
-
-    const sharedWorkspaces: Workspace[] = [];
-    for (const s of shared || []) {
-      if (s.workspace_id) {
-        const wsData = sharedWsById.get(s.workspace_id);
-        if (wsData) {
-          sharedWorkspaces.push({
-            id: `shared-${s.workspace_id}`,
-            userId: s.owner_id,
-            workspaceId: s.workspace_id,
-            label: wsData.name,
-            icon: wsData.icon || '📁',
-            isOwn: false,
-            ownerEmail: 'Compartilhado',
-          });
-        }
-      } else {
-        sharedWorkspaces.push({
-          id: `shared-${s.owner_id}`,
-          userId: s.owner_id,
-          label: 'Planilha compartilhada',
-          icon: '👥',
-          isOwn: false,
-          ownerEmail: 'Compartilhado',
-        });
-      }
-    }
-
-    const all = [personal, ...ownWorkspaces, ...sharedWorkspaces];
+    const all = [personal, ...ownWorkspaces];
 
     // Preserva as referências anteriores quando nada mudou: `all` é sempre um array
     // novo, e trocar a identidade de workspaces/activeWorkspace re-renderiza o app inteiro.

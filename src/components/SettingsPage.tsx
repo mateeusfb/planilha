@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
-import type { Member, Workspace } from '@/lib/types';
+import type { Workspace } from '@/lib/types';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
-import CollapsibleSection from './settings/CollapsibleSection';
 import CategoriesBlock from './settings/CategoriesBlock';
 
 interface Props {
@@ -18,20 +17,6 @@ interface Props {
   workspaces?: Workspace[];
   activeWorkspace?: Workspace;
   onWorkspaceDeleted?: () => void;
-}
-
-interface Share {
-  id: string;
-  shared_email: string;
-  accepted: boolean;
-  created_at: string;
-}
-
-interface PendingInvite {
-  id: string;
-  owner_id: string;
-  owner_email?: string;
-  accepted: boolean;
 }
 
 export default function SettingsPage({ onAddMember, onEditMember, workspaces = [], activeWorkspace, onWorkspaceDeleted }: Props) {
@@ -68,47 +53,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
       return;
     }
     await signOut();
-  }
-
-  const [shares, setShares] = useState<Share[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
-
-  const loadShares = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase.from('shares').select('*').eq('owner_id', user.id);
-    setShares(data || []);
-
-    const { data: received } = await supabase.from('shares').select('*').eq('shared_email', user.email).eq('accepted', false);
-    setPendingInvites(received || []);
-  }, [user]);
-
-  useEffect(() => { loadShares(); }, [loadShares]);
-
-  function removeShare(id: string) {
-    setConfirmModal({
-      open: true,
-      message: 'Remover este acesso compartilhado?',
-      onConfirm: async () => {
-        await supabase.from('shares').delete().eq('id', id);
-        toast('Acesso removido.', 'success');
-        loadShares();
-      },
-    });
-  }
-
-  async function acceptInvite(invite: PendingInvite) {
-    if (!user) return;
-    await supabase.from('shares').update({
-      shared_user_id: user.id,
-      accepted: true,
-    }).eq('id', invite.id);
-    loadShares();
-    window.location.reload();
-  }
-
-  async function declineInvite(id: string) {
-    await supabase.from('shares').delete().eq('id', id);
-    loadShares();
   }
 
   function addCat() {
@@ -288,43 +232,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
         </div>
       </div>
 
-      {/* Convites recebidos */}
-      {pendingInvites.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-          <h3 className="text-base font-bold mb-3 text-blue-800">Convites Pendentes</h3>
-          <p className="text-sm text-blue-600 mb-4">Você foi convidado para compartilhar uma planilha:</p>
-          {pendingInvites.map(inv => (
-            <div key={inv.id} className="flex items-center justify-between p-3 bg-white rounded-lg mb-1.5 border border-blue-100">
-              <span className="text-sm">Convite de <strong>{inv.owner_id.slice(0, 8)}...</strong></span>
-              <div className="flex gap-1.5">
-                <button onClick={() => acceptInvite(inv)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 cursor-pointer">Aceitar</button>
-                <button onClick={() => declineInvite(inv.id)} className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-50 cursor-pointer">Recusar</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Compartilhar planilha */}
-      <CollapsibleSection title="Compartilhar Planilha">
-        {shares.length > 0 && (
-          <div className="mt-3">
-            <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PESSOAS COM ACESSO</div>
-            {shares.map(s => (
-              <div key={s.id} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg mb-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-medium truncate">{s.shared_email}</span>
-                  <span className={`text-[0.65rem] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${s.accepted ? 'bg-green-100 text-green-700' : 'bg-amber-50 text-amber-600'}`}>
-                    {s.accepted ? 'Ativo' : 'Pendente'}
-                  </span>
-                </div>
-                <button onClick={() => removeShare(s.id)} className="px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[0.72rem] font-semibold hover:bg-red-100 cursor-pointer flex-shrink-0 ml-2">Remover</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </CollapsibleSection>
-
       {/* Categorias (unificado com membros e workspaces) */}
       <CategoriesBlock
         catTab={catTab} setCatTab={setCatTab}
@@ -369,7 +276,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
               if (!wsId) return;
               await supabase.from('expenses').delete().eq('workspace_id', wsId);
               await supabase.from('members').delete().eq('workspace_id', wsId);
-              await supabase.from('shares').delete().eq('workspace_id', wsId);
               await supabase.from('workspaces').delete().eq('id', wsId);
               toast(`Espaço "${ws.label}" excluído.`, 'success');
               if (onWorkspaceDeleted) onWorkspaceDeleted();
@@ -382,7 +288,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
       <div className="t-card border border-red-200 rounded-xl p-6 mt-6">
         <h3 className="text-base font-bold text-red-600 mb-2">Zona de perigo</h3>
         <p className="text-sm t-text-muted mb-4">
-          Ao excluir sua conta, todos os seus dados serão permanentemente removidos, incluindo membros, lançamentos, configurações e convites. Esta ação não pode ser desfeita.
+          Ao excluir sua conta, todos os seus dados serão permanentemente removidos, incluindo membros, lançamentos e configurações. Esta ação não pode ser desfeita.
         </p>
         {!deleteConfirmOpen ? (
           <button onClick={() => setDeleteConfirmOpen(true)}
