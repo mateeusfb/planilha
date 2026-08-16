@@ -1,6 +1,5 @@
 import AppRoot from '@/components/AppRoot';
 
-// A raiz abre o Início; o AppRoot troca a URL para /inicio ao montar.
 export default function Page() {
   return <AppRoot initialPage="dashboard" />;
 }

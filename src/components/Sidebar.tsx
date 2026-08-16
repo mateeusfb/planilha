@@ -1,24 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useStore } from '@/lib/store';
 import type { PageId, Member } from '@/lib/types';
-import { Home, CreditCard, BarChart3, TrendingUp, Menu, ChevronLeft, Target, ClipboardCheck } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { AREAS, areaForPage, homePageOf } from '@/lib/navigation';
+import { Menu, ChevronLeft } from 'lucide-react';
 
 interface SidebarProps {
   activePage: PageId;
   onPageChange: (page: PageId) => void;
 }
-
-const navLinks: { id: PageId; icon: ReactNode; label: string }[] = [
-  { id: 'dashboard', icon: <Home size={18} />, label: 'Início' },
-  { id: 'expenses', icon: <CreditCard size={18} />, label: 'Lançamentos' },
-  { id: 'closing', icon: <ClipboardCheck size={18} />, label: 'Fechamento' },
-  { id: 'analysis', icon: <BarChart3 size={18} />, label: 'Análise' },
-  { id: 'budget', icon: <Target size={18} />, label: 'Orçamento' },
-  { id: 'investments', icon: <TrendingUp size={18} />, label: 'Investimentos' },
-];
 
 export function Avatar({ member, size = 26 }: { member: Member; size?: number }) {
   if (member.photo) {
@@ -40,6 +30,7 @@ export function Avatar({ member, size = 26 }: { member: Member; size?: number })
 export function Sidebar({ activePage, onPageChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const activeArea = areaForPage(activePage);
 
   // Fechar menu mobile ao trocar de página
   function handlePageChange(page: PageId) {
@@ -68,10 +59,7 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0 sidebar-logo-icon">
               <span className="text-white text-sm font-bold">$</span>
             </div>
-            <div>
-              <h1 className="text-base font-bold t-accent truncate">Folga</h1>
-              <p className="text-[0.68rem] t-text-dim truncate">Controle financeiro</p>
-            </div>
+            <h1 className="text-base font-bold t-accent truncate">Folga</h1>
           </div>
         )}
         {/* Desktop: toggle collapse. Mobile: close */}
@@ -84,17 +72,23 @@ export function Sidebar({ activePage, onPageChange }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-1.5 py-3 overflow-y-auto">
-        {!collapsed && <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1">Menu</div>}
-        {navLinks.map(link => (
-          <button key={link.id} onClick={() => handlePageChange(link.id)}
-            title={collapsed ? link.label : undefined}
-            className={`w-full flex items-center gap-2 px-2.5 py-2.5 md:py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              activePage === link.id ? 't-accent-light' : 't-text hover:opacity-80'
-            } ${collapsed ? 'justify-center' : ''}`}>
-            <span className="w-5 text-center flex-shrink-0">{link.icon}</span>
-            {!collapsed && <span className="truncate">{link.label}</span>}
-          </button>
-        ))}
+        {!collapsed && <div className="text-[0.65rem] font-semibold uppercase tracking-wider t-text-dim px-2 mb-1">Áreas</div>}
+        {AREAS.map(area => {
+          const Icon = area.icon;
+          // Destaca a área que contém a página aberta — em /financeiro/analise
+          // quem fica ativo é "Financeiro", não a aba.
+          const active = activeArea?.id === area.id;
+          return (
+            <button key={area.id} onClick={() => handlePageChange(homePageOf(area))}
+              title={collapsed ? area.label : undefined}
+              className={`w-full flex items-center gap-2 px-2.5 py-2.5 md:py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                active ? 't-accent-light' : 't-text hover:opacity-80'
+              } ${collapsed ? 'justify-center' : ''}`}>
+              <span className="w-5 flex justify-center flex-shrink-0"><Icon size={18} /></span>
+              {!collapsed && <span className="truncate">{area.label}</span>}
+            </button>
+          );
+        })}
       </nav>
 
     </>
