@@ -299,13 +299,6 @@ function AuthGate({ initialPage }: { initialPage: PageId }) {
 
   useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
 
-  // Salvar workspace ativo no localStorage para a rota /resumo
-  useEffect(() => {
-    if (activeWorkspace) {
-      localStorage.setItem('active_workspace_id', activeWorkspace.workspaceId || 'personal');
-    }
-  }, [activeWorkspace]);
-
   async function createWorkspace(name: string, icon: string) {
     if (!user) return;
     await supabase.from('workspaces').insert({ owner_id: user.id, name, icon });
@@ -322,14 +315,6 @@ function AuthGate({ initialPage }: { initialPage: PageId }) {
   if (!user) return <AuthPage />;
   if (isRecovery) return <AuthPage forceMode="reset" />;
 
-  const pendingCode = typeof window !== 'undefined' ? localStorage.getItem('pending_invite_code') : null;
-  if (pendingCode) {
-    localStorage.removeItem('pending_invite_code');
-    window.location.href = `/convite?code=${pendingCode}`;
-    return <div className="flex items-center justify-center min-h-screen bg-slate-900">
-      <div className="text-slate-400">Redirecionando para o convite...</div>
-    </div>;
-  }
   if (!wsLoaded || !activeWorkspace) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900">
       <div className="text-slate-400">Carregando...</div>

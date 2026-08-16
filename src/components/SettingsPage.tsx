@@ -6,7 +6,6 @@ import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import type { Member, Workspace } from '@/lib/types';
-import { Link, Copy, Check } from 'lucide-react';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
@@ -44,7 +43,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
   const individuals = getIndividualMembers();
   const conjuntas = state.members.filter(m => m.id !== 'all' && m.isConjunta);
   const allMembers = [...individuals, ...conjuntas];
-  const ownWorkspaces = workspaces.filter(w => w.isOwn);
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -72,75 +70,19 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
     await signOut();
   }
 
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState('');
   const [shares, setShares] = useState<Share[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [inviteLinks, setInviteLinks] = useState<{id: string; code: string; used_by: string | null; created_at: string; expires_at: string}[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
-  const [copied, setCopied] = useState(false);
 
   const loadShares = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('shares').select('*').eq('owner_id', user.id);
     setShares(data || []);
 
-    const { data: links } = await supabase.from('invite_links').select('*').eq('owner_id', user.id).order('created_at', { ascending: false });
-    setInviteLinks(links || []);
-
     const { data: received } = await supabase.from('shares').select('*').eq('shared_email', user.email).eq('accepted', false);
     setPendingInvites(received || []);
   }, [user]);
 
   useEffect(() => { loadShares(); }, [loadShares]);
-
-  const [inviteWorkspace, setInviteWorkspace] = useState<string>('current');
-
-  async function generateInviteLink() {
-    if (!user) return;
-    setInviteLoading(true);
-    setGeneratedLink('');
-
-    let wsId: string | null = null;
-    if (inviteWorkspace === 'current') {
-      wsId = activeWorkspace?.workspaceId || null;
-    } else if (inviteWorkspace !== 'personal') {
-      wsId = inviteWorkspace;
-    }
-
-    const insertData: Record<string, unknown> = { owner_id: user.id };
-    if (wsId) insertData.workspace_id = wsId;
-
-    const { data, error } = await supabase.from('invite_links').insert(insertData).select('code').single();
-
-    if (error) {
-      toast('Erro ao gerar link.', 'error');
-    } else if (data) {
-      const link = `${window.location.origin}/convite?code=${data.code}`;
-      setGeneratedLink(link);
-      setCopied(false);
-      loadShares();
-    }
-    setInviteLoading(false);
-  }
-
-  async function copyLink(link: string) {
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function removeInviteLink(id: string) {
-    setConfirmModal({
-      open: true,
-      message: 'Remover este link de convite?',
-      onConfirm: async () => {
-        await supabase.from('invite_links').delete().eq('id', id);
-        toast('Link removido.', 'success');
-        loadShares();
-      },
-    });
-  }
 
   function removeShare(id: string) {
     setConfirmModal({
@@ -364,46 +306,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
       )}
 
       {/* Compartilhar planilha */}
-      <CollapsibleSection title="Compartilhar Planilha" action={
-        <button onClick={(e) => { e.stopPropagation(); generateInviteLink(); }} disabled={inviteLoading}
-          className="px-3 py-1.5 t-accent-bg text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
-          {inviteLoading ? (
-            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : <Link size={14} />}
-          {inviteLoading ? 'Gerando...' : 'Gerar convite'}
-        </button>
-      }>
-
-        {ownWorkspaces.length > 1 && (
-          <div className="mb-3">
-            <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">CONVIDAR PARA</div>
-            <select
-              value={inviteWorkspace}
-              onChange={e => setInviteWorkspace(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm t-input"
-            >
-              <option value="current">{activeWorkspace?.icon} {activeWorkspace?.label || 'Espaço atual'}</option>
-              {ownWorkspaces.filter(w => w.id !== activeWorkspace?.id).map(ws => (
-                <option key={ws.id} value={ws.workspaceId || 'personal'}>{ws.icon} {ws.label}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {generatedLink && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-            <div className="flex gap-2">
-              <input type="text" readOnly value={generatedLink}
-                className="flex-1 px-3 py-1.5 border border-blue-200 rounded-lg text-xs bg-white focus:outline-none" />
-              <button onClick={() => copyLink(generatedLink)}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 cursor-pointer whitespace-nowrap">
-                {copied ? <><Check size={14} /> Copiado!</> : <><Copy size={14} /> Copiar</>}
-              </button>
-            </div>
-            <p className="text-[0.68rem] text-blue-500 mt-1.5">Expira em 7 dias. Uso único.</p>
-          </div>
-        )}
-
+      <CollapsibleSection title="Compartilhar Planilha">
         {shares.length > 0 && (
           <div className="mt-3">
             <div className="text-[0.7rem] t-text-dim font-semibold mb-1.5">PESSOAS COM ACESSO</div>
@@ -467,7 +370,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
               await supabase.from('expenses').delete().eq('workspace_id', wsId);
               await supabase.from('members').delete().eq('workspace_id', wsId);
               await supabase.from('shares').delete().eq('workspace_id', wsId);
-              await supabase.from('invite_links').delete().eq('workspace_id', wsId);
               await supabase.from('workspaces').delete().eq('id', wsId);
               toast(`Espaço "${ws.label}" excluído.`, 'success');
               if (onWorkspaceDeleted) onWorkspaceDeleted();

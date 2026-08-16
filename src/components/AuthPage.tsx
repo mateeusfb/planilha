@@ -36,7 +36,7 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
     if (mode === 'signup') {
       if (!name.trim()) { setError('Digite seu nome.'); setLoading(false); return; }
       if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
-      if (!consent) { setError('Você precisa concordar com a política de privacidade para criar sua conta.'); setLoading(false); return; }
+      if (!consent) { setError('Você precisa concordar com os termos para criar sua conta.'); setLoading(false); return; }
       const result = await signUp(email, password, name);
       if (result.error) {
         setError(traduzirErro(result.error));
@@ -262,8 +262,6 @@ export default function AuthPage({ forceMode }: { forceMode?: 'reset' }) {
                       className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 accent-orange-600 cursor-pointer"
                     />
                     <span className="text-xs text-slate-500 leading-relaxed">
-                      Ao criar sua conta, você concorda com nossa{' '}
-                      <a href="/privacidade" target="_blank" className="text-orange-400 underline hover:text-orange-300">política de privacidade</a>.
                       Seus dados financeiros são criptografados e armazenados com segurança. Você pode excluir sua conta e todos os dados a qualquer momento nas configurações.
                     </span>
                   </label>
