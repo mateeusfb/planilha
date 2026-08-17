@@ -5,7 +5,6 @@ import { useStore } from '@/lib/store';
 import { useAuth } from '@/lib/auth';
 import { useTheme, type AccentColor } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
-import type { Workspace } from '@/lib/types';
 import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
@@ -14,12 +13,9 @@ import CategoriesBlock from './settings/CategoriesBlock';
 interface Props {
   onAddMember: () => void;
   onEditMember: (id: string) => void;
-  workspaces?: Workspace[];
-  activeWorkspace?: Workspace;
-  onWorkspaceDeleted?: () => void;
 }
 
-export default function SettingsPage({ onAddMember, onEditMember, workspaces = [], activeWorkspace, onWorkspaceDeleted }: Props) {
+export default function SettingsPage({ onAddMember, onEditMember }: Props) {
   const { state, setState, removeMember, getIndividualMembers, recurringExpenses, updateRecurring, removeRecurring } = useStore();
   const { user } = useAuth();
   const customCats = state.customCats || [];
@@ -40,7 +36,7 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
 
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
 
-  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets' | 'recurring'>('cats');
+  const [catTab, setCatTab] = useState<'cats' | 'pays' | 'banks' | 'members' | 'budgets' | 'recurring'>('cats');
 
 
   async function handleDeleteAccount() {
@@ -265,22 +261,6 @@ export default function SettingsPage({ onAddMember, onEditMember, workspaces = [
             ...prev,
             categoryBudgets: { ...prev.categoryBudgets, [cat]: value },
           }));
-        }}
-        workspaces={workspaces} activeWorkspace={activeWorkspace}
-        onDeleteWorkspace={(ws) => {
-          setConfirmModal({
-            open: true,
-            message: `Excluir o espaço "${ws.label}"? Todos os membros e lançamentos deste espaço serão removidos permanentemente. Esta ação não pode ser desfeita.`,
-            onConfirm: async () => {
-              const wsId = ws.workspaceId;
-              if (!wsId) return;
-              await supabase.from('expenses').delete().eq('workspace_id', wsId);
-              await supabase.from('members').delete().eq('workspace_id', wsId);
-              await supabase.from('workspaces').delete().eq('id', wsId);
-              toast(`Espaço "${ws.label}" excluído.`, 'success');
-              if (onWorkspaceDeleted) onWorkspaceDeleted();
-            },
-          });
         }}
       />
 

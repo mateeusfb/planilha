@@ -28,7 +28,7 @@ interface UseNotificationsReturn {
 }
 
 export function useNotifications(): UseNotificationsReturn {
-  const { userId, workspaceId, getExpensesForMonth, getIndividualMembers } = useStore();
+  const { userId, getExpensesForMonth, getIndividualMembers } = useStore();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +47,7 @@ export function useNotifications(): UseNotificationsReturn {
   useEffect(() => {
     if (!userId) return;
 
-    const loadKey = `${userId}|${workspaceId || 'personal'}|${currentMonth}`;
+    const loadKey = `${userId}|${currentMonth}`;
     if (loadKeyRef.current === loadKey) return;
     loadKeyRef.current = loadKey;
 
@@ -58,20 +58,12 @@ export function useNotifications(): UseNotificationsReturn {
       setLoading(true);
 
       // ── 1. Load personal (assistant) notifications ──
-      let personalQuery = supabase
+      const { data: existingPersonal } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
         .eq('month', currentMonth)
         .order('created_at', { ascending: false });
-
-      if (workspaceId) {
-        personalQuery = personalQuery.eq('workspace_id', workspaceId);
-      } else {
-        personalQuery = personalQuery.is('workspace_id', null);
-      }
-
-      const { data: existingPersonal } = await personalQuery;
 
       if (cancelled) return;
 
@@ -100,7 +92,7 @@ export function useNotifications(): UseNotificationsReturn {
           if (tips.length > 0) {
             const rows = tips.map(tip => ({
               user_id: userId,
-              workspace_id: workspaceId || null,
+              workspace_id: null,
               month: currentMonth,
               type: tip.type,
               icon: tip.icon,
@@ -172,7 +164,7 @@ export function useNotifications(): UseNotificationsReturn {
         if (!alreadySent) {
           const reminderRow = {
             user_id: userId,
-            workspace_id: workspaceId || null,
+            workspace_id: null,
             month: currentMonth,
             type: 'info',
             icon: 'i',
@@ -210,7 +202,7 @@ export function useNotifications(): UseNotificationsReturn {
       // Se abortou no meio, libera a chave para que uma nova montagem recarregue.
       if (!completed) loadKeyRef.current = null;
     };
-  }, [userId, workspaceId, currentMonth]);
+  }, [userId, currentMonth]);
 
   const markAsRead = useCallback(async (id: string, source: 'assistant' | 'system') => {
     setNotifications(prev =>

@@ -1,10 +1,9 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider, useStore } from '@/lib/store';
 import { ThemeProvider, useTheme } from '@/lib/theme';
-import { supabase } from '@/lib/supabase';
-import type { PageId, Workspace } from '@/lib/types';
+import type { PageId } from '@/lib/types';
 import { areaForPage, pageForPath, pathForPage, titleForPage } from '@/lib/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import Tabs from '@/components/ui/Tabs';
@@ -20,8 +19,6 @@ import DeleteModal from '@/components/DeleteModal';
 import AuthPage from '@/components/AuthPage';
 import Onboarding from '@/components/Onboarding';
 import QuickExpense from '@/components/QuickExpense';
-import WorkspaceSwitcher from '@/components/WorkspaceSwitcher';
-import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import UserMenu from '@/components/UserMenu';
 import NotificationBell from '@/components/NotificationBell';
 import ProfilePage from '@/components/ProfilePage';
@@ -34,12 +31,8 @@ const InvestmentsPage = dynamic(() => import('@/components/InvestmentsPage'), { 
 const BudgetPage = dynamic(() => import('@/components/BudgetPage'), { loading });
 const ClosingPage = dynamic(() => import('@/components/ClosingPage'), { loading });
 
-function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: {
+function AppContent({ initialPage }: {
   initialPage: PageId;
-  workspaces: Workspace[];
-  activeWorkspace: Workspace;
-  onSwitchWorkspace: (ws: Workspace) => void;
-  onCreateWorkspace: () => void;
 }) {
   const { user, signOut } = useAuth();
   const { toggleMode, mode } = useTheme();
@@ -108,14 +101,6 @@ function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspac
           <div className="px-4 md:px-7 py-3 flex items-center justify-between">
             <h2 className="text-sm md:text-lg font-bold t-text ml-11 md:ml-0 truncate">{titleForPage(activePage)}</h2>
             <div className="flex items-center gap-1 md:gap-2.5 flex-shrink-0">
-              <div className="hidden sm:block">
-                <WorkspaceSwitcher
-                  workspaces={workspaces}
-                  active={activeWorkspace}
-                  onSwitch={onSwitchWorkspace}
-                  onCreateNew={onCreateWorkspace}
-                />
-              </div>
               <button onClick={toggleMode} title={mode === 'light' ? 'Modo escuro' : 'Modo claro'}
                 className="w-8 h-8 rounded-full flex items-center justify-center t-card t-border border transition-colors cursor-pointer hover:opacity-80">
                 {mode === 'light' ? <Moon size={16} /> : <Sun size={16} />}
@@ -126,10 +111,6 @@ function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspac
                 onSignOut={signOut}
                 onGoToProfile={() => handlePageChange('profile')}
                 onGoToSettings={() => handlePageChange('settings')}
-                workspaces={workspaces}
-                activeWorkspace={activeWorkspace}
-                onSwitchWorkspace={onSwitchWorkspace}
-                onCreateWorkspace={onCreateWorkspace}
               />
             </div>
           </div>
@@ -168,9 +149,6 @@ function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspac
                 <SettingsPage
                   onAddMember={() => { setEditingMemberId(null); setMemberModalOpen(true); }}
                   onEditMember={(id) => { setEditingMemberId(id); setMemberModalOpen(true); }}
-                  workspaces={workspaces}
-                  activeWorkspace={activeWorkspace}
-                  onWorkspaceDeleted={() => onSwitchWorkspace(workspaces.find(w => w.id === 'personal') || workspaces[0])}
                 />
               )}
             </div>
@@ -182,8 +160,6 @@ function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspac
         isOpen={memberModalOpen}
         onClose={() => { setMemberModalOpen(false); setEditingMemberId(null); }}
         editingMemberId={editingMemberId}
-        workspaces={workspaces}
-        activeWorkspace={activeWorkspace}
       />
       <DeleteModal
         isOpen={deleteModalOpen}
@@ -202,70 +178,8 @@ function AppContent({ initialPage, workspaces, activeWorkspace, onSwitchWorkspac
   );
 }
 
-function sameWorkspace(a: Workspace, b: Workspace): boolean {
-  return a.id === b.id && a.userId === b.userId && a.workspaceId === b.workspaceId
-    && a.label === b.label && a.icon === b.icon;
-}
-
-function sameWorkspaceList(a: Workspace[], b: Workspace[]): boolean {
-  return a.length === b.length && a.every((w, i) => sameWorkspace(w, b[i]));
-}
-
 function AuthGate({ initialPage }: { initialPage: PageId }) {
   const { user, loading, isRecovery } = useAuth();
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
-  const [wsLoaded, setWsLoaded] = useState(false);
-  const [showCreateWs, setShowCreateWs] = useState(false);
-
-  // Depende do id, não do objeto `user`: o Supabase emite onAuthStateChange a cada
-  // refresh de token e a cada foco na aba, sempre com um objeto novo. Com [user] o
-  // callback mudava de identidade e o efeito abaixo recarregava os workspaces em loop.
-  const userId = user?.id;
-
-  const loadWorkspaces = useCallback(async () => {
-    if (!userId) return;
-
-    const personal: Workspace = {
-      id: 'personal',
-      userId,
-      label: 'Pessoal',
-      icon: '🏠',
-    };
-
-    const { data: ownWs } = await supabase
-      .from('workspaces').select('*').eq('owner_id', userId).order('created_at');
-
-    const ownWorkspaces: Workspace[] = (ownWs || []).map(w => ({
-      id: w.id,
-      userId,
-      workspaceId: w.id,
-      label: w.name,
-      icon: w.icon || '📁',
-    }));
-
-    const all = [personal, ...ownWorkspaces];
-
-    // Preserva as referências anteriores quando nada mudou: `all` é sempre um array
-    // novo, e trocar a identidade de workspaces/activeWorkspace re-renderiza o app inteiro.
-    setWorkspaces(prev => (sameWorkspaceList(prev, all) ? prev : all));
-    setActiveWorkspace(prev => {
-      if (!prev) return personal;
-      const stillExists = all.find(w => w.id === prev.id);
-      if (!stillExists) return personal;
-      return sameWorkspace(prev, stillExists) ? prev : stillExists;
-    });
-    setWsLoaded(true);
-  }, [userId]);
-
-  useEffect(() => { loadWorkspaces(); }, [loadWorkspaces]);
-
-  async function createWorkspace(name: string, icon: string) {
-    if (!user) return;
-    await supabase.from('workspaces').insert({ owner_id: user.id, name, icon });
-    setShowCreateWs(false);
-    await loadWorkspaces();
-  }
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900">
@@ -276,29 +190,10 @@ function AuthGate({ initialPage }: { initialPage: PageId }) {
   if (!user) return <AuthPage />;
   if (isRecovery) return <AuthPage forceMode="reset" />;
 
-  if (!wsLoaded || !activeWorkspace) {
-    return <div className="flex items-center justify-center min-h-screen bg-slate-900">
-      <div className="text-slate-400">Carregando...</div>
-    </div>;
-  }
-
   return (
-    <>
-      <StoreProvider key={activeWorkspace.id} userId={activeWorkspace.userId} workspaceId={activeWorkspace.workspaceId}>
-        <AppContent
-          initialPage={initialPage}
-          workspaces={workspaces}
-          activeWorkspace={activeWorkspace}
-          onSwitchWorkspace={setActiveWorkspace}
-          onCreateWorkspace={() => setShowCreateWs(true)}
-        />
-      </StoreProvider>
-      <CreateWorkspaceModal
-        isOpen={showCreateWs}
-        onClose={() => setShowCreateWs(false)}
-        onCreate={createWorkspace}
-      />
-    </>
+    <StoreProvider userId={user.id}>
+      <AppContent initialPage={initialPage} />
+    </StoreProvider>
   );
 }
 

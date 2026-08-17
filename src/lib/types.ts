@@ -56,14 +56,6 @@ export interface AppState {
   monthlyBudgets: Record<string, Record<string, number>>;
 }
 
-export interface Workspace {
-  id: string;
-  userId: string;
-  workspaceId?: string;
-  label: string;
-  icon: string;
-}
-
 export interface RecurringExpense {
   id: string;
   description: string;

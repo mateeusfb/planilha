@@ -7,17 +7,14 @@ import { COLORS } from '@/lib/constants';
 import { genId } from '@/lib/helpers';
 import { uploadAvatar, deleteAvatar } from '@/lib/storage';
 import { useToast } from './Toast';
-import type { Workspace } from '@/lib/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   editingMemberId: string | null;
-  workspaces?: Workspace[];
-  activeWorkspace?: Workspace;
 }
 
-export default function MemberModal({ isOpen, onClose, editingMemberId, workspaces = [], activeWorkspace }: Props) {
+export default function MemberModal({ isOpen, onClose, editingMemberId }: Props) {
   const { state, addMember, updateMember } = useStore();
   const { user } = useAuth();
   const [name, setName] = useState('');
@@ -27,12 +24,8 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const [isConjunta, setIsConjunta] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [selectedWorkspace, setSelectedWorkspace] = useState<string>('current');
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const ownWorkspaces = workspaces;
-  const hasMultipleWorkspaces = ownWorkspaces.length > 1;
 
   useEffect(() => {
     if (isOpen) {
@@ -46,7 +39,6 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
         }
       } else {
         setName(''); setColor(COLORS[0]); setPhoto(null); setPhotoFile(null); setPhotoRemoved(false); setIsConjunta(false);
-        setSelectedWorkspace('current');
       }
     }
   }, [isOpen, editingMemberId, state.members]);
@@ -94,21 +86,8 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
       }
       const member = { id: memberId, name: name.trim(), color, photo: photoUrl, isConjunta };
 
-      if (selectedWorkspace === 'all') {
-        ownWorkspaces.forEach(ws => {
-          const wsId = ws.workspaceId || null;
-          addMember({ ...member, id: genId() }, wsId);
-        });
-        toast(`${name.trim()} adicionado em todos os espaços!`, 'success');
-      } else if (selectedWorkspace === 'current') {
-        addMember(member);
-        toast(`${name.trim()} adicionado!`, 'success');
-      } else {
-        const ws = ownWorkspaces.find(w => w.id === selectedWorkspace);
-        const wsId = ws?.workspaceId || null;
-        addMember(member, wsId);
-        toast(`${name.trim()} adicionado em ${ws?.label || 'workspace'}!`, 'success');
-      }
+      addMember(member);
+      toast(`${name.trim()} adicionado!`, 'success');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Erro ao salvar.', 'error');
     }
@@ -163,62 +142,6 @@ export default function MemberModal({ isOpen, onClose, editingMemberId, workspac
             <div className="text-xs t-text-dim mt-1">Despesas lançadas aqui serão divididas igualmente entre os membros individuais.</div>
           )}
         </div>
-
-        {/* Workspace selector */}
-        {!editingMemberId && hasMultipleWorkspaces && (
-          <div className="mb-3.5">
-            <label className="text-xs font-semibold t-text-muted uppercase tracking-wide block mb-1.5">Espaço de trabalho</label>
-            <div className="space-y-1.5">
-              <label
-                className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                  selectedWorkspace === 'current' ? 'border-[var(--accent)] t-accent-light' : 't-border hover:opacity-80'
-                }`}
-              >
-                <input type="radio" name="workspace" value="current" checked={selectedWorkspace === 'current'}
-                  onChange={() => setSelectedWorkspace('current')} className="hidden" />
-                <span className="text-sm">{activeWorkspace?.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium t-text">{activeWorkspace?.label || 'Atual'}</div>
-                  <div className="text-[0.7rem] t-text-dim">Apenas neste espaço</div>
-                </div>
-                {selectedWorkspace === 'current' && <span className="text-sm t-accent">✓</span>}
-              </label>
-
-              <label
-                className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                  selectedWorkspace === 'all' ? 'border-[var(--accent)] t-accent-light' : 't-border hover:opacity-80'
-                }`}
-              >
-                <input type="radio" name="workspace" value="all" checked={selectedWorkspace === 'all'}
-                  onChange={() => setSelectedWorkspace('all')} className="hidden" />
-                <span className="text-sm">🌐</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium t-text">Todos os espaços</div>
-                  <div className="text-[0.7rem] t-text-dim">Disponível em {ownWorkspaces.length} espaços</div>
-                </div>
-                {selectedWorkspace === 'all' && <span className="text-sm t-accent">✓</span>}
-              </label>
-
-              {ownWorkspaces.filter(w => w.id !== activeWorkspace?.id).map(ws => (
-                <label
-                  key={ws.id}
-                  className={`flex items-center gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                    selectedWorkspace === ws.id ? 'border-[var(--accent)] t-accent-light' : 't-border hover:opacity-80'
-                  }`}
-                >
-                  <input type="radio" name="workspace" value={ws.id} checked={selectedWorkspace === ws.id}
-                    onChange={() => setSelectedWorkspace(ws.id)} className="hidden" />
-                  <span className="text-sm">{ws.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium t-text">{ws.label}</div>
-                    <div className="text-[0.7rem] t-text-dim">Apenas neste espaço</div>
-                  </div>
-                  {selectedWorkspace === ws.id && <span className="text-sm t-accent">✓</span>}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Color picker */}
         {!photo && (

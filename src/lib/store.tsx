@@ -24,13 +24,13 @@ const defaultState: AppState = {
 };
 
 // ── Supabase row helpers ──
-function memberToRow(m: Member, userId: string, workspaceId?: string) {
-  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId, workspace_id: workspaceId || null };
+function memberToRow(m: Member, userId: string) {
+  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId, workspace_id: null };
 }
 function rowToMember(r: Record<string, unknown>): Member {
   return { id: r.id as string, name: r.name as string, color: r.color as string, photo: r.photo as string | null, isConjunta: !!r.is_conjunta };
 }
-function expenseToRow(e: Expense, userId: string, workspaceId?: string) {
+function expenseToRow(e: Expense, userId: string) {
   const paidStatus = e.type === 'income' ? 'paid' : (e.paidStatus || 'pending');
   return {
     id: e.id, type: e.type, description: e.desc, category: e.cat, value: e.value,
@@ -40,7 +40,7 @@ function expenseToRow(e: Expense, userId: string, workspaceId?: string) {
     purchase_date: e.purchaseDate || null,
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
     bank: e.bank || null,
-    created_at: e.createdAt || Date.now(), user_id: userId, workspace_id: workspaceId || null,
+    created_at: e.createdAt || Date.now(), user_id: userId, workspace_id: null,
     paid_status: paidStatus,
   };
 }
@@ -63,7 +63,6 @@ function rowToExpense(r: Record<string, unknown>): Expense {
 
 interface StoreContextType {
   userId: string;
-  workspaceId?: string;
   state: AppState;
   setState: (updater: (prev: AppState) => AppState) => void;
   getExpensesForMonth: (ym: string, memberId: string) => Expense[];
@@ -78,7 +77,7 @@ interface StoreContextType {
   markExpenseStatus: (id: string, status: PaidStatus) => Promise<void>;
   markExpensesStatus: (ids: string[], status: PaidStatus) => Promise<void>;
   postponeExpense: (id: string, scope?: 'one' | 'rest') => Promise<void>;
-  addMember: (member: Member, targetWorkspaceId?: string | null) => Promise<void>;
+  addMember: (member: Member) => Promise<void>;
   updateMember: (id: string, member: Partial<Member>) => Promise<void>;
   removeMember: (id: string) => Promise<void>;
   setActiveMember: (id: string) => void;
@@ -104,7 +103,7 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | null>(null);
 
-export function StoreProvider({ children, userId, workspaceId }: { children: ReactNode; userId: string; workspaceId?: string }) {
+export function StoreProvider({ children, userId }: { children: ReactNode; userId: string }) {
   const [state, setStateRaw] = useState<AppState>(defaultState);
   const [loaded, setLoaded] = useState(false);
   const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
@@ -133,21 +132,10 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     async function loadData() {
       // Onda 1: tudo que não depende de nenhuma outra query sai junto.
       // Antes eram ~8 round-trips em sequência antes do app sair do skeleton.
-      let recurringQuery = supabase.from('recurring_expenses').select('*').eq('user_id', userId);
-      let invQuery = supabase.from('investments').select('*').eq('user_id', userId).eq('active', true);
-      let goalQuery = supabase.from('investment_goals').select('*').eq('user_id', userId).eq('active', true);
-      let wQuery = supabase.from('investment_withdrawals').select('*').eq('user_id', userId);
-      if (workspaceId) {
-        recurringQuery = recurringQuery.eq('workspace_id', workspaceId);
-        invQuery = invQuery.eq('workspace_id', workspaceId);
-        goalQuery = goalQuery.eq('workspace_id', workspaceId);
-        wQuery = wQuery.eq('workspace_id', workspaceId);
-      } else {
-        recurringQuery = recurringQuery.is('workspace_id', null);
-        invQuery = invQuery.is('workspace_id', null);
-        goalQuery = goalQuery.is('workspace_id', null);
-        wQuery = wQuery.is('workspace_id', null);
-      }
+      const recurringQuery = supabase.from('recurring_expenses').select('*').eq('user_id', userId);
+      const invQuery = supabase.from('investments').select('*').eq('user_id', userId).eq('active', true);
+      const goalQuery = supabase.from('investment_goals').select('*').eq('user_id', userId).eq('active', true);
+      const wQuery = supabase.from('investment_withdrawals').select('*').eq('user_id', userId);
 
       const [recurringRes, invRes, snapsRes, goalsRes, withdrawalsRes] = await Promise.all([
         recurringQuery,
@@ -158,16 +146,8 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       ]);
 
       try {
-        // Filtrar por workspace: se tem workspaceId filtra por ele, senão pega os sem workspace (pessoal)
-        let membersQuery = supabase.from('members').select('*').eq('user_id', userId);
-        let expensesQuery = supabase.from('expenses').select('*').eq('user_id', userId);
-        if (workspaceId) {
-          membersQuery = membersQuery.eq('workspace_id', workspaceId);
-          expensesQuery = expensesQuery.eq('workspace_id', workspaceId);
-        } else {
-          membersQuery = membersQuery.is('workspace_id', null);
-          expensesQuery = expensesQuery.is('workspace_id', null);
-        }
+        const membersQuery = supabase.from('members').select('*').eq('user_id', userId);
+        const expensesQuery = supabase.from('expenses').select('*').eq('user_id', userId);
 
         const [membersRes, expensesRes, settingsRes] = await Promise.all([
           membersQuery,
@@ -243,7 +223,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
             // Um insert em lote por tabela, em vez de 2 requisições por recorrente
             const { error: insErr } = await supabase
               .from('expenses')
-              .insert(newExpenses.map(e => expenseToRow(e, userId, workspaceId)));
+              .insert(newExpenses.map(e => expenseToRow(e, userId)));
             if (!insErr) {
               await supabase.from('recurring_generated').insert(
                 toGenerate.map((r, i) => ({ recurring_id: r.id, month: currentMonth, expense_id: newExpenses[i].id }))
@@ -296,7 +276,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
             const totalCurrent = (dbInv || []).reduce((s: number, i: Record<string, unknown>) => s + Number(i.current_value), 0);
             const { data: newSnap } = await supabase
               .from('investment_snapshots')
-              .insert({ user_id: userId, workspace_id: workspaceId || null, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
+              .insert({ user_id: userId, workspace_id: null, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
               .select()
               .single();
             if (newSnap) {
@@ -339,7 +319,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     loadData()
       .catch(() => loadFromCache())
       .finally(() => setLoaded(true));
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   // Cache in localStorage — com debounce: serializar o estado inteiro a cada
   // tecla digitada (ex.: campo de orçamento) travava a UI.
@@ -447,25 +427,25 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   const addExpense = useCallback(async (expense: Expense) => {
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-    const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
+    const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId));
     if (error) {
       setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== expense.id) }));
       throw new Error(error.message);
     }
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   // Versão em lote: um único setState e um único INSERT. Usada por parcelamentos e
   // despesas conjuntas, que antes faziam um round-trip (e um re-render global) por item.
   const addExpenses = useCallback(async (expenses: Expense[]) => {
     if (expenses.length === 0) return;
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, ...expenses] }));
-    const { error } = await supabase.from('expenses').insert(expenses.map(e => expenseToRow(e, userId, workspaceId)));
+    const { error } = await supabase.from('expenses').insert(expenses.map(e => expenseToRow(e, userId)));
     if (error) {
       const ids = new Set(expenses.map(e => e.id));
       setStateRaw(prev => ({ ...prev, expenses: prev.expenses.filter(e => !ids.has(e.id)) }));
       throw new Error(error.message);
     }
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const updateExpense = useCallback(async (id: string, expense: Expense) => {
     let original: Expense | undefined;
@@ -479,12 +459,12 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       };
       return { ...prev, expenses: prev.expenses.map(e => e.id === id ? merged : e) };
     });
-    const { error } = await supabase.from('expenses').update(expenseToRow(merged, userId, workspaceId)).eq('id', id);
+    const { error } = await supabase.from('expenses').update(expenseToRow(merged, userId)).eq('id', id);
     if (error) {
       if (original) setStateRaw(prev => ({ ...prev, expenses: prev.expenses.map(e => e.id === id ? original! : e) }));
       throw new Error(error.message);
     }
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const removeExpense = useCallback(async (id: string) => {
     let original: Expense | undefined;
@@ -579,15 +559,14 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     }
   }, [state.expenses]);
 
-  const addMember = useCallback(async (member: Member, targetWorkspaceId?: string | null) => {
+  const addMember = useCallback(async (member: Member) => {
     setStateRaw(prev => ({ ...prev, members: [...prev.members, member] }));
-    const wsId = targetWorkspaceId !== undefined ? targetWorkspaceId : workspaceId;
-    const { error } = await supabase.from('members').insert(memberToRow(member, userId, wsId || undefined));
+    const { error } = await supabase.from('members').insert(memberToRow(member, userId));
     if (error) {
       setStateRaw(prev => ({ ...prev, members: prev.members.filter(m => m.id !== member.id) }));
       throw new Error(error.message);
     }
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const updateMember = useCallback(async (id: string, data: Partial<Member>) => {
     let original: Member | undefined;
@@ -596,13 +575,13 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       return { ...prev, members: prev.members.map(m => m.id === id ? { ...m, ...data } : m) };
     });
     if (original) {
-      const { error } = await supabase.from('members').update(memberToRow({ ...original, ...data }, userId, workspaceId)).eq('id', id);
+      const { error } = await supabase.from('members').update(memberToRow({ ...original, ...data }, userId)).eq('id', id);
       if (error) {
         setStateRaw(prev => ({ ...prev, members: prev.members.map(m => m.id === id ? original! : m) }));
         throw new Error(error.message);
       }
     }
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const removeMember = useCallback(async (id: string) => {
     let originalMembers: Member[] = [];
@@ -639,7 +618,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   const addRecurring = useCallback(async (r: Omit<RecurringExpense, 'id' | 'active'>) => {
     const row = {
-      user_id: userId, workspace_id: workspaceId || null,
+      user_id: userId, workspace_id: null,
       description: r.description, category: r.category, value: r.value,
       payment: r.payment, bank: r.bank || null, member_id: r.memberId,
       day_of_month: r.dayOfMonth, active: true,
@@ -659,9 +638,9 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       note: 'Recorrente', createdAt: Date.now(), paidStatus: 'pending',
     };
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-    await supabase.from('expenses').insert(expenseToRow(expense, userId, workspaceId));
+    await supabase.from('expenses').insert(expenseToRow(expense, userId));
     await supabase.from('recurring_generated').insert({ recurring_id: recurringId, month: curMonth, expense_id: expId });
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const updateRecurring = useCallback(async (id: string, data: Partial<RecurringExpense>) => {
     const dbData: Record<string, unknown> = {};
@@ -687,7 +666,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   // ── Investment CRUD ──
   const addInvestment = useCallback(async (inv: Omit<Investment, 'id' | 'active'>) => {
     const row = {
-      user_id: userId, workspace_id: workspaceId || null,
+      user_id: userId, workspace_id: null,
       name: inv.name, type: inv.type, amount_invested: inv.amountInvested,
       current_value: inv.currentValue, purchase_date: inv.purchaseDate || null,
       maturity_date: inv.maturityDate || null, notes: inv.notes || null, active: true,
@@ -699,7 +678,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       currentValue: Number(data.current_value), purchaseDate: data.purchase_date,
       maturityDate: data.maturity_date, notes: data.notes, active: true,
     }]);
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const updateInvestment = useCallback(async (id: string, data: Partial<Investment>) => {
     const row: Record<string, unknown> = {};
@@ -724,7 +703,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
   // ── Goal CRUD ──
   const addGoal = useCallback(async (goal: Omit<InvestmentGoal, 'id' | 'active'>) => {
     const row = {
-      user_id: userId, workspace_id: workspaceId || null,
+      user_id: userId, workspace_id: null,
       name: goal.name, target_value: goal.targetValue, current_value: goal.currentValue,
       deadline: goal.deadline || null, icon: goal.icon || '🎯',
       linked_investment_ids: goal.linkedInvestmentIds || [], active: true,
@@ -736,7 +715,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       currentValue: Number(data.current_value), deadline: data.deadline,
       icon: data.icon || '🎯', linkedInvestmentIds: data.linked_investment_ids || [], active: true,
     }]);
-  }, [userId, workspaceId]);
+  }, [userId]);
 
   const updateGoal = useCallback(async (id: string, data: Partial<InvestmentGoal>) => {
     const row: Record<string, unknown> = {};
@@ -772,7 +751,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       } else {
         const { data: newSnap } = await supabase
           .from('investment_snapshots')
-          .insert({ user_id: userId, workspace_id: workspaceId || null, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
+          .insert({ user_id: userId, workspace_id: null, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
           .select()
           .single();
         if (newSnap) {
@@ -788,12 +767,12 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
     } catch (err) {
       throw err instanceof Error ? err : new Error('Erro ao salvar snapshot');
     }
-  }, [userId, workspaceId, investmentSnapshots]);
+  }, [userId, investmentSnapshots]);
 
   // ── Withdrawal CRUD ──
   const addWithdrawal = useCallback(async (w: Omit<InvestmentWithdrawal, 'id' | 'createdAt'>) => {
     const row = {
-      investment_id: w.investmentId, user_id: userId, workspace_id: workspaceId || null,
+      investment_id: w.investmentId, user_id: userId, workspace_id: null,
       amount: w.amount, date: w.date, reason: w.reason || null,
     };
     const { data, error } = await supabase.from('investment_withdrawals').insert(row).select().single();
@@ -809,7 +788,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
       await supabase.from('investments').update({ current_value: newValue }).eq('id', inv.id);
       setInvestments(prev => prev.map(i => i.id === inv.id ? { ...i, currentValue: newValue } : i));
     }
-  }, [userId, workspaceId, investments]);
+  }, [userId, investments]);
 
   const removeWithdrawal = useCallback(async (id: string) => {
     const w = withdrawals.find(x => x.id === id);
@@ -838,7 +817,7 @@ export function StoreProvider({ children, userId, workspaceId }: { children: Rea
 
   return (
     <StoreContext.Provider value={{
-      userId, workspaceId,
+      userId,
       state, setState,
       getExpensesForMonth, getExpensesByExactMonth, getOutflows, getIncomes, getIndividualMembers,
       addExpense, addExpenses, updateExpense, removeExpense, markExpenseStatus, markExpensesStatus, postponeExpense,

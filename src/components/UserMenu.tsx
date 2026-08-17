@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Workspace } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
-import WorkspaceSwitcher from './WorkspaceSwitcher';
 import { Settings, LogOut, User } from 'lucide-react';
 
 interface Props {
@@ -11,13 +9,9 @@ interface Props {
   onSignOut: () => void;
   onGoToSettings: () => void;
   onGoToProfile: () => void;
-  workspaces: Workspace[];
-  activeWorkspace: Workspace;
-  onSwitchWorkspace: (ws: Workspace) => void;
-  onCreateWorkspace: () => void;
 }
 
-export default function UserMenu({ user, onSignOut, onGoToSettings, onGoToProfile, workspaces, activeWorkspace, onSwitchWorkspace, onCreateWorkspace }: Props) {
+export default function UserMenu({ user, onSignOut, onGoToSettings, onGoToProfile }: Props) {
   const [open, setOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -43,15 +37,6 @@ export default function UserMenu({ user, onSignOut, onGoToSettings, onGoToProfil
           <div className="absolute right-0 top-full mt-1 t-card border rounded-xl shadow-lg p-3 min-w-48 z-[60]">
             <div className="text-sm font-semibold t-text mb-0.5">{user?.user_metadata?.name || 'Usuário'}</div>
             <div className="text-xs t-text-dim mb-3">{user?.email}</div>
-            {/* Workspace switcher mobile */}
-            <div className="sm:hidden mb-2 pb-2 border-b t-border">
-              <WorkspaceSwitcher
-                workspaces={workspaces}
-                active={activeWorkspace}
-                onSwitch={(ws) => { onSwitchWorkspace(ws); setOpen(false); }}
-                onCreateNew={() => { onCreateWorkspace(); setOpen(false); }}
-              />
-            </div>
             <button onClick={() => { onGoToProfile(); setOpen(false); }}
               className="w-full text-left text-sm t-text hover:opacity-80 px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
               <User size={16} /> Meu Perfil

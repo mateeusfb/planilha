@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { EXPENSE_CATS, BASE_PAYMENTS, BASE_BANKS } from '@/lib/constants';
-import type { Member, Workspace, RecurringExpense } from '@/lib/types';
-import { Tag, CreditCard, Landmark, Users, FolderOpen, ChevronDown, Repeat } from 'lucide-react';
+import type { Member, RecurringExpense } from '@/lib/types';
+import { Tag, CreditCard, Landmark, Users, ChevronDown, Repeat } from 'lucide-react';
 import ItemPill from './ItemPill';
 import { fmt } from '@/lib/helpers';
 import { CAT_COLORS } from '@/lib/constants';
 
-type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'workspaces' | 'budgets' | 'recurring';
+type CatTabId = 'cats' | 'pays' | 'banks' | 'members' | 'budgets' | 'recurring';
 
 interface Props {
   catTab: CatTabId;
@@ -18,8 +18,6 @@ interface Props {
   addPay: () => void; editPay: (i: number) => void; deletePay: (i: number) => void;
   addBank: () => void; editBank: (i: number) => void; deleteBank: (i: number) => void;
   members: Member[]; onAddMember: () => void; onEditMember: (id: string) => void; onDeleteMember: (id: string) => void;
-  workspaces?: Workspace[]; activeWorkspace?: Workspace;
-  onDeleteWorkspace?: (ws: Workspace) => void;
   categoryBudgets?: Record<string, number>;
   onBudgetChange?: (cat: string, value: number) => void;
   recurringExpenses?: RecurringExpense[];
@@ -30,7 +28,6 @@ interface Props {
 export default function CategoriesBlock({ catTab, setCatTab, customCats, customPays, customBanks,
   addCat, editCat, deleteCat, addPay, editPay, deletePay, addBank, editBank, deleteBank,
   members, onAddMember, onEditMember, onDeleteMember,
-  workspaces = [], activeWorkspace, onDeleteWorkspace,
   categoryBudgets = {}, onBudgetChange,
   recurringExpenses = [], onToggleRecurring, onDeleteRecurring,
 }: Props) {
@@ -42,9 +39,6 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
     { id: 'banks', label: 'Instituições', icon: <Landmark size={14} /> },
     { id: 'members', label: 'Membros', icon: <Users size={14} /> },
     { id: 'recurring', label: 'Recorrentes', icon: <Repeat size={14} /> },
-    ...(workspaces.filter(w => w.id !== 'personal').length > 0
-      ? [{ id: 'workspaces' as CatTabId, label: 'Espaços', icon: <FolderOpen size={14} /> }]
-      : []),
   ];
 
   const defaults: Record<string, string[]> = {
@@ -163,22 +157,6 @@ export default function CategoriesBlock({ catTab, setCatTab, customCats, customP
             </>
           )}
 
-          {/* Workspaces */}
-          {catTab === 'workspaces' && (
-            <>
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {workspaces.filter(w => w.id !== 'personal').map(ws => (
-                  <ItemPill
-                    key={ws.id}
-                    label={`${ws.icon} ${ws.label}${activeWorkspace?.id === ws.id ? ' (ativo)' : ''}`}
-                    onEdit={() => {}}
-                    onDelete={() => onDeleteWorkspace?.(ws)}
-                  />
-                ))}
-              </div>
-              <p className="text-xs t-text-dim">O espaço &quot;Pessoal&quot; não pode ser excluído.</p>
-            </>
-          )}
         </div>
       )}
     </div>
