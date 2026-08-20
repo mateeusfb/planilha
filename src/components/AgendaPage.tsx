@@ -1,19 +1,30 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, List, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, Columns3, List, Plus } from 'lucide-react';
 import { useAgenda } from '@/lib/agenda';
 import { useEventosAgenda } from '@/hooks/useEventosAgenda';
 import { agruparPorDia } from '@/lib/google/mapear';
-import { diaDoEvento, hoje, somarDias } from '@/lib/google/tempo';
-import { getCurrentMonth } from '@/lib/helpers';
+import { diaDoEvento, hoje, inicioDaSemana, somarDias } from '@/lib/google/tempo';
+import { diasDaSemana, rotuloDaSemana } from '@/lib/google/semana';
 import EventoCard from '@/components/agenda/EventoCard';
 import EventoModal from '@/components/agenda/EventoModal';
+import EventoDetalheModal from '@/components/agenda/EventoDetalheModal';
 import EstadoDesconectado from '@/components/agenda/EstadoDesconectado';
+import GradeSemana from '@/components/agenda/GradeSemana';
 import DeleteModal from '@/components/DeleteModal';
 import { SkeletonDashboard } from '@/components/Skeleton';
 import type { AgendaEvento, EntradaEvento } from '@/lib/types';
 
+type Modo = 'lista' | 'semana' | 'mes';
+
+const MODOS: { id: Modo; label: string; icone: typeof List }[] = [
+  { id: 'lista', label: 'Lista', icone: List },
+  { id: 'semana', label: 'Semana', icone: Columns3 },
+  { id: 'mes', label: 'Mês', icone: CalendarDays },
+];
+
+const CHAVE_MODO = 'agenda_modo';
 const DIAS_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 
 function rotuloDoMes(ym: string): string {
@@ -23,13 +34,12 @@ function rotuloDoMes(ym: string): string {
 }
 
 function rotuloDoDia(dia: string): string {
-  const d = new Date(`${dia}T12:00:00Z`);
   const texto = new Intl.DateTimeFormat('pt-BR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
-  }).format(d);
+  }).format(new Date(`${dia}T12:00:00Z`));
   return texto[0].toUpperCase() + texto.slice(1);
 }
 
@@ -41,23 +51,45 @@ function mesVizinho(ym: string, passo: number): string {
 
 /** Segunda a domingo cobrindo o mês inteiro — a grade sempre fecha em semanas. */
 function gradeDoMes(ym: string): string[] {
-  const primeiro = `${ym}-01`;
-  const diaDaSemana = new Date(`${primeiro}T00:00:00Z`).getUTCDay(); // 0 = domingo
-  const inicio = somarDias(primeiro, diaDaSemana === 0 ? -6 : 1 - diaDaSemana);
+  const inicio = inicioDaSemana(`${ym}-01`);
   return Array.from({ length: 42 }, (_, i) => somarDias(inicio, i));
 }
 
 export default function AgendaPage() {
   const { conexao, carregandoConexao, fuso } = useAgenda();
-  const [mes, setMes] = useState(getCurrentMonth());
-  const [modo, setModo] = useState<'lista' | 'mes'>('lista');
+
+  const [modo, setModo] = useState<Modo>('lista');
+  // Um único âncora para os três modos: o mês ou a semana saem dele.
+  const [ancora, setAncora] = useState(() => hoje());
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<AgendaEvento | null>(null);
+  const [detalhe, setDetalhe] = useState<AgendaEvento | null>(null);
   const [aCancelar, setACancelar] = useState<AgendaEvento | null>(null);
+
+  // O modo escolhido vira o padrão da próxima visita.
+  useEffect(() => {
+    const salvo = localStorage.getItem(CHAVE_MODO) as Modo | null;
+    if (salvo && MODOS.some(m => m.id === salvo)) setModo(salvo);
+  }, []);
+
+  function trocarModo(novo: Modo) {
+    setModo(novo);
+    localStorage.setItem(CHAVE_MODO, novo);
+  }
+
+  const mes = ancora.slice(0, 7);
+  const semanaInicio = inicioDaSemana(ancora);
+  const dias = useMemo(() => diasDaSemana(semanaInicio), [semanaInicio]);
+
+  // A semana busca o intervalo exato; lista e mês buscam o mês inteiro.
+  const janela = useMemo(
+    () => (modo === 'semana' ? { inicio: semanaInicio, fim: dias[6] } : { mes }),
+    [modo, semanaInicio, dias, mes],
+  );
 
   const conectado = !!conexao?.conectado;
   const { eventos, carregando, ocupado, salvar, cancelar, responder } = useEventosAgenda(
-    { mes },
+    janela,
     conectado,
   );
 
@@ -76,6 +108,16 @@ export default function AgendaPage() {
   if (!conectado) return <EstadoDesconectado conexao={conexao} />;
 
   const diaDeHoje = hoje(fuso);
+  const noPeriodoAtual =
+    modo === 'semana' ? dias.includes(diaDeHoje) : mes === diaDeHoje.slice(0, 7);
+
+  function navegar(passo: number) {
+    setAncora(atual =>
+      modo === 'semana'
+        ? somarDias(atual, 7 * passo)
+        : `${mesVizinho(atual.slice(0, 7), passo)}-01`,
+    );
+  }
 
   async function handleSalvar(entrada: EntradaEvento, id?: string) {
     const deuCerto = await salvar(entrada, id);
@@ -85,28 +127,46 @@ export default function AgendaPage() {
     }
   }
 
+  function abrirEdicao(evento: AgendaEvento) {
+    setDetalhe(null);
+    setEditando(evento);
+    setModalAberto(true);
+  }
+
+  function pedirCancelamento(evento: AgendaEvento) {
+    setDetalhe(null);
+    setACancelar(evento);
+  }
+
+  async function responderEFechar(evento: AgendaEvento, resposta: Parameters<typeof responder>[1]) {
+    setDetalhe(null);
+    await responder(evento, resposta);
+  }
+
   return (
     <div className="animate-fade-in-up">
       <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setMes(mesVizinho(mes, -1))}
+            onClick={() => navegar(-1)}
+            aria-label={modo === 'semana' ? 'Semana anterior' : 'Mês anterior'}
             className="w-8 h-8 rounded-lg flex items-center justify-center t-card border t-border cursor-pointer hover:opacity-80"
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="text-sm font-bold t-text px-2 min-w-[150px] text-center">
-            {rotuloDoMes(mes)}
+          <span className="text-sm font-bold t-text px-2 min-w-[170px] text-center">
+            {modo === 'semana' ? rotuloDaSemana(semanaInicio) : rotuloDoMes(mes)}
           </span>
           <button
-            onClick={() => setMes(mesVizinho(mes, 1))}
+            onClick={() => navegar(1)}
+            aria-label={modo === 'semana' ? 'Próxima semana' : 'Próximo mês'}
             className="w-8 h-8 rounded-lg flex items-center justify-center t-card border t-border cursor-pointer hover:opacity-80"
           >
             <ChevronRight size={16} />
           </button>
-          {mes !== getCurrentMonth() && (
+          {!noPeriodoAtual && (
             <button
-              onClick={() => setMes(getCurrentMonth())}
+              onClick={() => setAncora(diaDeHoje)}
               className="ml-1 px-2.5 py-1 text-[11px] font-semibold t-text-muted border t-border rounded-lg cursor-pointer hover:opacity-80"
             >
               Hoje
@@ -116,22 +176,18 @@ export default function AgendaPage() {
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 p-0.5 rounded-lg border t-border">
-            <button
-              onClick={() => setModo('lista')}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer flex items-center gap-1.5 ${
-                modo === 'lista' ? 't-accent-bg text-white' : 't-text-muted hover:opacity-80'
-              }`}
-            >
-              <List size={13} /> Lista
-            </button>
-            <button
-              onClick={() => setModo('mes')}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer flex items-center gap-1.5 ${
-                modo === 'mes' ? 't-accent-bg text-white' : 't-text-muted hover:opacity-80'
-              }`}
-            >
-              <CalendarDays size={13} /> Mês
-            </button>
+            {MODOS.map(({ id, label, icone: Icone }) => (
+              <button
+                key={id}
+                onClick={() => trocarModo(id)}
+                className={`px-2.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer flex items-center gap-1.5 ${
+                  modo === id ? 't-accent-bg text-white' : 't-text-muted hover:opacity-80'
+                }`}
+              >
+                <Icone size={13} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
           </div>
 
           <button
@@ -141,7 +197,8 @@ export default function AgendaPage() {
             }}
             className="flex items-center gap-1.5 px-3.5 py-2 t-accent-bg text-white rounded-lg text-xs font-semibold cursor-pointer hover:opacity-90"
           >
-            <Plus size={14} /> Nova reunião
+            <Plus size={14} />
+            <span className="hidden sm:inline">Nova reunião</span>
           </button>
         </div>
       </div>
@@ -152,6 +209,8 @@ export default function AgendaPage() {
             <div key={i} className="t-card border t-border rounded-xl h-16 animate-shimmer" />
           ))}
         </div>
+      ) : modo === 'semana' ? (
+        <GradeSemana eventos={eventos} dias={dias} fuso={fuso} onAbrir={setDetalhe} />
       ) : eventos.length === 0 ? (
         <div className="t-card border t-border rounded-xl p-10 text-center">
           <p className="text-sm t-text-muted">Nenhum compromisso neste mês.</p>
@@ -173,10 +232,7 @@ export default function AgendaPage() {
                     evento={evento}
                     fuso={fuso}
                     ocupado={ocupado}
-                    onEditar={e => {
-                      setEditando(e);
-                      setModalAberto(true);
-                    }}
+                    onEditar={abrirEdicao}
                     onCancelar={setACancelar}
                     onResponder={responder}
                   />
@@ -204,23 +260,23 @@ export default function AgendaPage() {
                   className="min-h-[86px] border-b border-r t-border-light p-1.5 last:border-r-0"
                   style={{ opacity: doMes ? 1 : 0.35 }}
                 >
-                  <span
-                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mb-1 ${
-                      dia === diaDeHoje ? 't-accent-bg text-white' : 't-text-muted'
+                  <button
+                    onClick={() => {
+                      setAncora(dia);
+                      trocarModo('semana');
+                    }}
+                    title="Abrir a semana deste dia"
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mb-1 cursor-pointer ${
+                      dia === diaDeHoje ? 't-accent-bg text-white' : 't-text-muted hover:opacity-70'
                     }`}
                   >
                     {Number(dia.slice(-2))}
-                  </span>
+                  </button>
                   <div className="space-y-0.5">
                     {doDia.slice(0, 3).map(evento => (
                       <button
                         key={evento.id}
-                        onClick={() => {
-                          setModo('lista');
-                          setTimeout(() => {
-                            document.getElementById(`dia-${dia}`)?.scrollIntoView({ behavior: 'smooth' });
-                          }, 50);
-                        }}
+                        onClick={() => setDetalhe(evento)}
                         className="w-full text-left text-[10px] leading-tight truncate px-1 py-0.5 rounded cursor-pointer hover:opacity-80 t-accent-light t-accent font-semibold"
                       >
                         {evento.titulo}
@@ -236,6 +292,16 @@ export default function AgendaPage() {
           </div>
         </div>
       )}
+
+      <EventoDetalheModal
+        evento={detalhe}
+        fuso={fuso}
+        ocupado={ocupado}
+        onFechar={() => setDetalhe(null)}
+        onEditar={abrirEdicao}
+        onCancelar={pedirCancelamento}
+        onResponder={responderEFechar}
+      />
 
       <EventoModal
         isOpen={modalAberto}

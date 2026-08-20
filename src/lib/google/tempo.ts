@@ -134,3 +134,9 @@ export function inicioDaSemana(dia: string): string {
 export function hoje(fuso: string = FUSO_PADRAO): string {
   return diaDoEvento(new Date().toISOString(), fuso);
 }
+
+/** Minutos desde a meia-noite agora — posiciona a linha do "agora" na semana. */
+export function minutosAgora(fuso: string = FUSO_PADRAO): number {
+  const [h, m] = horaDoEvento(new Date().toISOString(), fuso).split(':').map(Number);
+  return (h % 24) * 60 + m;
+}

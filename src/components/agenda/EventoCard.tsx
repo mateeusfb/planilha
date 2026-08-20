@@ -32,6 +32,7 @@ export default function EventoCard({
   evento,
   fuso,
   ocupado = false,
+  iniciaAberto = false,
   onEditar,
   onCancelar,
   onResponder,
@@ -39,11 +40,13 @@ export default function EventoCard({
   evento: AgendaEvento;
   fuso: string;
   ocupado?: boolean;
+  /** Na grade da semana o card já abre expandido, dentro do modal de detalhe. */
+  iniciaAberto?: boolean;
   onEditar?: (evento: AgendaEvento) => void;
   onCancelar?: (evento: AgendaEvento) => void;
   onResponder?: (evento: AgendaEvento, resposta: RespostaConvite) => void;
 }) {
-  const [aberto, setAberto] = useState(false);
+  const [aberto, setAberto] = useState(iniciaAberto);
   const respondendo = !evento.souOrganizador && evento.convidados.some(c => c.souEu);
 
   return (

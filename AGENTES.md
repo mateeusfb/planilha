@@ -32,8 +32,9 @@ preview admin. Saíram nos commits de 2026-08-16. As tabelas `workspaces` e
 - Dicas financeiras automáticas a partir dos lançamentos (`src/lib/tips.ts`)
 - Sino de notificações: dicas do assistente + comunicados do sistema + reuniões
   do dia e convites sem resposta
-- **Agenda** ligada ao Google Calendar: ver compromissos, responder convites e
-  criar reuniões que enviam convite de verdade, com link do Google Meet
+- **Agenda** ligada ao Google Calendar: ver compromissos em lista, semana ou
+  mês, responder convites e criar reuniões que enviam convite de verdade, com
+  link do Google Meet
 - Exportação PDF (jsPDF) e CSV
 - Filtro por período: mês, presets (7/15/30 dias) ou intervalo customizado
 - Dark mode e onboarding
