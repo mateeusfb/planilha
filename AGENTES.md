@@ -30,7 +30,10 @@ preview admin. Saíram nos commits de 2026-08-16. As tabelas `workspaces` e
 - Investimentos: aportes, metas, retiradas/resgates e snapshots mensais
 - Análises com gráficos (Chart.js) e fechamento do mês
 - Dicas financeiras automáticas a partir dos lançamentos (`src/lib/tips.ts`)
-- Sino de notificações: dicas do assistente + comunicados do sistema
+- Sino de notificações: dicas do assistente + comunicados do sistema + reuniões
+  do dia e convites sem resposta
+- **Agenda** ligada ao Google Calendar: ver compromissos, responder convites e
+  criar reuniões que enviam convite de verdade, com link do Google Meet
 - Exportação PDF (jsPDF) e CSV
 - Filtro por período: mês, presets (7/15/30 dias) ou intervalo customizado
 - Dark mode e onboarding
@@ -63,6 +66,8 @@ src/
 │   ├── page.tsx               # Raiz → redireciona para /inicio
 │   ├── inicio/                # Dashboard
 │   ├── financeiro/[[...tab]]/ # Área financeira, abas via catch-all opcional
+│   ├── agenda/[[...tab]]/     # Agenda e Convites
+│   ├── api/google/            # ⭐ Único código de servidor: OAuth + Calendar
 │   ├── perfil/
 │   └── configuracoes/
 ├── components/
@@ -74,19 +79,26 @@ src/
 │   ├── AnalysisPage.tsx       # Gráficos
 │   ├── BudgetPage.tsx         # Orçamento previsto vs. realizado
 │   ├── InvestmentsPage.tsx    # Investimentos, metas e retiradas
+│   ├── AgendaPage.tsx · AgendaConvitesPage.tsx
+│   ├── agenda/                # EventoCard · EventoModal · ProximosCompromissos
 │   ├── SettingsPage.tsx · ProfilePage.tsx
 │   ├── Sidebar.tsx · UserMenu.tsx · NotificationBell.tsx · PeriodFilter.tsx
 │   └── ui/Tabs.tsx
 ├── hooks/
 │   ├── useExpenseForm.ts
+│   ├── useEventosAgenda.ts
 │   └── useNotifications.ts
 ├── lib/
 │   ├── store.tsx              # ⭐ Estado global + toda a persistência Supabase
 │   ├── auth.tsx               # Sessão e login
 │   ├── navigation.ts          # ⭐ Fonte única da navegação
+│   ├── agenda.tsx             # Conexão Google + próximos compromissos
+│   ├── apiFolga.ts            # Ponte do cliente com as rotas de API
+│   ├── google/                # Puro: tempo.ts · mapear.ts · erros.ts · tipos.ts
+│   ├── server/                # ⭐ Só no servidor (import 'server-only')
 │   ├── supabase.ts · storage.ts · export.ts · tips.ts
 │   ├── helpers.ts · constants.ts · theme.tsx · types.ts
-└── __tests__/                 # Vitest: financial, helpers, tips (49 testes)
+└── __tests__/                 # Vitest: financial, helpers, tips, agenda (122 testes)
 ```
 
 ### Navegação
@@ -96,9 +108,33 @@ sub-telas de cada área viram abas horizontais no topo. Criar uma área nova é
 acrescentar uma entrada em `AREAS` — sidebar, título do topbar e URLs saem
 daí. Não espalhe rotas fora desse arquivo.
 
-Hoje: **Início** (tela única) e **Financeiro** (Lançamentos · Fechamento ·
-Análise · Orçamento · Investimentos). `/perfil` e `/configuracoes` são telas de
-sistema: têm URL, mas não aparecem na sidebar.
+Hoje: **Início** (tela única), **Financeiro** (Lançamentos · Fechamento ·
+Análise · Orçamento · Investimentos) e **Agenda** (Agenda · Convites).
+`/perfil` e `/configuracoes` são telas de sistema: têm URL, mas não aparecem na
+sidebar.
+
+### Agenda e a camada de servidor
+
+A Agenda é o único lugar do app com código de servidor, e é uma exceção
+consciente ao "tudo no cliente": o `client_secret` do Google e o refresh token
+não podem ir para o navegador.
+
+- **O Google é a fonte da verdade.** Nenhum evento é copiado para o Supabase —
+  não existe sincronização bidirecional para dar errado.
+- **`src/lib/server/`** só é importável do servidor (`import 'server-only'`) e é
+  o único caminho até a tabela `google_accounts`, que tem RLS ligada e nenhuma
+  policy de propósito. Ver `supabase/README.md`.
+- **Autenticação das rotas**: a sessão vive no localStorage, então o cliente
+  manda o access token do Supabase no header `Authorization` e a rota valida com
+  `auth.getUser()`. Não migramos para `@supabase/ssr` — seria refatorar o login
+  inteiro para ganhar algo que o app não usa.
+- **`sendUpdates=all`** é o que faz o Google disparar os e-mails de convite;
+  **`conferenceDataVersion=1`** é o que faz o link do Meet existir. Sem eles a
+  API responde 200 e não faz nem uma coisa nem outra.
+- **Responder convite reenvia a lista inteira de convidados.** Mandar só o
+  próprio apaga todos os outros da reunião — por isso `corpoDeRsvp` é testado.
+- **No Google Cloud o app OAuth precisa estar publicado em produção**; em modo
+  Teste a autorização morre a cada 7 dias.
 
 ### Estado
 

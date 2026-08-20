@@ -10,6 +10,7 @@ import { Eye, EyeOff, ChevronDown, Target, TrendingUp, TrendingDown, Wallet, Use
 import type { PageId } from '@/lib/types';
 import PeriodFilter from './PeriodFilter';
 import { useTheme } from '@/lib/theme';
+import ProximosCompromissos from '@/components/agenda/ProximosCompromissos';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 // Fora do componente: o react-chartjs-2 compara data/options por referência e
@@ -280,6 +281,9 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (p: PageId) => 
           <ArrowRight size={16} className="t-text-dim flex-shrink-0" />
         </button>
       )}
+
+      {/* ── Agenda: o que vem por aí ── */}
+      <ProximosCompromissos onNavigate={onNavigate} />
 
       {/* ── Bento Grid: Resumo Financeiro ── */}
       <div className="mb-4 animate-fade-in-up">

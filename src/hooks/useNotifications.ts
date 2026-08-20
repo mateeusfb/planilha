@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { generateTips } from '@/lib/tips';
 import { getCurrentMonth } from '@/lib/helpers';
+import { useAgenda } from '@/lib/agenda';
+import { diaDoEvento, horaDoEvento, hoje } from '@/lib/google/tempo';
 
 export interface AppNotification {
   id: string;
-  source: 'assistant' | 'system';
+  /** 'agenda' é derivada em memória do Google Calendar — não existe no banco. */
+  source: 'assistant' | 'system' | 'agenda';
   type: 'good' | 'info' | 'warn' | 'bad';
   icon: string;
   title: string;
@@ -23,14 +26,17 @@ interface UseNotificationsReturn {
   notifications: AppNotification[];
   unreadCount: number;
   loading: boolean;
-  markAsRead: (id: string, source: 'assistant' | 'system') => Promise<void>;
+  markAsRead: (id: string, source: AppNotification['source']) => Promise<void>;
   markAllAsRead: () => Promise<void>;
 }
 
 export function useNotifications(): UseNotificationsReturn {
   const { userId, getExpensesForMonth, getIndividualMembers } = useStore();
+  const { conexao, proximos, convitesPendentes, fuso } = useAgenda();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  // As da agenda são só desta sessão: marcá-las como lidas não vai ao banco.
+  const [lidasDaAgenda, setLidasDaAgenda] = useState<Set<string>>(new Set());
 
   const currentMonth = getCurrentMonth();
 
@@ -204,7 +210,12 @@ export function useNotifications(): UseNotificationsReturn {
     };
   }, [userId, currentMonth]);
 
-  const markAsRead = useCallback(async (id: string, source: 'assistant' | 'system') => {
+  const markAsRead = useCallback(async (id: string, source: AppNotification['source']) => {
+    if (source === 'agenda') {
+      setLidasDaAgenda(prev => new Set(prev).add(id));
+      return;
+    }
+
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
@@ -219,7 +230,63 @@ export function useNotifications(): UseNotificationsReturn {
     }
   }, [userId]);
 
+  /**
+   * Avisos da agenda. Vivem só em memória: são derivados do que o Google já
+   * devolveu, então gravá-los na tabela `notifications` só criaria linha velha
+   * para limpar depois. O preço é que "lida" vale por sessão.
+   */
+  const notificacoesDaAgenda = useMemo<AppNotification[]>(() => {
+    if (!conexao?.conectado) return [];
+
+    const lista: AppNotification[] = [];
+    const dia = hoje(fuso);
+    const deHoje = proximos.filter(e => diaDoEvento(e.inicio, fuso) === dia);
+
+    if (deHoje.length > 0) {
+      const id = `agenda-hoje-${dia}`;
+      lista.push({
+        id,
+        source: 'agenda',
+        type: 'info',
+        icon: 'i',
+        title: deHoje.length === 1 ? '1 reunião hoje' : `${deHoje.length} reuniões hoje`,
+        body: deHoje
+          .slice(0, 3)
+          .map(e => (e.diaInteiro ? e.titulo : `${horaDoEvento(e.inicio, fuso)} · ${e.titulo}`))
+          .join('\n'),
+        read: lidasDaAgenda.has(id),
+        createdAt: `${dia}T00:00:00.000Z`,
+        action: 'go_agenda',
+      });
+    }
+
+    if (convitesPendentes.length > 0) {
+      const id = `agenda-convites-${dia}-${convitesPendentes.length}`;
+      lista.push({
+        id,
+        source: 'agenda',
+        type: 'warn',
+        icon: '!',
+        title:
+          convitesPendentes.length === 1
+            ? '1 convite esperando resposta'
+            : `${convitesPendentes.length} convites esperando resposta`,
+        body: convitesPendentes.slice(0, 3).map(e => e.titulo).join('\n'),
+        read: lidasDaAgenda.has(id),
+        createdAt: `${dia}T00:00:00.000Z`,
+        action: 'go_agenda_convites',
+      });
+    }
+
+    return lista;
+  }, [conexao?.conectado, proximos, convitesPendentes, fuso, lidasDaAgenda]);
+
   const markAllAsRead = useCallback(async () => {
+    const naoLidasDaAgenda = notificacoesDaAgenda.filter(n => !n.read).map(n => n.id);
+    if (naoLidasDaAgenda.length > 0) {
+      setLidasDaAgenda(prev => new Set([...prev, ...naoLidasDaAgenda]));
+    }
+
     const unread = notifications.filter(n => !n.read);
     if (unread.length === 0) return;
 
@@ -240,11 +307,13 @@ export function useNotifications(): UseNotificationsReturn {
       }));
       await supabase.from('announcement_reads').upsert(readRows);
     }
-  }, [notifications, userId]);
+  }, [notifications, notificacoesDaAgenda, userId]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // A agenda vem primeiro: é o que é sobre hoje.
+  const todas = [...notificacoesDaAgenda, ...notifications];
+  const unreadCount = todas.filter(n => !n.read).length;
 
-  return { notifications, unreadCount, loading, markAsRead, markAllAsRead };
+  return { notifications: todas, unreadCount, loading, markAsRead, markAllAsRead };
 }
 
 function rowToNotification(r: Record<string, unknown>, source: 'assistant' | 'system'): AppNotification {

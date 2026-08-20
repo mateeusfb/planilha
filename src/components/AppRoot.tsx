@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { StoreProvider, useStore } from '@/lib/store';
+import { AgendaProvider } from '@/lib/agenda';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 import type { PageId } from '@/lib/types';
 import { areaForPage, pageForPath, pathForPage, titleForPage } from '@/lib/navigation';
@@ -30,6 +31,8 @@ const AnalysisPage = dynamic(() => import('@/components/AnalysisPage'), { loadin
 const InvestmentsPage = dynamic(() => import('@/components/InvestmentsPage'), { loading });
 const BudgetPage = dynamic(() => import('@/components/BudgetPage'), { loading });
 const ClosingPage = dynamic(() => import('@/components/ClosingPage'), { loading });
+const AgendaPage = dynamic(() => import('@/components/AgendaPage'), { loading });
+const AgendaConvitesPage = dynamic(() => import('@/components/AgendaConvitesPage'), { loading });
 
 function AppContent({ initialPage }: {
   initialPage: PageId;
@@ -144,6 +147,8 @@ function AppContent({ initialPage }: {
               {activePage === 'closing' && (
                 <ClosingPage onDeleteRequest={(id) => { setDeleteId(id); setDeleteModalOpen(true); }} />
               )}
+              {activePage === 'agenda' && <AgendaPage />}
+              {activePage === 'agendaConvites' && <AgendaConvitesPage />}
               {activePage === 'profile' && <ProfilePage />}
               {activePage === 'settings' && (
                 <SettingsPage
@@ -190,10 +195,15 @@ function AuthGate({ initialPage }: { initialPage: PageId }) {
   if (!user) return <AuthPage />;
   if (isRecovery) return <AuthPage forceMode="reset" />;
 
+  // AgendaProvider fica POR FORA do StoreProvider de propósito: o store segura
+  // o app atrás do skeleton até terminar de carregar, e a agenda depende de uma
+  // chamada externa que não pode entrar nesse caminho crítico.
   return (
-    <StoreProvider userId={user.id}>
-      <AppContent initialPage={initialPage} />
-    </StoreProvider>
+    <AgendaProvider>
+      <StoreProvider userId={user.id}>
+        <AppContent initialPage={initialPage} />
+      </StoreProvider>
+    </AgendaProvider>
   );
 }
 

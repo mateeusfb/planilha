@@ -9,6 +9,7 @@ import { useToast } from './Toast';
 import InputModal from './InputModal';
 import DeleteModal from './DeleteModal';
 import CategoriesBlock from './settings/CategoriesBlock';
+import GoogleCalendarBlock from './settings/GoogleCalendarBlock';
 
 interface Props {
   onAddMember: () => void;
@@ -227,6 +228,9 @@ export default function SettingsPage({ onAddMember, onEditMember }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Agenda: conexão com o Google Calendar */}
+      <GoogleCalendarBlock />
 
       {/* Categorias (unificado com membros e workspaces) */}
       <CategoriesBlock

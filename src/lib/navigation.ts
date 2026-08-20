@@ -1,4 +1,4 @@
-import { Home, Wallet, CreditCard, ClipboardCheck, BarChart3, Target, TrendingUp } from 'lucide-react';
+import { Home, Wallet, CreditCard, ClipboardCheck, BarChart3, Target, TrendingUp, CalendarDays, MailOpen } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { PageId } from './types';
 
@@ -48,6 +48,16 @@ export const AREAS: Area[] = [
       { page: 'analysis', slug: 'analise', label: 'Análise', icon: BarChart3 },
       { page: 'budget', slug: 'orcamento', label: 'Orçamento', icon: Target },
       { page: 'investments', slug: 'investimentos', label: 'Investimentos', icon: TrendingUp },
+    ],
+  },
+  {
+    id: 'agenda',
+    slug: 'agenda',
+    label: 'Agenda',
+    icon: CalendarDays,
+    tabs: [
+      { page: 'agenda', slug: '', label: 'Agenda', icon: CalendarDays },
+      { page: 'agendaConvites', slug: 'convites', label: 'Convites', icon: MailOpen },
     ],
   },
 ];

@@ -68,7 +68,70 @@ export interface RecurringExpense {
   active: boolean;
 }
 
-export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'budget' | 'closing' | 'profile' | 'settings';
+export type PageId = 'dashboard' | 'expenses' | 'analysis' | 'investments' | 'budget' | 'closing' | 'agenda' | 'agendaConvites' | 'profile' | 'settings';
+
+// ── Agenda (Google Calendar) ────────────────────────────────────────────────
+// O Google é a fonte da verdade: nada disto é gravado no banco do Folga.
+
+export type RespostaConvite = 'accepted' | 'declined' | 'tentative';
+export type StatusResposta = RespostaConvite | 'needsAction';
+
+export interface AgendaConvidado {
+  email: string;
+  nome?: string;
+  opcional?: boolean;
+  organizador?: boolean;
+  /** É a conta conectada. */
+  souEu?: boolean;
+  resposta: StatusResposta;
+}
+
+export interface AgendaEvento {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  local?: string;
+  diaInteiro: boolean;
+  /** ISO com offset; se diaInteiro, 'YYYY-MM-DD'. */
+  inicio: string;
+  /** Idem. Em dia inteiro é o último dia INCLUSIVO (o Google usa exclusivo). */
+  fim: string;
+  fuso?: string;
+  linkMeet?: string;
+  linkGoogle?: string;
+  organizadorEmail?: string;
+  souOrganizador: boolean;
+  convidados: AgendaConvidado[];
+  minhaResposta?: StatusResposta;
+  /** Ocorrência de um evento que se repete — editar afeta só ela. */
+  recorrente: boolean;
+}
+
+/** O que o formulário de reunião manda para a API. */
+export interface EntradaEvento {
+  titulo: string;
+  descricao?: string;
+  local?: string;
+  diaInteiro?: boolean;
+  /** 'YYYY-MM-DD' — usado quando diaInteiro. */
+  data?: string;
+  dataFim?: string;
+  /** 'YYYY-MM-DDTHH:mm' local — usado quando não é dia inteiro. */
+  inicio?: string;
+  fim?: string;
+  fuso?: string;
+  convidados?: { email: string; opcional?: boolean }[];
+  criarMeet?: boolean;
+  notificarConvidados?: boolean;
+}
+
+export interface StatusConexaoGoogle {
+  conectado: boolean;
+  email?: string;
+  conectadaEm?: string;
+  status?: 'ativa' | 'revogada';
+  fuso?: string;
+}
 
 export type InvestmentType = 'renda_fixa' | 'renda_variavel' | 'crypto' | 'previdencia' | 'poupanca' | 'outros';
 

@@ -42,6 +42,7 @@ aqui é documental, não um estado que o CLI saiba reproduzir.
 | `20260816_drop_sharing_tables_single_user.sql` | Dropou `shares` e `invite_links` e reescreveu `delete_user_account()`. **Causou incidente** — ver abaixo. |
 | `20260816_restore_rls_policies_after_shares_drop.sql` | Correção do incidente. Aplicar sempre junto com a anterior. |
 | `security-fixes-2026-07-20.sql` | Varredura de segurança de julho. |
+| `20260819_google_calendar_contas.sql` | Criou `google_accounts` (tokens da Agenda) e acrescentou a tabela ao `delete_user_account()`. Única tabela com RLS ligada e **zero policies** de propósito — ver abaixo. |
 
 ### Incidente de 2026-08-16 — vale reler antes de qualquer `drop cascade`
 
@@ -67,7 +68,21 @@ select * from pg_policies where qual::text ilike '%nome_da_tabela%';
 **Investimentos:** `investments` · `investment_goals` · `investment_withdrawals` · `investment_snapshots`
 **Notificações:** `notifications` · `system_announcements` · `announcement_reads`
 **Perfil:** `user_profiles`
+**Agenda:** `google_accounts`
 **Legado (existem, o app não usa):** `workspaces` · `user_subscriptions`
+
+### `google_accounts` — a exceção deliberada de RLS
+
+É a única tabela com **RLS ligada e nenhuma policy**, o que no Postgres nega
+tudo. É intencional: ela guarda o refresh token do Google, e a anon key está no
+bundle do navegador — uma policy `user_id = auth.uid()` deixaria o token legível
+pelo front. Quem acessa é só a service_role, dentro das rotas em
+`src/app/api/google/**` (`src/lib/server/supabaseAdmin.ts`). Os tokens ainda
+entram cifrados em AES-256-GCM.
+
+O status da conexão sai por `GET /api/google/status`, não por select do cliente.
+**Criar uma policy aqui "para consertar" reabre exatamente o buraco que a
+ausência dela fecha.**
 
 ### Armadilhas conhecidas
 

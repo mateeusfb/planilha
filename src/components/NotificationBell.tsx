@@ -43,6 +43,8 @@ const typeIconsLarge: Record<string, React.ReactNode> = {
 
 const ACTION_LABELS: Record<string, { label: string; page: PageId }> = {
   go_settings_profile: { label: 'Completar perfil', page: 'profile' },
+  go_agenda: { label: 'Ver na agenda', page: 'agenda' },
+  go_agenda_convites: { label: 'Responder convites', page: 'agendaConvites' },
 };
 
 /* ── Modal de notificação completa ── */
@@ -127,7 +129,7 @@ function NotificationModal({ notification, onClose, onNavigate }: {
 /* ── Item da lista ── */
 function NotificationItem({ notification, onRead, onOpen }: {
   notification: AppNotification;
-  onRead: (id: string, source: 'assistant' | 'system') => void;
+  onRead: (id: string, source: AppNotification['source']) => void;
   onOpen: (n: AppNotification) => void;
 }) {
   const style = typeStyles[notification.type] || typeStyles.info;
