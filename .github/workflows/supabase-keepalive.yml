@@ -1,0 +1,51 @@
+name: Supabase keepalive
+
+# O free tier do Supabase pausa o projeto depois de 7 dias sem NENHUMA
+# requisição. O Folga é privado e de um usuário só, então uma semana sem abrir
+# o app derruba o banco — foi exatamente o que aconteceu em 30/08/2026 (última
+# escrita em 23/08, instância parada 7 dias depois). Este ping diário existe só
+# para zerar esse contador.
+#
+# Pré-requisito: o secret SUPABASE_ANON_KEY em
+# Settings → Secrets and variables → Actions → New repository secret.
+# A anon key é pública por design (vai no bundle do navegador), mas fica em
+# secret para não virar alvo fácil de bot aqui no repositório.
+#
+# ⚠️ O GitHub desativa workflows agendados depois de 60 dias sem commit no
+# repositório. Se o Folga ficar dois meses parado, reative em Actions — ou o
+# keepalive morre calado e a pausa volta.
+
+on:
+  schedule:
+    - cron: '0 11 * * *' # 08:00 em Brasília
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Requisição no REST do Supabase
+        env:
+          URL: https://hvqnmxtxzuogsgeuawmx.supabase.co
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$ANON_KEY" ]; then
+            echo "::error::Falta o secret SUPABASE_ANON_KEY — o ping não sai daqui."
+            exit 1
+          fi
+
+          codigo=$(curl -sS --max-time 30 -o corpo.txt -w '%{http_code}' \
+            "$URL/rest/v1/expenses?select=id&limit=1" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY")
+
+          echo "HTTP $codigo — $(cat corpo.txt)"
+
+          # 200 com [] é o esperado e suficiente: a RLS bloqueia o anônimo, mas
+          # a requisição chegou ao projeto, que é o que conta contra a pausa.
+          # Qualquer outro código significa projeto pausado, key trocada ou
+          # Supabase fora — e aí é melhor receber o e-mail de falha.
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Esperava HTTP 200 e veio $codigo. Projeto pausado ou anon key inválida?"
+            exit 1
+          fi

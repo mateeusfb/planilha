@@ -43,6 +43,7 @@ aqui é documental, não um estado que o CLI saiba reproduzir.
 | `20260816_restore_rls_policies_after_shares_drop.sql` | Correção do incidente. Aplicar sempre junto com a anterior. |
 | `security-fixes-2026-07-20.sql` | Varredura de segurança de julho. |
 | `20260819_google_calendar_contas.sql` | Criou `google_accounts` (tokens da Agenda) e acrescentou a tabela ao `delete_user_account()`. Única tabela com RLS ligada e **zero policies** de propósito — ver abaixo. |
+| `20260831_delete_user_account_investimentos_orfaos.sql` | Acrescentou `investment_snapshots` e `investment_withdrawals` ao `delete_user_account()`. São as duas únicas tabelas sem FK para `auth.users`, então sobreviviam à exclusão da conta; o resto já saía pelo `ON DELETE CASCADE`. |
 
 ### Incidente de 2026-08-16 — vale reler antes de qualquer `drop cascade`
 
@@ -106,3 +107,31 @@ Bucket público **`avatars`**, caminho `{user_id}/{member_id}.webp`. As imagens
 são redimensionadas para 200px e convertidas em WebP no cliente antes do upload
 (`src/lib/storage.ts`). Buckets não saem no dump de schema — se recriar o
 projeto, recrie o bucket pelo painel.
+
+## Pausa por inatividade (free tier)
+
+O projeto roda no **free tier**, que pausa a instância depois de **7 dias sem
+nenhuma requisição** (API, banco ou painel). Não é bug nem sobrecarga: é o
+oposto, acontece por falta de tráfego. Como o app é privado e de um usuário só,
+uma semana sem abrir já derruba.
+
+Aconteceu em 2026-08-30: última escrita em 23/08 16:10 UTC, instância parada em
+30/08 11:38 UTC, restaurada em 01/09 00:10 UTC. Nenhum dado é perdido — a
+despausa restaura do backup e aparece no log como PITR seguido de alguns
+reinícios.
+
+**Como diagnosticar** (é diferente de reinício do free tier):
+
+```sql
+select pg_postmaster_start_time();
+```
+
+Se nos logs de Postgres aparecer `database system was interrupted; last known up
+at <data antiga>` seguido de `starting point-in-time recovery`, foi pausa por
+inatividade.
+
+**O que impede:** o workflow `.github/workflows/supabase-keepalive.yml` faz um
+`GET` diário no REST com a anon key. Ele depende do secret `SUPABASE_ANON_KEY`
+no repositório, e o GitHub desativa workflows agendados após 60 dias sem commit.
+Ping de dentro do banco (`pg_cron`) **não** resolve — tem que ser requisição
+externa. A alternativa definitiva é o plano Pro, que não pausa.
