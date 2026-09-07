@@ -263,3 +263,20 @@ export function corpoDeRsvp(
     ),
   };
 }
+
+/**
+ * Em que evento o RSVP deve ser aplicado: a ocorrência ou a série inteira.
+ *
+ * Com `singleEvents=true` (obrigatório na listagem) cada item vem com o id da
+ * OCORRÊNCIA — `<idMestre>_20260907T140000Z` — e o mestre em `recurringEventId`.
+ * Dar PATCH no id da ocorrência responde só por aquele dia; dar no mestre
+ * responde pela série toda, que é o que o "Responder a todos os eventos" do
+ * Google Agenda faz.
+ *
+ * A regra: confirmar presença numa reunião que se repete vale para a série —
+ * ninguém quer clicar em "Vou" toda semana. Já recusar e "talvez" quase sempre
+ * significam "não posso NESTE dia", então continuam valendo só na ocorrência.
+ */
+export function alvoDoRsvp(evento: EventoGoogle, resposta: RespostaConvite, id: string): string {
+  return resposta === 'accepted' && evento.recurringEventId ? evento.recurringEventId : id;
+}

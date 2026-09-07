@@ -2,6 +2,7 @@ import 'server-only';
 import { accessTokenValido } from './googleContas';
 import { ErroApp, traduzirErroGoogle, type CorpoErroGoogle } from '@/lib/google/erros';
 import {
+  alvoDoRsvp,
   corpoDeAtualizacao,
   corpoDeCriacao,
   corpoDeRsvp,
@@ -213,6 +214,15 @@ export async function cancelarEvento(userId: string, id: string, avisar = true):
  * Responder convite = PATCH no evento mudando o próprio `responseStatus`.
  * O passo de ler antes não é opcional: o Google substitui a lista de convidados
  * inteira, então mandar só a si mesmo apagaria todos os outros da reunião.
+ *
+ * Num evento recorrente, `alvoDoRsvp` decide se o PATCH vai na ocorrência ou no
+ * mestre — confirmar presença vale para a série toda, para não ter que clicar
+ * em "Vou" toda semana. Duas ressalvas do lado do Google, que não dá para
+ * contornar sem varrer instância por instância:
+ *   • ocorrências que já viraram exceção (você respondeu nelas, ou o organizador
+ *     mexeu só naquele dia) mantêm a resposta própria e não herdam a da série;
+ *   • a propagação não é instantânea. O hook recarrega a janela depois da
+ *     mutação, então um atraso se resolve no reload seguinte.
  */
 export async function responderConvite(
   userId: string,
@@ -221,20 +231,48 @@ export async function responderConvite(
   comentario?: string,
   avisar = true,
 ): Promise<AgendaEvento> {
-  const evento = await obterEventoCru(userId, id);
+  const instancia = await obterEventoCru(userId, id);
+  const alvo = alvoDoRsvp(instancia, resposta, id);
 
-  let corpo: { attendees: unknown[] };
-  try {
-    corpo = corpoDeRsvp(evento, resposta, comentario);
-  } catch {
-    throw new ErroApp('NAO_SOU_CONVIDADO');
+  // Ler o mestre custa uma requisição a mais, mas é dele que sai a lista de
+  // convidados a reenviar — a da ocorrência pode divergir. Se ele não vier, ou
+  // se eu não estiver entre os convidados dele (acontece com quem foi chamado
+  // só para um dia da série), a ocorrência resolve, exatamente como antes.
+  let destino = id;
+  let corpo: { attendees: unknown[] } | null = null;
+
+  if (alvo !== id) {
+    try {
+      corpo = corpoDeRsvp(await obterEventoCru(userId, alvo), resposta, comentario);
+      destino = alvo;
+    } catch {
+      corpo = null;
+    }
+  }
+
+  if (!corpo) {
+    try {
+      corpo = corpoDeRsvp(instancia, resposta, comentario);
+    } catch {
+      throw new ErroApp('NAO_SOU_CONVIDADO');
+    }
   }
 
   const params = new URLSearchParams({ sendUpdates: notificar(avisar) });
-  const atualizado = await chamarGoogle<EventoGoogle>(userId, `${rota(id)}?${params}`, {
+  const atualizado = await chamarGoogle<EventoGoogle>(userId, `${rota(destino)}?${params}`, {
     method: 'PATCH',
     json: corpo,
   });
+
+  // O PATCH no mestre devolve o mestre, cujo `start` é o da PRIMEIRA ocorrência:
+  // devolver isso faria a UI mostrar a reunião no dia errado. Relê a ocorrência.
+  if (destino !== id) {
+    try {
+      return mapearEvento(await obterEventoCru(userId, id));
+    } catch {
+      // A resposta já foi gravada; a UI recarrega a janela logo em seguida.
+    }
+  }
 
   return mapearEvento(atualizado);
 }

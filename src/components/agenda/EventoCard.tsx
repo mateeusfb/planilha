@@ -143,7 +143,8 @@ export default function EventoCard({
 
           {evento.recorrente && (
             <p className="text-[11px] t-text-dim flex items-center gap-1">
-              <Repeat size={11} /> Alterações aqui valem só para esta ocorrência.
+              <Repeat size={11} /> Repete. Confirmar vale para a série; recusar e editar
+              valem só para esta ocorrência.
             </p>
           )}
 

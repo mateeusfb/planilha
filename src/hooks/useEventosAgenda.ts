@@ -113,7 +113,11 @@ export function useEventosAgenda(janela: Janela, ativo: boolean) {
   const responder = useCallback(
     (evento: AgendaEvento, resposta: RespostaConvite) => {
       const recado: Record<RespostaConvite, string> = {
-        accepted: 'Confirmado! O organizador foi avisado.',
+        // Confirmar numa reunião que se repete responde a série toda; recusar e
+        // "talvez" continuam valendo só para esta ocorrência (ver alvoDoRsvp).
+        accepted: evento.recorrente
+          ? 'Confirmado para todas as ocorrências. O organizador foi avisado.'
+          : 'Confirmado! O organizador foi avisado.',
         declined: 'Recusado. O organizador foi avisado.',
         tentative: 'Marcado como talvez. O organizador foi avisado.',
       };

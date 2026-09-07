@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   agruparPorDia,
+  alvoDoRsvp,
   corpoDeAtualizacao,
   corpoDeCriacao,
   corpoDeRsvp,
@@ -273,5 +274,29 @@ describe('corpoDeRsvp', () => {
 
   it('reclama quando não sou convidado', () => {
     expect(() => corpoDeRsvp(eventoGoogle(), 'accepted')).toThrow('NAO_SOU_CONVIDADO');
+  });
+});
+
+describe('alvoDoRsvp', () => {
+  // Com singleEvents=true o id que chega é o da ocorrência e o mestre vem em
+  // recurringEventId. Responder no mestre é o que vale para a série toda.
+  const ocorrencia = 'serie-1_20260907T140000Z';
+  const daSerie = eventoGoogle({ id: ocorrencia, recurringEventId: 'serie-1' });
+  const avulso = eventoGoogle({ id: 'evt-1' });
+
+  it('manda o aceite de evento recorrente para o mestre', () => {
+    expect(alvoDoRsvp(daSerie, 'accepted', ocorrencia)).toBe('serie-1');
+  });
+
+  it('mantém o aceite de evento avulso na própria ocorrência', () => {
+    expect(alvoDoRsvp(avulso, 'accepted', 'evt-1')).toBe('evt-1');
+  });
+
+  it('mantém a recusa na ocorrência, mesmo em série', () => {
+    expect(alvoDoRsvp(daSerie, 'declined', ocorrencia)).toBe(ocorrencia);
+  });
+
+  it('mantém o talvez na ocorrência, mesmo em série', () => {
+    expect(alvoDoRsvp(daSerie, 'tentative', ocorrencia)).toBe(ocorrencia);
   });
 });
