@@ -98,7 +98,6 @@ export function useNotifications(): UseNotificationsReturn {
           if (tips.length > 0) {
             const rows = tips.map(tip => ({
               user_id: userId,
-              workspace_id: null,
               month: currentMonth,
               type: tip.type,
               icon: tip.icon,
@@ -170,7 +169,6 @@ export function useNotifications(): UseNotificationsReturn {
         if (!alreadySent) {
           const reminderRow = {
             user_id: userId,
-            workspace_id: null,
             month: currentMonth,
             type: 'info',
             icon: 'i',

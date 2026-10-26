@@ -25,7 +25,7 @@ const defaultState: AppState = {
 
 // ── Supabase row helpers ──
 function memberToRow(m: Member, userId: string) {
-  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId, workspace_id: null };
+  return { id: m.id, name: m.name, color: m.color, photo: m.photo || null, is_conjunta: !!m.isConjunta, user_id: userId };
 }
 function rowToMember(r: Record<string, unknown>): Member {
   return { id: r.id as string, name: r.name as string, color: r.color as string, photo: r.photo as string | null, isConjunta: !!r.is_conjunta };
@@ -40,7 +40,7 @@ function expenseToRow(e: Expense, userId: string) {
     purchase_date: e.purchaseDate || null,
     conjunta_group_id: e.conjuntaGroupId || null, conjunta_name: e.conjuntaName || null,
     bank: e.bank || null,
-    created_at: e.createdAt || Date.now(), user_id: userId, workspace_id: null,
+    created_at: e.createdAt || Date.now(), user_id: userId,
     paid_status: paidStatus,
   };
 }
@@ -276,7 +276,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
             const totalCurrent = (dbInv || []).reduce((s: number, i: Record<string, unknown>) => s + Number(i.current_value), 0);
             const { data: newSnap } = await supabase
               .from('investment_snapshots')
-              .insert({ user_id: userId, workspace_id: null, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
+              .insert({ user_id: userId, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
               .select()
               .single();
             if (newSnap) {
@@ -618,7 +618,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
   const addRecurring = useCallback(async (r: Omit<RecurringExpense, 'id' | 'active'>) => {
     const row = {
-      user_id: userId, workspace_id: null,
+      user_id: userId,
       description: r.description, category: r.category, value: r.value,
       payment: r.payment, bank: r.bank || null, member_id: r.memberId,
       day_of_month: r.dayOfMonth, active: true,
@@ -666,7 +666,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
   // ── Investment CRUD ──
   const addInvestment = useCallback(async (inv: Omit<Investment, 'id' | 'active'>) => {
     const row = {
-      user_id: userId, workspace_id: null,
+      user_id: userId,
       name: inv.name, type: inv.type, amount_invested: inv.amountInvested,
       current_value: inv.currentValue, purchase_date: inv.purchaseDate || null,
       maturity_date: inv.maturityDate || null, notes: inv.notes || null, active: true,
@@ -703,7 +703,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
   // ── Goal CRUD ──
   const addGoal = useCallback(async (goal: Omit<InvestmentGoal, 'id' | 'active'>) => {
     const row = {
-      user_id: userId, workspace_id: null,
+      user_id: userId,
       name: goal.name, target_value: goal.targetValue, current_value: goal.currentValue,
       deadline: goal.deadline || null, icon: goal.icon || '🎯',
       linked_investment_ids: goal.linkedInvestmentIds || [], active: true,
@@ -751,7 +751,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
       } else {
         const { data: newSnap } = await supabase
           .from('investment_snapshots')
-          .insert({ user_id: userId, workspace_id: null, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
+          .insert({ user_id: userId, month: currentMonth, total_invested: totalInvested, total_current: totalCurrent })
           .select()
           .single();
         if (newSnap) {
@@ -772,7 +772,7 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
   // ── Withdrawal CRUD ──
   const addWithdrawal = useCallback(async (w: Omit<InvestmentWithdrawal, 'id' | 'createdAt'>) => {
     const row = {
-      investment_id: w.investmentId, user_id: userId, workspace_id: null,
+      investment_id: w.investmentId, user_id: userId,
       amount: w.amount, date: w.date, reason: w.reason || null,
     };
     const { data, error } = await supabase.from('investment_withdrawals').insert(row).select().single();
