@@ -30,8 +30,17 @@ function memberToRow(m: Member, userId: string) {
 function rowToMember(r: Record<string, unknown>): Member {
   return { id: r.id as string, name: r.name as string, color: r.color as string, photo: r.photo as string | null, isConjunta: !!r.is_conjunta };
 }
+// Status com que o lançamento é gravado. O estado local precisa receber o mesmo
+// valor: a UI trata status ausente como 'paid', e um lançamento novo sem status
+// aparecia pago até o próximo reload, embora o banco tivesse 'pending'.
+function resolvePaidStatus(e: Expense): PaidStatus {
+  return e.type === 'income' ? 'paid' : (e.paidStatus || 'pending');
+}
+function withPaidStatus(e: Expense): Expense {
+  return { ...e, paidStatus: resolvePaidStatus(e) };
+}
 function expenseToRow(e: Expense, userId: string) {
-  const paidStatus = e.type === 'income' ? 'paid' : (e.paidStatus || 'pending');
+  const paidStatus = resolvePaidStatus(e);
   return {
     id: e.id, type: e.type, description: e.desc, category: e.cat, value: e.value,
     month: e.month, payment: e.payment, installment: e.installment || 0,
@@ -425,7 +434,8 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
     return state.members.filter(m => m.id !== 'all' && !m.isConjunta);
   }, [state.members]);
 
-  const addExpense = useCallback(async (expense: Expense) => {
+  const addExpense = useCallback(async (input: Expense) => {
+    const expense = withPaidStatus(input);
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
     const { error } = await supabase.from('expenses').insert(expenseToRow(expense, userId));
     if (error) {
@@ -436,8 +446,9 @@ export function StoreProvider({ children, userId }: { children: ReactNode; userI
 
   // Versão em lote: um único setState e um único INSERT. Usada por parcelamentos e
   // despesas conjuntas, que antes faziam um round-trip (e um re-render global) por item.
-  const addExpenses = useCallback(async (expenses: Expense[]) => {
-    if (expenses.length === 0) return;
+  const addExpenses = useCallback(async (input: Expense[]) => {
+    if (input.length === 0) return;
+    const expenses = input.map(withPaidStatus);
     setStateRaw(prev => ({ ...prev, expenses: [...prev.expenses, ...expenses] }));
     const { error } = await supabase.from('expenses').insert(expenses.map(e => expenseToRow(e, userId)));
     if (error) {
