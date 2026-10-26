@@ -6,30 +6,31 @@ Supabase (Postgres + Auth + Storage). Tudo isolado por `user_id` via RLS.
 
 | O quê | Onde | Autoritativo? |
 |---|---|---|
-| Estrutura das tabelas | `schema/baseline-reconstruido.sql` | ❌ deduzido do código |
-| Policies de RLS | `migrations/*.sql` + o baseline | ✅ cópia do que rodou em produção |
+| Estrutura, índices, RLS, funções e policies | `schema/schema.sql` | ✅ gerado do banco em 2026-10-26 |
+| Histórico de mudanças | `migrations/*.sql` | ✅ cópia do que rodou em produção |
 | Bucket `avatars` | só no painel | ❌ não versionado |
 
-**O schema real nunca foi versionado.** As tabelas foram criadas direto no
-painel do Supabase e via MCP; as migrations do repo são só ajustes posteriores
-de RLS. Se o projeto Supabase for perdido, a estrutura não é recuperável a
-partir deste repositório.
+As tabelas foram criadas direto no painel do Supabase e via MCP, então as
+migrations do repo são só os ajustes posteriores — **não** reconstroem o banco
+do zero. Quem reconstrói é o `schema/schema.sql`.
 
-`schema/baseline-reconstruido.sql` é uma rede de segurança provisória: acerta
-nomes de tabelas e colunas, mas **não garante** tipos, defaults, índices e
-constraints. Troque por um dump real assim que possível.
+## Atualizar o `schema.sql`
 
-## Gerar o dump autoritativo
+Depois de qualquer migration, regenere o arquivo. Dois jeitos, ambos só leem:
 
-```bash
-export SUPABASE_DB_URL='postgresql://postgres.<ref>:<senha>@<host>:6543/postgres'
-./supabase/dump-schema.sh
-```
+- **Sem senha (o usual):** rode `schema/gerar-schema.sql` pelo MCP do Supabase
+  (`execute_sql`) ou pelo SQL Editor do painel, e troque tudo abaixo do
+  cabeçalho de `schema/schema.sql` pela coluna `ddl` que voltar. Lê o catálogo
+  do Postgres; não cobre grants nem extensões.
+- **Com a senha do banco:** `pg_dump` completo via CLI do Supabase.
 
-A URL fica em **Project Settings → Database → Connection string → URI**
-(marque *Use connection pooling* e substitua `[YOUR-PASSWORD]`). O script só lê
-o banco. Depois de rodar, confira o diff contra a reconstrução, apague o
-baseline se o dump cobrir tudo, e commite `schema/schema.sql`.
+  ```bash
+  export SUPABASE_DB_URL='postgresql://postgres.<ref>:<senha>@<host>:6543/postgres'
+  ./supabase/dump-schema.sh
+  ```
+
+  A URL fica em **Project Settings → Database → Connection string → URI**
+  (marque *Use connection pooling* e substitua `[YOUR-PASSWORD]`).
 
 ## Migrations aplicadas
 
@@ -44,6 +45,8 @@ aqui é documental, não um estado que o CLI saiba reproduzir.
 | `security-fixes-2026-07-20.sql` | Varredura de segurança de julho. |
 | `20260819_google_calendar_contas.sql` | Criou `google_accounts` (tokens da Agenda) e acrescentou a tabela ao `delete_user_account()`. Única tabela com RLS ligada e **zero policies** de propósito — ver abaixo. |
 | `20260831_delete_user_account_investimentos_orfaos.sql` | Acrescentou `investment_snapshots` e `investment_withdrawals` ao `delete_user_account()`. São as duas únicas tabelas sem FK para `auth.users`, então sobreviviam à exclusão da conta; o resto já saía pelo `ON DELETE CASCADE`. |
+| `20261026_drop_workspaces_user_subscriptions.sql` | Fase 1 da limpeza do legado: dropou `workspaces`, `user_subscriptions`, o trigger que criava assinatura em `auth.users` e as FKs para `workspaces`. |
+| `20261026_drop_workspace_id_columns.sql` | Fase 2: dropou `workspace_id` das 10 tabelas e refez os índices compostos sem ela. Só pôde rodar depois do deploy que parou de gravar a coluna. |
 
 ### Incidente de 2026-08-16 — vale reler antes de qualquer `drop cascade`
 
@@ -70,7 +73,11 @@ select * from pg_policies where qual::text ilike '%nome_da_tabela%';
 **Notificações:** `notifications` · `system_announcements` · `announcement_reads`
 **Perfil:** `user_profiles`
 **Agenda:** `google_accounts`
-**Legado (existem, o app não usa):** `workspaces` · `user_subscriptions`
+**Legado (existe, o app não usa):** `goals` — vazia, metas antigas substituídas
+pelo orçamento em `settings`
+
+`workspaces` e `user_subscriptions` foram dropadas em 2026-10-26, junto com a
+coluna `workspace_id` de todas as tabelas.
 
 ### `google_accounts` — a exceção deliberada de RLS
 
@@ -93,9 +100,6 @@ ausência dela fecha.**
   `timestamptz`. Já `notifications.created_at` é `timestamptz`. Não misture.
 - **`expenses.member_id` aceita o valor `'all'`**, que não existe em `members`
   — é um pseudo-membro de UI. Por isso não há foreign key nessa coluna.
-- **`workspace_id` sobrevive em várias tabelas** e o app sempre grava `null`.
-  Resquício dos workspaces removidos; só limpar depois de confirmar que está
-  toda nula.
 - **Exclusão de investimento e meta é *soft delete*** (`active = false`), não
   `DELETE`. As queries filtram por `active = true`.
 - **`recurring_generated` é a trava de idempotência** das recorrências. Se

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Gera o dump AUTORITATIVO do schema do banco, para substituir a reconstrução
-# em supabase/schema/baseline-reconstruido.sql.
+# Gera o dump completo do schema via pg_dump (inclui grants e extensões, que o
+# supabase/schema/gerar-schema.sql não cobre). Precisa da senha do banco.
 #
 # Uso:
 #   export SUPABASE_DB_URL='postgresql://postgres.<ref>:<senha>@<host>:6543/postgres'
@@ -36,5 +36,4 @@ echo
 echo "Pronto:"
 ls -la "$OUT_DIR"
 echo
-echo "Próximo passo: confira o diff contra baseline-reconstruido.sql, apague a"
-echo "reconstrução se o dump cobrir tudo, e commite o resultado."
+echo "Próximo passo: confira o diff de schema/schema.sql e commite o resultado."

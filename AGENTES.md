@@ -17,8 +17,8 @@ Um login, um espaço, todas as funcionalidades liberadas.
 
 Workspaces · cadastro/signup (só login) · compartilhamento e convites ·
 consentimento de privacidade · planos free/pro/familiar · landing page ·
-preview admin. Saíram nos commits de 2026-08-16. As tabelas `workspaces` e
-`user_subscriptions` ainda existem no banco, órfãs.
+preview admin. Saíram nos commits de 2026-08-16; as tabelas `workspaces` e
+`user_subscriptions` e a coluna `workspace_id` saíram do banco em 2026-10-26.
 
 ## Features Atuais
 
@@ -150,15 +150,12 @@ Ver **`supabase/README.md`** — tabelas, armadilhas e o incidente de RLS de
 2026-08-16 (um `drop cascade` derrubou todas as policies e zerou o app sem
 gerar um único erro).
 
-⚠️ **O schema real não está versionado.** `supabase/schema/baseline-reconstruido.sql`
-é uma reconstrução deduzida do código, não um dump. Rode
-`./supabase/dump-schema.sh` para gerar o autoritativo.
+O schema real está em `supabase/schema/schema.sql`, gerado do banco. Depois de
+qualquer migration, regenere — ver `supabase/README.md`.
 
 ## Roadmap Futuro
 
-- Substituir a reconstrução do schema por um dump real
 - Espaço de planejamento com especialistas (viagens, investimentos, compras altas)
-- Limpar `workspace_id`, `workspaces` e `user_subscriptions` do banco
 
 ## Aquisição
 
